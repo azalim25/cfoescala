@@ -1,0 +1,152 @@
+
+import React, { useState } from 'react';
+import { supabase } from '../supabase';
+import { useNavigate } from 'react-router-dom';
+
+const AuthPage: React.FC = () => {
+    const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isSignUp, setIsSignUp] = useState(false);
+    const [fullName, setFullName] = useState('');
+    const [firefighterNumber, setFirefighterNumber] = useState('');
+
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
+
+    const handleAuth = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+
+        // Internally we use the firefighter number as a pseudo-email and password
+        const internalEmail = `${firefighterNumber.replace(/\D/g, '')}@guarani.mil`;
+        const internalPassword = `BM-${firefighterNumber.replace(/\D/g, '')}-SECURE`;
+
+        try {
+            if (isSignUp) {
+                const { data, error: signUpError } = await supabase.auth.signUp({
+                    email: internalEmail,
+                    password: internalPassword,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                        }
+                    }
+                });
+
+                if (signUpError) throw signUpError;
+
+                if (data.user) {
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .insert([
+                            {
+                                id: data.user.id,
+                                name: fullName,
+                                firefighter_number: firefighterNumber
+                            }
+                        ]);
+
+                    if (profileError) console.error("Error creating profile:", profileError);
+
+                    alert("Cadastro realizado com sucesso! Você já pode acessar o sistema.");
+                    setIsSignUp(false);
+                }
+            } else {
+                const { error: signInError } = await supabase.auth.signInWithPassword({
+                    email: internalEmail,
+                    password: internalPassword,
+                });
+
+                if (signInError) throw signInError;
+                navigate('/');
+            }
+        } catch (err: any) {
+            setError(isSignUp ? 'Erro ao realizar cadastro. O número pode já estar em uso.' : 'Acesso negado. Verifique o Nome de Guerra e Número de Bombeiro.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-primary/30">
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px]"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px]"></div>
+            </div>
+
+            <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in duration-500">
+                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl">
+                    <div className="text-center mb-8">
+                        <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white mx-auto mb-4 shadow-xl shadow-primary/20 rotate-3">
+                            <span className="material-symbols-outlined text-3xl">shield</span>
+                        </div>
+                        <h1 className="text-3xl font-extrabold text-white tracking-tight">CFO • GUARANI</h1>
+                        <p className="text-slate-400 text-sm mt-2 font-medium">
+                            {isSignUp ? 'Crie sua conta no sistema' : 'Sistema de Gestão Militar'}
+                        </p>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl text-xs font-bold mb-6 animate-shake text-center">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleAuth} className="space-y-4">
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Nome de Guerra</label>
+                            <input
+                                type="text"
+                                required
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                placeholder="Ex: Sgt. Smith"
+                                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Número de Bombeiro</label>
+                            <input
+                                type="text"
+                                required
+                                value={firefighterNumber}
+                                onChange={(e) => setFirefighterNumber(e.target.value)}
+                                placeholder="Ex: 123.456"
+                                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none mt-4 text-sm uppercase tracking-widest"
+                        >
+                            {loading ? 'Aguarde...' : isSignUp ? 'Criar Cadastro' : 'Acessar Sistema'}
+                        </button>
+                    </form>
+
+                    <div className="mt-8 text-center text-sm">
+                        <p className="text-slate-500">
+                            {isSignUp ? 'Já possui cadastro?' : 'Novo bombeiro na unidade?'}
+                            <button
+                                onClick={() => setIsSignUp(!isSignUp)}
+                                className="text-primary font-bold ml-2 hover:underline decoration-2 underline-offset-4"
+                            >
+                                {isSignUp ? 'Fazer Login' : 'Cadastrar-se'}
+                            </button>
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-8 flex justify-center items-center gap-6 grayscale opacity-50 grayscale-0 pointer-events-none">
+                    <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em]">Exército Brasileiro • 2026</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default AuthPage;
