@@ -15,7 +15,7 @@ const GenerateScalePage: React.FC = () => {
     const [generationMode, setGenerationMode] = useState<'auto' | 'manual'>('auto');
     const [selectedMilitary, setSelectedMilitary] = useState<Military | null>(militaries[0] || null);
     const [impediments, setImpediments] = useState<Record<string, string[]>>({}); // militaryId -> dates[]
-    const [manualAssignments, setManualAssignments] = useState<Record<string, string>>({}); // dateStr -> militaryId
+    const [manualAssignments, setManualAssignments] = useState<Record<string, Array<{ militaryId: string, type: Shift['type'] }>>>({}); // dateStr -> Array of assignments
     const [selectedLocation, setSelectedLocation] = useState<string>('QCG');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedPreview, setGeneratedPreview] = useState<Array<{ date: string, militaryName: string }>>([]);
@@ -41,10 +41,34 @@ const GenerateScalePage: React.FC = () => {
         }
     };
 
-    const handleManualAssign = (date: string, militaryId: string) => {
+    const handleManualAssign = (date: string, index: number, field: 'militaryId' | 'type', value: string) => {
+        const current = manualAssignments[date] || [];
+        const updated = [...current];
+        if (!updated[index]) {
+            updated[index] = { militaryId: '', type: 'Escala Geral' };
+        }
+        updated[index] = { ...updated[index], [field]: value };
+
         setManualAssignments({
             ...manualAssignments,
-            [date]: militaryId
+            [date]: updated
+        });
+    };
+
+    const addManualSlot = (date: string) => {
+        const current = manualAssignments[date] || [];
+        setManualAssignments({
+            ...manualAssignments,
+            [date]: [...current, { militaryId: '', type: 'Escala Geral' }]
+        });
+    };
+
+    const removeManualSlot = (date: string, index: number) => {
+        const current = manualAssignments[date] || [];
+        const updated = current.filter((_, i) => i !== index);
+        setManualAssignments({
+            ...manualAssignments,
+            [date]: updated
         });
     };
 
@@ -149,19 +173,21 @@ const GenerateScalePage: React.FC = () => {
             const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
             for (let i = 1; i <= totalDays; i++) {
                 const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
-                const mId = manualAssignments[dateStr];
-                if (mId) {
-                    shiftsToPublish.push({
-                        id: `man-${Date.now()}-${i}`,
-                        militaryId: mId,
-                        date: dateStr,
-                        type: 'Escala Geral',
-                        startTime: '08:00',
-                        endTime: '08:00',
-                        location: selectedLocation,
-                        status: 'Confirmado' as const
-                    });
-                }
+                const assignments = manualAssignments[dateStr] || [];
+                assignments.forEach((assign, idx) => {
+                    if (assign.militaryId) {
+                        shiftsToPublish.push({
+                            id: `man-${Date.now()}-${i}-${idx}`,
+                            militaryId: assign.militaryId,
+                            date: dateStr,
+                            type: assign.type,
+                            startTime: '08:00',
+                            endTime: '08:00',
+                            location: selectedLocation,
+                            status: 'Confirmado' as const
+                        });
+                    }
+                });
             }
             if (shiftsToPublish.length === 0) {
                 alert('Atribua pelo menos um militar em algum dia.');
@@ -370,36 +396,52 @@ const GenerateScalePage: React.FC = () => {
                                                     </button>
                                                 );
                                             } else {
-                                                const assignedMId = manualAssignments[dateStr];
-                                                const assignedM = militaries.find(m => m.id === assignedMId);
+                                                const assignments = manualAssignments[dateStr] || [];
 
                                                 return (
-                                                    <div key={day} className="flex flex-col gap-1">
+                                                    <div key={day} className="flex flex-col gap-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
                                                         <div className="flex justify-between items-center px-1">
-                                                            <span className="text-[10px] font-bold text-slate-400">{day}</span>
-                                                            {assignedM && (
-                                                                <button
-                                                                    onClick={() => handleManualAssign(dateStr, '')}
-                                                                    className="text-[8px] text-red-500 hover:text-red-700"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-[10px]">close</span>
-                                                                </button>
-                                                            )}
+                                                            <span className="text-[10px] font-black text-primary">{day}</span>
+                                                            <button
+                                                                onClick={() => addManualSlot(dateStr)}
+                                                                className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-black hover:bg-primary hover:text-white transition-all"
+                                                            >
+                                                                + Add
+                                                            </button>
                                                         </div>
-                                                        <select
-                                                            value={assignedMId || ''}
-                                                            onChange={(e) => handleManualAssign(dateStr, e.target.value)}
-                                                            className={`w-full h-8 text-[9px] font-bold rounded-lg border focus:ring-1 focus:ring-primary outline-none transition-colors ${assignedMId
-                                                                ? 'bg-primary/10 border-primary text-primary'
-                                                                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'}`}
-                                                        >
-                                                            <option value="">Livre</option>
-                                                            {militaries.map(m => (
-                                                                <option key={m.id} value={m.id} className="text-slate-900 bg-white">
-                                                                    {m.name.split(' ')[0]}
-                                                                </option>
+                                                        <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar p-1">
+                                                            {assignments.map((assign, idx) => (
+                                                                <div key={idx} className="space-y-1 p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 relative group/slot">
+                                                                    <button
+                                                                        onClick={() => removeManualSlot(dateStr, idx)}
+                                                                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-opacity"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-[10px]">close</span>
+                                                                    </button>
+
+                                                                    <select
+                                                                        value={assign.militaryId}
+                                                                        onChange={(e) => handleManualAssign(dateStr, idx, 'militaryId', e.target.value)}
+                                                                        className="w-full h-7 text-[9px] font-bold rounded border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none"
+                                                                    >
+                                                                        <option value="">Selecione Militar</option>
+                                                                        {militaries.map(m => (
+                                                                            <option key={m.id} value={m.id}>{m.name.split(' ')[0]}</option>
+                                                                        ))}
+                                                                    </select>
+
+                                                                    <select
+                                                                        value={assign.type}
+                                                                        onChange={(e) => handleManualAssign(dateStr, idx, 'type', e.target.value as any)}
+                                                                        className="w-full h-7 text-[9px] font-bold rounded border bg-primary/5 border-primary/20 text-primary outline-none"
+                                                                    >
+                                                                        {Object.keys(SHIFT_TYPE_COLORS).map(type => (
+                                                                            <option key={type} value={type}>{type}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
                                                             ))}
-                                                        </select>
+                                                        </div>
                                                     </div>
                                                 );
                                             }
