@@ -235,52 +235,34 @@ const PersonalShiftPage: React.FC = () => {
               <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="px-6 py-4">Atividade</th>
-                  <th className="px-6 py-4">Horário/Tempo</th>
-                  <th className="px-6 py-4 text-right">Carga Horária</th>
+                  <th className="px-6 py-4 text-right">Quantidade / Carga Horária</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {/* Regular Shifts */}
-                {personalShifts.map(s => (
-                  <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                {groupedSummary.map((item, index) => (
+                  <tr key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{s.type}</span>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold">Serviço Escala</span>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'}`}></div>
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.type}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{s.startTime} - {s.endTime}</td>
                     <td className="px-6 py-4 text-right">
-                      <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded">
-                        {['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type) ? '1 Serviço' : `${calculateShiftHours(s)}h`}
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${item.totalHours > 0
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        }`}>
+                        {item.totalHours > 0
+                          ? `${item.totalHours.toFixed(1)}h`
+                          : `${item.totalServices} Serviço${item.totalServices !== 1 ? 's' : ''}`}
                       </span>
                     </td>
                   </tr>
                 ))}
 
-                {/* Extra Hours */}
-                {extraHours.map(e => (
-                  <tr key={e.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{e.category || 'Hora Extra'}</span>
-                        <span className="text-[10px] text-primary uppercase font-bold">{e.description || 'Atividade Extra'}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500">
-                      {e.hours}h {e.minutes}min
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-bold rounded">
-                        {(e.hours + e.minutes / 60).toFixed(1)}h
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-
-                {personalShifts.length === 0 && extraHours.length === 0 && (
+                {groupedSummary.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</td>
+                    <td colSpan={2} className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</td>
                   </tr>
                 )}
               </tbody>

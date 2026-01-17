@@ -222,6 +222,19 @@ const DashboardPage: React.FC = () => {
             })}
           </div>
         </div>
+
+        {/* Calendar Legend */}
+        <div className="mt-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Legenda de Escalas</h3>
+          <div className="flex flex-wrap gap-4">
+            {Object.entries(SHIFT_TYPE_COLORS).map(([type, colors]) => (
+              <div key={type} className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${colors.dot}`}></div>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{type}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </MainLayout.Content>
 
       <MainLayout.Sidebar>

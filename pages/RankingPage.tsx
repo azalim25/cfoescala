@@ -46,24 +46,38 @@ const RankingPage: React.FC = () => {
         fetchExtraHours();
     }, []);
 
-    const calculateShiftDuration = (start: string, end: string) => {
-        if (!start || !end) return 0;
-        const [h1, m1] = start.split(':').map(Number);
-        const [h2, m2] = end.split(':').map(Number);
-        let diff = (h2 + m2 / 60) - (h1 + m1 / 60);
-        if (diff <= 0) diff += 24;
-        return diff;
+    const parseLocalISO = (isoString: string) => {
+        const [year, month, day] = isoString.split('-').map(Number);
+        return new Date(year, month - 1, day);
     };
 
     const rankingData = useMemo(() => {
         return militaries.map(mil => {
             let totalHours = 0;
+            const separateCounts: Record<string, number> = {
+                'Sobreaviso': 0,
+                'Faxina': 0,
+                'Manutenção': 0
+            };
 
-            // 1. Calculate Shift Hours
+            // 1. Calculate Shift Hours & Counts
             const milShifts = shifts.filter(s => s.militaryId === mil.id);
             milShifts.forEach(s => {
-                if (selectedShiftTypes.includes(s.type)) {
-                    totalHours += calculateShiftDuration(s.startTime, s.endTime);
+                if (!selectedShiftTypes.includes(s.type)) return;
+
+                const date = parseLocalISO(s.date);
+                const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ...
+
+                if (s.type === 'Comandante da Guarda') {
+                    // Seg-Sex = 11h, Sáb/Dom = 24h
+                    if (dayOfWeek >= 1 && dayOfWeek <= 5) totalHours += 11;
+                    else totalHours += 24;
+                } else if (s.type === 'Estágio') {
+                    // Sáb = 24h, Dom = 12h
+                    if (dayOfWeek === 6) totalHours += 24;
+                    else if (dayOfWeek === 0) totalHours += 12;
+                } else if (['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)) {
+                    separateCounts[s.type] = (separateCounts[s.type] || 0) + 1;
                 }
             });
 
@@ -77,7 +91,8 @@ const RankingPage: React.FC = () => {
 
             return {
                 ...mil,
-                totalHours
+                totalHours,
+                separateCounts
             };
         }).sort((a, b) => b.totalHours - a.totalHours);
     }, [militaries, shifts, extraHours, selectedShiftTypes, selectedExtraHighCategories]);
@@ -106,7 +121,6 @@ const RankingPage: React.FC = () => {
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tipos de Escala</label>
                             <div className="flex flex-wrap gap-2">
-                                {/* "Select All" Logic could be added, but manual toggles are fine for now */}
                                 {allShiftTypes.map(type => {
                                     const isSelected = selectedShiftTypes.includes(type);
                                     const colors = SHIFT_TYPE_COLORS[type] || SHIFT_TYPE_COLORS['Escala Geral'];
@@ -146,12 +160,15 @@ const RankingPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                    <table className="w-full text-left">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden overflow-x-auto">
+                    <table className="w-full text-left min-w-[800px]">
                         <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
                             <tr>
                                 <th className="px-6 py-4 w-16 text-center">#</th>
                                 <th className="px-6 py-4">Militar</th>
+                                <th className="px-4 py-4 text-center">Sobreaviso</th>
+                                <th className="px-4 py-4 text-center">Faxina</th>
+                                <th className="px-4 py-4 text-center">Manutenção</th>
                                 <th className="px-6 py-4 text-right">Total de Horas</th>
                             </tr>
                         </thead>
@@ -160,9 +177,9 @@ const RankingPage: React.FC = () => {
                                 <tr key={mil.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                                     <td className="px-6 py-4 text-center">
                                         <span className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-xs font-bold ${index === 0 ? 'bg-yellow-100 text-yellow-700' :
-                                                index === 1 ? 'bg-slate-100 text-slate-700' :
-                                                    index === 2 ? 'bg-orange-100 text-orange-800' :
-                                                        'text-slate-500'
+                                            index === 1 ? 'bg-slate-100 text-slate-700' :
+                                                index === 2 ? 'bg-orange-100 text-orange-800' :
+                                                    'text-slate-500'
                                             }`}>
                                             {index + 1}
                                         </span>
@@ -177,6 +194,27 @@ const RankingPage: React.FC = () => {
                                                 <p className="text-[10px] text-slate-500 font-bold uppercase">{mil.battalion} • {mil.firefighterNumber}</p>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="px-4 py-4 text-center">
+                                        {mil.separateCounts['Sobreaviso'] > 0 && (
+                                            <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-100">
+                                                {mil.separateCounts['Sobreaviso']}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-4 text-center">
+                                        {mil.separateCounts['Faxina'] > 0 && (
+                                            <span className="px-2 py-1 bg-cyan-50 text-cyan-700 rounded text-xs font-bold border border-cyan-100">
+                                                {mil.separateCounts['Faxina']}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-4 text-center">
+                                        {mil.separateCounts['Manutenção'] > 0 && (
+                                            <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-bold border border-emerald-100">
+                                                {mil.separateCounts['Manutenção']}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="inline-flex flex-col items-end">
