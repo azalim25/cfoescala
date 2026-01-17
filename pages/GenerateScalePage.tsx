@@ -4,6 +4,7 @@ import MainLayout from '../components/MainLayout';
 import { Military, Shift } from '../types';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
+import { SHIFT_TYPE_COLORS } from '../constants';
 
 const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
@@ -56,23 +57,67 @@ const GenerateScalePage: React.FC = () => {
             let militaryIndex = 0;
 
             for (let i = 1; i <= totalDays; i++) {
+                const date = new Date(currentYear, currentMonth, i);
+                const dayOfWeek = date.getDay(); // 0 = Sun, 1 = Mon, ...
                 const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
 
-                let found = false;
-                let attempts = 0;
-                while (!found && attempts < militaries.length) {
-                    const m = militaries[(militaryIndex + attempts) % militaries.length];
-                    const isImpeded = impediments[m.id]?.includes(dateStr);
-                    if (!isImpeded) {
-                        preview.push({ date: dateStr, militaryName: `${m.rank} ${m.name}` });
-                        militaryIndex = (militaryIndex + attempts + 1) % militaries.length;
-                        found = true;
-                    }
-                    attempts++;
+                // Requirement definition
+                let requirements: Array<{ type: Shift['type'], count: number }> = [];
+
+                if (dayOfWeek === 1 || dayOfWeek === 3) { // Seg/Qua
+                    requirements = [
+                        { type: 'Comandante da Guarda', count: 1 },
+                        { type: 'Sobreaviso', count: 1 },
+                        { type: 'Faxina', count: 3 },
+                        { type: 'Manutenção', count: 6 }
+                    ];
+                } else if (dayOfWeek === 2 || dayOfWeek === 4 || dayOfWeek === 5) { // Ter/Qui/Sex
+                    requirements = [
+                        { type: 'Comandante da Guarda', count: 1 },
+                        { type: 'Sobreaviso', count: 1 },
+                        { type: 'Faxina', count: 3 }
+                    ];
+                } else { // Sáb/Dom
+                    requirements = [
+                        { type: 'Comandante da Guarda', count: 1 },
+                        { type: 'Sobreaviso', count: 1 },
+                        { type: 'Estágio', count: 2 }
+                    ];
                 }
 
-                if (!found) {
-                    preview.push({ date: dateStr, militaryName: 'SEM EFETIVO DISPONÍVEL' });
+                // Distribution for current day
+                for (const req of requirements) {
+                    for (let c = 0; c < req.count; c++) {
+                        let found = false;
+                        let attempts = 0;
+                        while (!found && attempts < militaries.length) {
+                            const m = militaries[(militaryIndex) % militaries.length];
+                            militaryIndex++; // Round-robin pointer
+
+                            const isImpeded = impediments[m.id]?.includes(dateStr);
+                            // Avoid same military twice on same day
+                            const alreadyAssignedThisDay = preview.some(p => p.date === dateStr && p.militaryName === `${m.rank} ${m.name}`);
+
+                            if (!isImpeded && !alreadyAssignedThisDay) {
+                                preview.push({
+                                    date: dateStr,
+                                    militaryName: `${m.rank} ${m.name}`,
+                                    // @ts-ignore - temporary type injection for preview table
+                                    type: req.type
+                                });
+                                found = true;
+                            }
+                            attempts++;
+                        }
+                        if (!found) {
+                            preview.push({
+                                date: dateStr,
+                                militaryName: 'SEM EFETIVO DISPONÍVEL',
+                                // @ts-ignore
+                                type: req.type
+                            });
+                        }
+                    }
                 }
             }
 
@@ -94,7 +139,7 @@ const GenerateScalePage: React.FC = () => {
                 id: `gen-${Date.now()}-${idx}`,
                 militaryId: militaries.find(m => `${m.rank} ${m.name}` === p.militaryName)?.id || '',
                 date: p.date,
-                type: 'Escala Geral',
+                type: (p as any).type || 'Escala Geral',
                 startTime: '08:00',
                 endTime: '08:00',
                 location: selectedLocation,
@@ -434,8 +479,8 @@ const GenerateScalePage: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <span className="px-2.5 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded uppercase border border-primary/20">
-                                                    Escala Geral
+                                                <span className={`px-2.5 py-0.5 ${(p as any).type ? (SHIFT_TYPE_COLORS[(p as any).type]?.bg || 'bg-primary/10') : 'bg-primary/10'} ${(p as any).type ? (SHIFT_TYPE_COLORS[(p as any).type]?.text || 'text-primary') : 'text-primary'} text-[10px] font-black rounded uppercase border ${(p as any).type ? (SHIFT_TYPE_COLORS[(p as any).type]?.border || 'border-primary/20') : 'border-primary/20'}`}>
+                                                    {(p as any).type || 'Escala Geral'}
                                                 </span>
                                             </td>
                                         </tr>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import MainLayout from '../components/MainLayout';
-import { MOCK_SHIFTS } from '../constants';
+import { MOCK_SHIFTS, SHIFT_TYPE_COLORS } from '../constants';
 import { useShift } from '../contexts/ShiftContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 
@@ -125,11 +125,14 @@ const DashboardPage: React.FC = () => {
                     {shifts.length > 0 && <span className="w-1.5 h-1.5 rounded-full bg-primary font-black uppercase text-[8px] text-primary"></span>}
                   </div>
                   <div className="space-y-1">
-                    {shifts.map(s => (
-                      <div key={s.id} className="text-[9px] font-bold p-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 truncate border border-blue-200 dark:border-blue-800">
-                        {militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}
-                      </div>
-                    ))}
+                    {shifts.map(s => {
+                      const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
+                      return (
+                        <div key={s.id} className={`text-[9px] font-bold p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border}`}>
+                          {militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}
+                        </div>
+                      );
+                    })}
                   </div>
                 </button>
               );
@@ -161,18 +164,24 @@ const DashboardPage: React.FC = () => {
               {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).map(s => {
                 const m = militaries.find(mil => mil.id === s.militaryId);
                 return (
-                  <div key={s.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-4 shadow-sm">
-                    <div className="flex items-start justify-between">
+                  <div key={s.id} className={`bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-4 space-y-4 shadow-sm relative overflow-hidden`}>
+                    <div className="flex items-start justify-between relative z-10">
                       <div className="flex gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
                           <span className="material-symbols-outlined text-xl">person</span>
                         </div>
                         <div>
-                          <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-none">{m?.rank} {m?.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-none">{m?.rank} {m?.name}</h3>
+                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-slate-100'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-slate-600'} border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'}`}>
+                              {s.type}
+                            </span>
+                          </div>
                           <p className="text-[11px] text-slate-500 mt-1 uppercase">BM: {m?.firefighterNumber}</p>
                         </div>
                       </div>
                     </div>
+                    <div className={`absolute top-0 right-0 w-1 h-full ${SHIFT_TYPE_COLORS[s.type]?.dot || 'bg-slate-200'}`}></div>
                   </div>
                 )
               })}

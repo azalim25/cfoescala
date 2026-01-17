@@ -15,7 +15,7 @@ export interface Military {
 export interface Shift {
   id: string;
   date: string;
-  type: string;
+  type: 'Comandante da Guarda' | 'Faxina' | 'Manutenção' | 'Estágio' | 'Sobreaviso' | 'Escala Geral';
   startTime: string;
   endTime: string;
   location?: string;

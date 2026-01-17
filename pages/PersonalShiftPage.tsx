@@ -6,6 +6,7 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { supabase } from '../supabase';
 import { Shift } from '../types';
+import { SHIFT_TYPE_COLORS } from '../constants';
 
 interface ExtraHourRecord {
   id: string;
@@ -55,14 +56,28 @@ const PersonalShiftPage: React.FC = () => {
 
   const personalShifts = allShifts.filter(s => s.militaryId === selectedMilitaryId);
 
-  // Helper to calculate hours from a shift
+  // Helper to calculate hours from a shift based on specific rules
   const calculateShiftHours = (shift: Shift) => {
-    if (shift.startTime === shift.endTime) return 24;
-    const [startH, startM] = shift.startTime.split(':').map(Number);
-    const [endH, endM] = shift.endTime.split(':').map(Number);
-    let diff = (endH * 60 + endM) - (startH * 60 + startM);
-    if (diff < 0) diff += 24 * 60; // Handle overnight shifts
-    return diff / 60;
+    const date = new Date(shift.date);
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ...
+
+    if (shift.type === 'Comandante da Guarda') {
+      // Comandante da guarda de segunda a sexta conta como 11 horas de serviço
+      // Comandante da guarda sábado e domingo conta como 24 horas de serviço
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) return 11;
+      return 24;
+    }
+
+    if (shift.type === 'Estágio') {
+      // Estágio no sábado conta como 24 horas de serviço
+      // Estágio no domingo conta como 12 horas de serviço
+      if (dayOfWeek === 6) return 24;
+      if (dayOfWeek === 0) return 12;
+      return 0; // Estágio theoretically only happens on weekends per requirement
+    }
+
+    // Sobreaviso, faxina e manutenção quantifique a quantidade de serviços prestados e não em horas.
+    return 0;
   };
 
   // Sections
@@ -73,6 +88,10 @@ const PersonalShiftPage: React.FC = () => {
   const totalShiftHours = personalShifts.reduce((acc, s) => acc + calculateShiftHours(s), 0);
   const totalExtraHours = extraHours.reduce((acc, e) => acc + (e.hours + e.minutes / 60), 0);
   const totalWorkload = totalShiftHours + totalExtraHours;
+
+  const totalOtherServices = personalShifts.filter(s =>
+    ['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)
+  ).length;
 
   const handleExport = () => {
     const headers = ['Data', 'Tipo', 'Início', 'Fim', 'Local', 'Status'].join(',');
@@ -151,7 +170,7 @@ const PersonalShiftPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase border border-blue-100 dark:border-blue-800">
+                      <span className={`px-2.5 py-0.5 rounded-md ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-blue-700'} text-[10px] font-bold uppercase border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-blue-100'}`}>
                         {s.type}
                       </span>
                     </td>
@@ -202,7 +221,7 @@ const PersonalShiftPage: React.FC = () => {
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">{s.startTime} - {s.endTime}</td>
                     <td className="px-6 py-4 text-right">
                       <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded">
-                        {calculateShiftHours(s)}h
+                        {['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type) ? '1 Serviço' : `${calculateShiftHours(s)}h`}
                       </span>
                     </td>
                   </tr>
@@ -299,6 +318,10 @@ const PersonalShiftPage: React.FC = () => {
                   <span>Reg. Horas:</span>
                   <span>{totalExtraHours.toFixed(1)}h</span>
                 </div>
+                <div className="flex justify-between items-center text-[10px] text-white/70 font-bold uppercase tracking-tight pt-2 border-t border-white/10">
+                  <span>Outros Serviços:</span>
+                  <span>{totalOtherServices} Un</span>
+                </div>
               </div>
             </div>
             <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl text-white/10 rotate-12 pointer-events-none">history</span>
@@ -306,14 +329,16 @@ const PersonalShiftPage: React.FC = () => {
 
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Legenda</h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                <span className="text-xs text-slate-600 dark:text-slate-400">Serviço de Escala</span>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(SHIFT_TYPE_COLORS).map(([type, colors]) => (
+                <div key={type} className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${colors.dot}`}></div>
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate">{type}</span>
+                </div>
+              ))}
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-primary"></div>
-                <span className="text-xs text-slate-600 dark:text-slate-400">Atividade Extra</span>
+                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">Atividade Extra</span>
               </div>
             </div>
           </div>
