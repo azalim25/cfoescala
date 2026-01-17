@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import MainLayout from '../components/MainLayout';
-import { MOCK_SHIFTS, MOCK_MILITARY } from '../constants';
+import { MOCK_SHIFTS } from '../constants';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 

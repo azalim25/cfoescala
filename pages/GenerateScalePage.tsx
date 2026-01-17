@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/MainLayout';
-import { MOCK_MILITARY } from '../constants';
-import { Military, Rank } from '../types';
-import { optimizeScale } from '../geminiService';
+import { Military, Shift } from '../types';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
-import { Shift } from '../types';
 
 const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
     const { militaries } = useMilitary();
     const { addShifts } = useShift();
+    const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
+    const [currentYear, setCurrentYear] = useState(2026);
     const [selectedMilitary, setSelectedMilitary] = useState<Military | null>(militaries[0] || null);
     const [impediments, setImpediments] = useState<Record<string, string[]>>({}); // militaryId -> dates[]
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedPreview, setGeneratedPreview] = useState<Array<{ date: string, militaryName: string }>>([]);
+
+    const months = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
 
     const toggleDate = (date: string) => {
         if (!selectedMilitary) return;
@@ -35,15 +39,15 @@ const GenerateScalePage: React.FC = () => {
 
     const handleGenerate = async () => {
         setIsGenerating(true);
-        // Realistic simulation: simple round-robin skipping people with impediments
+        const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
         setTimeout(() => {
             const preview: Array<{ date: string, militaryName: string }> = [];
             let militaryIndex = 0;
 
-            for (let i = 1; i <= 31; i++) {
-                const dateStr = `2026-01-${i.toString().padStart(2, '0')}`;
+            for (let i = 1; i <= totalDays; i++) {
+                const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
 
-                // Find next available military (simple fallback logic)
                 let found = false;
                 let attempts = 0;
                 while (!found && attempts < militaries.length) {
@@ -86,12 +90,48 @@ const GenerateScalePage: React.FC = () => {
         navigate('/');
     };
 
-    const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+    const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const days = Array.from({ length: totalDays }, (_, i) => (i + 1).toString().padStart(2, '0'));
 
     return (
         <MainLayout activePage="generate">
             <MainLayout.Content>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-140px)]">
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                            <span className="material-symbols-outlined text-3xl">auto_awesome</span>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">Gerador de Escala</h1>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Configuração Automática • {months[currentMonth]} {currentYear}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-10 shadow-sm">
+                        <select
+                            value={currentMonth}
+                            onChange={(e) => {
+                                setCurrentMonth(parseInt(e.target.value));
+                                setGeneratedPreview([]);
+                            }}
+                            className="bg-transparent border-none focus:ring-0 cursor-pointer uppercase py-1.5 px-3 text-xs font-bold dark:text-white outline-none"
+                        >
+                            {months.map((m, i) => <option key={m} value={i} className="text-slate-900 bg-white">{m}</option>)}
+                        </select>
+                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700"></div>
+                        <select
+                            value={currentYear}
+                            onChange={(e) => {
+                                setCurrentYear(parseInt(e.target.value));
+                                setGeneratedPreview([]);
+                            }}
+                            className="bg-transparent border-none focus:ring-0 cursor-pointer py-1.5 px-3 text-xs font-bold dark:text-white outline-none"
+                        >
+                            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y} className="text-slate-900 bg-white">{y}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-220px)]">
                     {/* Left Column: Military List */}
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden">
                         <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
@@ -99,7 +139,7 @@ const GenerateScalePage: React.FC = () => {
                                 <span className="material-symbols-outlined text-primary">groups</span> Lista de Militares
                             </h3>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                        <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
                             {militaries.map((m) => (
                                 <button
                                     key={m.id}
@@ -140,7 +180,7 @@ const GenerateScalePage: React.FC = () => {
                             </h3>
                         </div>
 
-                        <div className="flex-1 p-6 overflow-y-auto">
+                        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
                             {!selectedMilitary ? (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4">
                                     <span className="material-symbols-outlined text-6xl">person_search</span>
@@ -150,13 +190,13 @@ const GenerateScalePage: React.FC = () => {
                                 <div className="space-y-6">
                                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
                                         <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                                            Clique nos dias abaixo para marcar as datas em que o militar está <strong>impedido</strong> de ser escalado para serviço.
+                                            Clique nos dias abaixo para marcar as datas em que o militar está <strong>impedido</strong> de ser escalado para serviço em {months[currentMonth]}.
                                         </p>
                                     </div>
 
                                     <div className="grid grid-cols-7 gap-2">
                                         {days.map(day => {
-                                            const dateStr = `2026-01-${day}`;
+                                            const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day}`;
                                             const isSelected = impediments[selectedMilitary.id]?.includes(dateStr);
                                             return (
                                                 <button
@@ -177,7 +217,7 @@ const GenerateScalePage: React.FC = () => {
                                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
                                         <button
                                             onClick={handleGenerate}
-                                            disabled={isGenerating}
+                                            disabled={isGenerating || militaries.length === 0}
                                             className="w-full flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-xl font-bold shadow-xl shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all select-none"
                                         >
                                             <span className="material-symbols-outlined text-lg">calendar_today</span>
@@ -211,7 +251,7 @@ const GenerateScalePage: React.FC = () => {
                                 </button>
                             </div>
                         </div>
-                        <div className="max-h-[400px] overflow-y-auto">
+                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
                             <table className="w-full text-left">
                                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
                                     <tr>

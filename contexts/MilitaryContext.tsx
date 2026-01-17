@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Military } from '../types';
-import { MOCK_MILITARY } from '../constants';
+import { supabase } from '../supabase';
 
 interface MilitaryContextType {
     militaries: Military[];
-    addMilitary: (military: Military) => void;
+    addMilitary: (military: Omit<Military, 'id'>) => void;
     updateMilitary: (military: Military) => void;
     deleteMilitary: (id: string) => void;
 }
@@ -12,18 +12,87 @@ interface MilitaryContextType {
 const MilitaryContext = createContext<MilitaryContextType | undefined>(undefined);
 
 export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [militaries, setMilitaries] = useState<Military[]>(MOCK_MILITARY);
+    const [militaries, setMilitaries] = useState<Military[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const addMilitary = (military: Military) => {
-        setMilitaries((prev) => [...prev, military]);
+    useEffect(() => {
+        fetchMilitaries();
+    }, []);
+
+    const fetchMilitaries = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('militaries')
+            .select('*')
+            .order('name', { ascending: true });
+
+        if (error) {
+            console.error('Erro ao buscar militares:', error);
+        } else if (data) {
+            // Map firefighter_number to firefighterNumber if necessary or update type
+            const mappedData: Military[] = data.map(m => ({
+                id: m.id,
+                name: m.name,
+                rank: m.rank,
+                firefighterNumber: m.firefighter_number,
+                contact: m.contact || '',
+                battalion: m.battalion || ''
+            }));
+            setMilitaries(mappedData);
+        }
+        setLoading(false);
     };
 
-    const updateMilitary = (military: Military) => {
-        setMilitaries((prev) => prev.map((m) => (m.id === military.id ? military : m)));
+    const addMilitary = async (military: Omit<Military, 'id'>) => {
+        const { data, error } = await supabase
+            .from('militaries')
+            .insert([{
+                name: military.name,
+                rank: military.rank,
+                firefighter_number: military.firefighterNumber,
+                contact: military.contact,
+                battalion: military.battalion
+            }])
+            .select();
+
+        if (error) {
+            console.error('Erro ao adicionar militar:', error);
+            alert('Erro ao adicionar militar: ' + error.message);
+        } else if (data) {
+            fetchMilitaries();
+        }
     };
 
-    const deleteMilitary = (id: string) => {
-        setMilitaries((prev) => prev.filter((m) => m.id !== id));
+    const updateMilitary = async (military: Military) => {
+        const { error } = await supabase
+            .from('militaries')
+            .update({
+                name: military.name,
+                rank: military.rank,
+                firefighter_number: military.firefighterNumber,
+                contact: military.contact,
+                battalion: military.battalion
+            })
+            .eq('id', military.id);
+
+        if (error) {
+            console.error('Erro ao atualizar militar:', error);
+        } else {
+            fetchMilitaries();
+        }
+    };
+
+    const deleteMilitary = async (id: string) => {
+        const { error } = await supabase
+            .from('militaries')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erro ao deletar militar:', error);
+        } else {
+            setMilitaries((prev) => prev.filter((m) => m.id !== id));
+        }
     };
 
     return (

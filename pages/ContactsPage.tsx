@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import MainLayout from '../components/MainLayout';
-import { MOCK_MILITARY } from '../constants';
 import { Military, Rank } from '../types';
 import { useMilitary } from '../contexts/MilitaryContext';
 
@@ -33,9 +32,12 @@ const ContactsPage: React.FC = () => {
       alert('Código de autorização incorreto!');
       return;
     }
-    const military: Military = {
-      ...newMilitary as Military,
-      id: Math.random().toString(36).substr(2, 9),
+    const military = {
+      name: newMilitary.name as string,
+      rank: newMilitary.rank as Rank,
+      firefighterNumber: newMilitary.firefighterNumber as string,
+      contact: newMilitary.contact as string,
+      battalion: newMilitary.battalion as string
     };
     addMilitary(military);
     setIsAdding(false);

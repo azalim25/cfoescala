@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import MainLayout from '../components/MainLayout';
-import { MOCK_SHIFTS, MOCK_MILITARY } from '../constants';
+import { MOCK_SHIFTS } from '../constants';
 import { useShift } from '../contexts/ShiftContext';
+import { useMilitary } from '../contexts/MilitaryContext';
 
 const DashboardPage: React.FC = () => {
   const { shifts: allShifts } = useShift();
+  const { militaries } = useMilitary();
   const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
   const [currentYear, setCurrentYear] = useState(2026);
   const [selectedDay, setSelectedDay] = useState(2); // Default to 2nd day
@@ -125,7 +127,7 @@ const DashboardPage: React.FC = () => {
                   <div className="space-y-1">
                     {shifts.map(s => (
                       <div key={s.id} className="text-[9px] font-bold p-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 truncate border border-blue-200 dark:border-blue-800">
-                        {MOCK_MILITARY.find(m => m.id === s.militaryId)?.name.split(' ')[0]}
+                        {militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}
                       </div>
                     ))}
                   </div>
@@ -157,7 +159,7 @@ const DashboardPage: React.FC = () => {
                 <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length})
               </div>
               {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).map(s => {
-                const m = MOCK_MILITARY.find(mil => mil.id === s.militaryId);
+                const m = militaries.find(mil => mil.id === s.militaryId);
                 return (
                   <div key={s.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-4 shadow-sm">
                     <div className="flex items-start justify-between">

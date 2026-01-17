@@ -1,40 +1,4 @@
-
-import { Military, Rank, Shift } from './types';
-
-export const MOCK_MILITARY: Military[] = [
-  {
-    id: '1',
-    name: 'ALEXANDRE BRAIT',
-    rank: Rank.CADETE,
-    firefighterNumber: '123.456',
-    contact: '+55 (11) 98765-4321',
-    battalion: 'Guarani'
-  },
-  {
-    id: '2',
-    name: 'JOÃO VASCONCELOS',
-    rank: Rank.CADETE,
-    firefighterNumber: '234.567',
-    contact: '+55 (11) 91234-5678',
-    battalion: 'Guarani'
-  },
-  {
-    id: '3',
-    name: 'EDISON SANTOS',
-    rank: Rank.CADETE,
-    firefighterNumber: '345.678',
-    contact: '+55 (11) 99887-7665',
-    battalion: 'Guarani'
-  },
-  {
-    id: '4',
-    name: 'MARCUS HOLLOWAY',
-    rank: Rank.CADETE,
-    firefighterNumber: '456.789',
-    contact: '+55 (11) 97777-8888',
-    battalion: 'Guarani'
-  }
-];
+import { Shift } from './types';
 
 export const MOCK_SHIFTS: Shift[] = [
   {
