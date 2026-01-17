@@ -1,19 +1,51 @@
 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
-import { MOCK_SHIFTS } from '../constants';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
+import { supabase } from '../supabase';
+import { Shift } from '../types';
+
+interface ExtraHourRecord {
+  id: string;
+  military_id: string;
+  hours: number;
+  minutes: number;
+  description: string;
+  date: string;
+  created_at: string;
+}
 
 const PersonalShiftPage: React.FC = () => {
   const { militaries } = useMilitary();
   const { shifts: allShifts } = useShift();
-  const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>(militaries[0]?.id || '4');
+  const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>(militaries[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
-  const [serviceFilter, setServiceFilter] = useState('');
+  const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
+  const [isLoadingExtra, setIsLoadingExtra] = useState(false);
 
   const selectedMilitary = militaries.find(m => m.id === selectedMilitaryId) || militaries[0];
+
+  useEffect(() => {
+    if (selectedMilitaryId) {
+      fetchExtraHours();
+    }
+  }, [selectedMilitaryId]);
+
+  const fetchExtraHours = async () => {
+    setIsLoadingExtra(true);
+    const { data, error } = await supabase
+      .from('extra_hours')
+      .select('*')
+      .eq('military_id', selectedMilitaryId)
+      .order('date', { ascending: false });
+
+    if (!error && data) {
+      setExtraHours(data);
+    }
+    setIsLoadingExtra(false);
+  };
 
   const filteredMilitary = militaries.filter(m =>
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -21,16 +53,29 @@ const PersonalShiftPage: React.FC = () => {
   );
 
   const personalShifts = allShifts.filter(s => s.militaryId === selectedMilitaryId);
-  const filteredShifts = personalShifts.filter(s =>
-    s.date.includes(serviceFilter) ||
-    s.type.toLowerCase().includes(serviceFilter.toLowerCase())
-  );
 
-  const totalHours = personalShifts.length * 24; // Assuming each shift is 24h
+  // Helper to calculate hours from a shift
+  const calculateShiftHours = (shift: Shift) => {
+    if (shift.startTime === shift.endTime) return 24;
+    const [startH, startM] = shift.startTime.split(':').map(Number);
+    const [endH, endM] = shift.endTime.split(':').map(Number);
+    let diff = (endH * 60 + endM) - (startH * 60 + startM);
+    if (diff < 0) diff += 24 * 60; // Handle overnight shifts
+    return diff / 60;
+  };
+
+  // Sections
+  const today = new Date().toISOString().split('T')[0];
+  const upcomingShifts = personalShifts.filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+
+  // Combined workloads
+  const totalShiftHours = personalShifts.reduce((acc, s) => acc + calculateShiftHours(s), 0);
+  const totalExtraHours = extraHours.reduce((acc, e) => acc + (e.hours + e.minutes / 60), 0);
+  const totalWorkload = totalShiftHours + totalExtraHours;
 
   const handleExport = () => {
-    const headers = ['Data', 'Tipo', 'Início', 'Fim', 'Status'].join(',');
-    const rows = filteredShifts.map(s => [s.date, s.type, s.startTime, s.endTime, s.status].join(','));
+    const headers = ['Data', 'Tipo', 'Início', 'Fim', 'Local', 'Status'].join(',');
+    const rows = personalShifts.map(s => [s.date, s.type, s.startTime, s.endTime, s.location || '-', s.status].join(','));
     const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -44,7 +89,7 @@ const PersonalShiftPage: React.FC = () => {
   return (
     <MainLayout activePage="personal">
       <MainLayout.Content>
-        {/* Header Section inside Content */}
+        {/* Header Section */}
         <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border-4 border-slate-200 dark:border-slate-800 shadow-sm">
@@ -77,12 +122,12 @@ const PersonalShiftPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Shifts Table Section */}
-        <section>
+        {/* Section: Próximos Serviços */}
+        <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">event_upcoming</span>
-              Serviços Escalados
+              Próximos Serviços
             </h2>
           </div>
 
@@ -93,14 +138,16 @@ const PersonalShiftPage: React.FC = () => {
                   <th className="px-6 py-4">Data</th>
                   <th className="px-6 py-4">Tipo de Serviço</th>
                   <th className="px-6 py-4">Horário</th>
-                  <th className="px-6 py-4 text-right">Status</th>
+                  <th className="px-6 py-4">Local</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredShifts.map(s => (
+                {upcomingShifts.map(s => (
                   <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
-                      <span className="text-sm font-extrabold text-slate-900 dark:text-white">{s.date}</span>
+                      <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        {new Date(s.date).toLocaleDateString('pt-BR')}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase border border-blue-100 dark:border-blue-800">
@@ -108,16 +155,92 @@ const PersonalShiftPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm font-bold text-primary">{s.startTime} - {s.endTime}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{s.location || '-'}</span>
+                    </td>
+                  </tr>
+                ))}
+                {upcomingShifts.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço agendado.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Section: Carga Horária (Atividades) */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">history</span>
+              Carga Horária (Atividades)
+            </h2>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden overflow-x-auto">
+            <table className="w-full text-left min-w-[700px]">
+              <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th className="px-6 py-4">Data</th>
+                  <th className="px-6 py-4">Atividade</th>
+                  <th className="px-6 py-4">Horário/Tempo</th>
+                  <th className="px-6 py-4 text-right">Carga Horária</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {/* Regular Shifts */}
+                {personalShifts.map(s => (
+                  <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {new Date(s.date).toLocaleDateString('pt-BR')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{s.type}</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold">Serviço Escala</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{s.startTime} - {s.endTime}</td>
                     <td className="px-6 py-4 text-right">
-                      <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] font-bold uppercase border border-green-200 dark:border-green-800">
-                        {s.status}
+                      <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded">
+                        {calculateShiftHours(s)}h
                       </span>
                     </td>
                   </tr>
                 ))}
-                {filteredShifts.length === 0 && (
+
+                {/* Extra Hours */}
+                {extraHours.map(e => (
+                  <tr key={e.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {new Date(e.date || e.created_at).toLocaleDateString('pt-BR')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{e.description}</span>
+                        <span className="text-[10px] text-primary uppercase font-bold">Hora Extra</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500">
+                      {e.hours}h {e.minutes}min
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-bold rounded">
+                        {(e.hours + e.minutes / 60).toFixed(1)}h
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+
+                {personalShifts.length === 0 && extraHours.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-10 text-center text-slate-400 italic text-sm">Nenhum registro encontrado para este militar.</td>
+                    <td colSpan={4} className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</td>
                   </tr>
                 )}
               </tbody>
@@ -167,13 +290,6 @@ const PersonalShiftPage: React.FC = () => {
                 )}
               </div>
             )}
-            {!searchTerm && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
-                <p className="text-[10px] text-blue-600 dark:text-blue-300 leading-tight">
-                  <span className="font-bold">Dica:</span> Digite acima para buscar escalas de outros militares da unidade.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Hours Widget */}
@@ -181,36 +297,33 @@ const PersonalShiftPage: React.FC = () => {
             <div className="relative z-10">
               <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Carga Horária Total</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold text-white tracking-tighter">{totalHours.toLocaleString('pt-BR')}</span>
+                <span className="text-4xl font-extrabold text-white tracking-tighter">{totalWorkload.toFixed(1)}</span>
                 <span className="text-sm font-bold text-white/80">HRS</span>
+              </div>
+              <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+                <div className="flex justify-between items-center text-[10px] text-white/70 font-bold uppercase tracking-tight">
+                  <span>Serviços:</span>
+                  <span>{totalShiftHours}h</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-white/70 font-bold uppercase tracking-tight">
+                  <span>Horas Extras:</span>
+                  <span>{totalExtraHours.toFixed(1)}h</span>
+                </div>
               </div>
             </div>
             <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl text-white/10 rotate-12 pointer-events-none">history</span>
-          </div>
-
-          {/* Filter Widget */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Filtrar Serviços</h3>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-              <input
-                className="w-full h-10 pl-10 pr-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm md:text-xs font-semibold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all outline-none dark:text-white"
-                placeholder="Buscar por mês ou tipo..."
-                type="text"
-                value={serviceFilter}
-                onChange={(e) => setServiceFilter(e.target.value)}
-              />
-            </div>
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Legenda</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-600 dark:text-slate-400">Serviço Escala Geral</span>
+                <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                <span className="text-xs text-slate-600 dark:text-slate-400">Serviço de Escala</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-400 italic text-[10px] mt-2 border-t border-slate-100 dark:border-slate-800 pt-2">
-                Escala baseada no calendário 2026.
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                <span className="text-xs text-slate-600 dark:text-slate-400">Atividade Extra</span>
               </div>
             </div>
           </div>

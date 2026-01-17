@@ -7,6 +7,7 @@ export const MOCK_SHIFTS: Shift[] = [
     type: 'Oficial de Dia',
     startTime: '08:00',
     endTime: '08:00',
+    location: '1º Batalhão',
     militaryId: '1',
     status: 'Confirmado'
   },
@@ -16,15 +17,17 @@ export const MOCK_SHIFTS: Shift[] = [
     type: 'Comandante da Guarda',
     startTime: '08:00',
     endTime: '08:00',
+    location: 'QCG',
     militaryId: '2',
     status: 'Confirmado'
   },
   {
     id: 's3',
-    date: '2026-01-03',
+    date: '2026-01-30',
     type: 'Patrulha Perímetro',
     startTime: '06:00',
     endTime: '18:00',
+    location: 'Esplanada',
     militaryId: '4',
     status: 'Confirmado'
   }

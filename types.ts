@@ -18,6 +18,7 @@ export interface Shift {
   type: string;
   startTime: string;
   endTime: string;
+  location?: string;
   militaryId: string;
   status: 'Confirmado' | 'Pendente' | 'Concluído';
 }
