@@ -19,6 +19,7 @@ const GenerateScalePage: React.FC = () => {
     const [selectedLocation, setSelectedLocation] = useState<string>('QCG');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedPreview, setGeneratedPreview] = useState<Array<{ date: string, militaryName: string }>>([]);
+    const [editingDay, setEditingDay] = useState<string | null>(null); // Date string for modal
 
     const months = [
         'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -287,58 +288,58 @@ const GenerateScalePage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-220px)]">
-                    {/* Left Column: Military List */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
-                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
-                                <span className="material-symbols-outlined text-primary">groups</span> Lista de Militares
-                            </h3>
-                            <span className="text-[10px] font-black text-slate-400 uppercase bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-                                {militaries.length} Total
-                            </span>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                            {militaries.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400">
-                                    <span className="material-symbols-outlined text-4xl mb-2">person_off</span>
-                                    <p className="text-xs font-medium italic">Nenhum militar cadastrado no banco.</p>
-                                </div>
-                            ) : (
-                                militaries.map((m) => (
-                                    <button
-                                        key={m.id}
-                                        onClick={() => setSelectedMilitary(m)}
-                                        className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${selectedMilitary?.id === m.id
-                                            ? 'bg-primary/10 border border-primary/20 ring-1 ring-primary/20'
-                                            : 'hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs border transition-colors ${selectedMilitary?.id === m.id ? 'bg-primary text-white border-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-                                                }`}>
-                                                {m.firefighterNumber.slice(-3)}
+                <div className={`grid grid-cols-1 ${generationMode === 'manual' ? '' : 'lg:grid-cols-2'} gap-6 h-[calc(100vh-220px)]`}>
+                    {/* Left Column: Military List (Hidden in Manual Mode) */}
+                    {generationMode === 'auto' && (
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden h-full max-h-[calc(100vh-140px)]">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
+                                    <span className="material-symbols-outlined text-primary">groups</span>
+                                    Efetivo Disponível
+                                </h3>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                                {militaries.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                                        <span className="material-symbols-outlined text-4xl mb-2">person_off</span>
+                                        <p className="text-xs font-medium italic">Nenhum militar cadastrado no banco.</p>
+                                    </div>
+                                ) : (
+                                    militaries.map((m) => (
+                                        <button
+                                            key={m.id}
+                                            onClick={() => setSelectedMilitary(m)}
+                                            className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${selectedMilitary?.id === m.id
+                                                ? 'bg-primary/10 border border-primary/20 ring-1 ring-primary/20'
+                                                : 'hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs border transition-colors ${selectedMilitary?.id === m.id ? 'bg-primary text-white border-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                                    }`}>
+                                                    {m.firefighterNumber.slice(-3)}
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className={`text-sm font-bold ${selectedMilitary?.id === m.id ? 'text-primary' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                        {m.rank} {m.name}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-500 uppercase tracking-tighter">Nº {m.firefighterNumber}</p>
+                                                </div>
                                             </div>
-                                            <div className="text-left">
-                                                <p className={`text-sm font-bold ${selectedMilitary?.id === m.id ? 'text-primary' : 'text-slate-700 dark:text-slate-200'}`}>
-                                                    {m.rank} {m.name}
-                                                </p>
-                                                <p className="text-[10px] text-slate-500 uppercase tracking-tighter">Nº {m.firefighterNumber}</p>
-                                            </div>
-                                        </div>
-                                        {impediments[m.id]?.length > 0 && (
-                                            <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[9px] font-black rounded-full border border-red-200 dark:border-red-800">
-                                                {impediments[m.id].length} OFF
-                                            </span>
-                                        )}
-                                    </button>
-                                ))
-                            )}
+                                            {impediments[m.id]?.length > 0 && (
+                                                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[9px] font-black rounded-full border border-red-200 dark:border-red-800">
+                                                    {impediments[m.id].length} OFF
+                                                </span>
+                                            )}
+                                        </button>
+                                    ))
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Right Column: Interaction Column (Impediments or Manual Creator) */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden h-[calc(100vh-140px)]">
                         <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
                                 <span className="material-symbols-outlined text-primary">
@@ -376,7 +377,7 @@ const GenerateScalePage: React.FC = () => {
                                         </p>
                                     </div>
 
-                                    <div className="grid grid-cols-7 gap-2">
+                                    <div className={`grid ${generationMode === 'manual' ? 'grid-cols-5 2xl:grid-cols-7' : 'grid-cols-7'} gap-2`}>
                                         {days.map(day => {
                                             const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day}`;
 
@@ -474,6 +475,109 @@ const GenerateScalePage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Manual Assignment Modal */}
+                {editingDay && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-primary">edit_calendar</span>
+                                        Editar Escala
+                                    </h3>
+                                    <p className="text-xs font-bold text-slate-500 uppercase">
+                                        {(() => {
+                                            const [year, month, day] = editingDay.split('-').map(Number);
+                                            return new Date(year, month - 1, day).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+                                        })()}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setEditingDay(null)}
+                                    className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+
+                            <div className="p-4 flex-1 overflow-y-auto custom-scrollbar space-y-3">
+                                {(manualAssignments[editingDay] || []).map((assign, idx) => (
+                                    <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 relative group animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                        <button
+                                            onClick={() => removeManualSlot(editingDay, idx)}
+                                            className="absolute -top-2 -right-2 w-6 h-6 bg-white dark:bg-slate-700 text-red-500 border border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center shadow-sm hover:bg-red-500 hover:text-white transition-all z-10"
+                                            title="Remover"
+                                        >
+                                            <span className="material-symbols-outlined text-xs">close</span>
+                                        </button>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Militar</label>
+                                                <select
+                                                    value={assign.militaryId}
+                                                    onChange={(e) => handleManualAssign(editingDay, idx, 'militaryId', e.target.value)}
+                                                    className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                >
+                                                    <option value="">Selecione...</option>
+                                                    {militaries.map(m => (
+                                                        <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tipo de Escala</label>
+                                                <select
+                                                    value={assign.type}
+                                                    onChange={(e) => handleManualAssign(editingDay, idx, 'type', e.target.value as any)}
+                                                    className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                >
+                                                    {Object.keys(SHIFT_TYPE_COLORS).map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400 pl-1">
+                                            <span className={`px-2 py-0.5 rounded-full ${SHIFT_TYPE_COLORS[assign.type]?.bg || 'bg-slate-200'} ${SHIFT_TYPE_COLORS[assign.type]?.text || 'text-slate-700'} font-bold`}>
+                                                {assign.type}
+                                            </span>
+                                            {assign.militaryId && (() => {
+                                                const m = militaries.find(mil => mil.id === assign.militaryId);
+                                                return m ? <span>{m.battalion}</span> : null;
+                                            })()}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {(manualAssignments[editingDay] || []).length === 0 && (
+                                    <div className="text-center py-8 text-slate-400">
+                                        <span className="material-symbols-outlined text-4xl mb-2 opacity-30">playlist_add</span>
+                                        <p className="text-xs font-medium">Nenhum militar escalado para este dia.</p>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => addManualSlot(editingDay)}
+                                    className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 font-bold hover:border-primary hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined">add</span>
+                                    Adicionar Militar
+                                </button>
+                            </div>
+
+                            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end">
+                                <button
+                                    onClick={() => setEditingDay(null)}
+                                    className="px-6 py-2 bg-primary text-white rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                                >
+                                    Concluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Preview Table Section - only for Auto mode */}
                 {generationMode === 'auto' && generatedPreview.length > 0 && (

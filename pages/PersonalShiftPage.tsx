@@ -56,9 +56,15 @@ const PersonalShiftPage: React.FC = () => {
 
   const personalShifts = allShifts.filter(s => s.militaryId === selectedMilitaryId);
 
+  // Helper to parse YYYY-MM-DD as local date to avoid timezone shifts
+  const parseLocalISO = (isoString: string) => {
+    const [year, month, day] = isoString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   // Helper to calculate hours from a shift based on specific rules
   const calculateShiftHours = (shift: Shift) => {
-    const date = new Date(shift.date);
+    const date = parseLocalISO(shift.date);
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ...
 
     if (shift.type === 'Comandante da Guarda') {
@@ -197,7 +203,7 @@ const PersonalShiftPage: React.FC = () => {
                   <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
                       <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        {new Date(s.date).toLocaleDateString('pt-BR')}
+                        {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
                       </span>
                     </td>
                     <td className="px-6 py-4">

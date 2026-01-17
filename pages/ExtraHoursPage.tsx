@@ -34,6 +34,15 @@ const ExtraHoursPage: React.FC = () => {
         'CFO II - Registro de Horas'
     ];
 
+    // Helper to parse YYYY-MM-DD as local date
+    const parseLocalISO = (isoString: string) => {
+        if (!isoString) return new Date();
+        const parts = isoString.split('T')[0].split('-');
+        if (parts.length < 3) return new Date(isoString);
+        const [year, month, day] = parts.map(Number);
+        return new Date(year, month - 1, day);
+    };
+
     const fetchRecords = async () => {
         setIsLoading(true);
         const { data, error } = await supabase
@@ -282,7 +291,7 @@ const ExtraHoursPage: React.FC = () => {
                                                                     {record.militaries?.rank} {record.militaries?.name}
                                                                 </p>
                                                                 <p className="text-[10px] text-slate-400 uppercase font-black">
-                                                                    {new Date(record.created_at).toLocaleDateString('pt-BR')}
+                                                                    {parseLocalISO(record.date || record.created_at).toLocaleDateString('pt-BR')}
                                                                 </p>
                                                             </div>
                                                         </div>
