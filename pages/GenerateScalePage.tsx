@@ -21,6 +21,8 @@ const GenerateScalePage: React.FC = () => {
 
     const [editingDay, setEditingDay] = useState<string | null>(null); // Date string for modal
 
+    const [generatedPreview, setGeneratedPreview] = useState<Array<{ date: string; militaryName: string; type?: Shift['type'] }>>([]); // Add missing state
+
     const months = [
         'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -78,7 +80,7 @@ const GenerateScalePage: React.FC = () => {
         const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
         setTimeout(() => {
-            const preview: Array<{ date: string, militaryName: string }> = [];
+            const preview: Array<{ date: string, militaryName: string; type?: Shift['type'] }> = [];
             let militaryIndex = 0;
 
             for (let i = 1; i <= totalDays; i++) {
@@ -127,7 +129,6 @@ const GenerateScalePage: React.FC = () => {
                                 preview.push({
                                     date: dateStr,
                                     militaryName: `${m.rank} ${m.name}`,
-                                    // @ts-ignore - temporary type injection for preview table
                                     type: req.type
                                 });
                                 found = true;
@@ -138,7 +139,6 @@ const GenerateScalePage: React.FC = () => {
                             preview.push({
                                 date: dateStr,
                                 militaryName: 'SEM EFETIVO DISPONÍVEL',
-                                // @ts-ignore
                                 type: req.type
                             });
                         }
@@ -148,7 +148,7 @@ const GenerateScalePage: React.FC = () => {
 
             setGeneratedPreview(preview);
             setIsGenerating(false);
-            alert('Sugestão de Escala Geral gerada com sucesso! Veja o rascunho abaixo.');
+            // alert('Sugestão de Escala Geral gerada com sucesso! Veja o rascunho abaixo.');
         }, 1500);
     };
 
@@ -164,7 +164,7 @@ const GenerateScalePage: React.FC = () => {
                 id: `gen-${Date.now()}-${idx}`,
                 militaryId: militaries.find(m => `${m.rank} ${m.name}` === p.militaryName)?.id || '',
                 date: p.date,
-                type: (p as any).type || 'Escala Geral',
+                type: p.type || 'Escala Geral',
                 startTime: '08:00',
                 endTime: '08:00',
                 location: selectedLocation,
@@ -190,10 +190,11 @@ const GenerateScalePage: React.FC = () => {
                     }
                 });
             }
-            if (shiftsToPublish.length === 0) {
-                alert('Atribua pelo menos um militar em algum dia.');
-                return;
-            }
+        }
+
+        if (shiftsToPublish.length === 0) {
+            alert('A escala está vazia. Verifique se há militares disponíveis/atribuídos.');
+            return;
         }
 
         addShifts(shiftsToPublish);
@@ -346,10 +347,18 @@ const GenerateScalePage: React.FC = () => {
                                     {generationMode === 'auto' ? 'event_busy' : 'edit_calendar'}
                                 </span>
                                 {generationMode === 'auto'
-                                    ? (selectedMilitary ? `Impedimentos de ${selectedMilitary.name}` : 'Selecione um Militar')
+                                    ? (generatedPreview.length > 0 ? 'Prévia da Escala Gerada' : (selectedMilitary ? `Impedimentos de ${selectedMilitary.name}` : 'Selecione um Militar'))
                                     : 'Montagem de Escala Manual'
                                 }
                             </h3>
+                            {generationMode === 'auto' && generatedPreview.length > 0 && (
+                                <button
+                                    onClick={() => setGeneratedPreview([])}
+                                    className="text-[10px] font-black text-red-500 uppercase hover:underline"
+                                >
+                                    Limpar Preview
+                                </button>
+                            )}
                             {generationMode === 'manual' && Object.keys(manualAssignments).length > 0 && (
                                 <button
                                     onClick={() => setManualAssignments({})}
@@ -361,7 +370,43 @@ const GenerateScalePage: React.FC = () => {
                         </div>
 
                         <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-                            {generationMode === 'auto' && !selectedMilitary ? (
+                            {generationMode === 'auto' && generatedPreview.length > 0 ? (
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-start gap-3">
+                                        <span className="material-symbols-outlined text-emerald-500">check_circle</span>
+                                        <div>
+                                            <h4 className="font-bold text-sm text-emerald-800 dark:text-emerald-300">Escala Gerada com Sucesso</h4>
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-400">Verifique a prévia abaixo e clique em "Publicar" para confirmar.</p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handlePublish}
+                                        className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">publish</span>
+                                        Publicar Escala Agora
+                                    </button>
+
+                                    <div className="space-y-2">
+                                        {generatedPreview.map((p, idx) => (
+                                            <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xs font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">
+                                                        {p.date.split('-')[2]}
+                                                    </span>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-800 dark:text-white">{p.militaryName}</p>
+                                                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${SHIFT_TYPE_COLORS[p.type || 'Escala Geral']?.bg}`}>
+                                                            {p.type}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : generationMode === 'auto' && !selectedMilitary ? (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4">
                                     <span className="material-symbols-outlined text-6xl opacity-20">person_search</span>
                                     <p className="font-medium text-sm">Selecione um militar à esquerda para gerenciar impedimentos</p>
@@ -457,7 +502,7 @@ const GenerateScalePage: React.FC = () => {
                                                 className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-xl font-bold shadow-xl shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all select-none active:scale-[0.98]"
                                             >
                                                 <span className="material-symbols-outlined text-lg">calendar_today</span>
-                                                Geral Prévia da Escala
+                                                Gerar Prévia da Escala
                                             </button>
                                         ) : (
                                             <button
@@ -470,6 +515,7 @@ const GenerateScalePage: React.FC = () => {
                                             </button>
                                         )}
                                     </div>
+
                                 </div>
                             )}
                         </div>
