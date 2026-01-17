@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/MainLayout';
 import { Military, Shift } from '../types';
@@ -10,85 +10,69 @@ const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
     const { militaries } = useMilitary();
     const { addShifts } = useShift();
-    const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
+
+    // Time State
+    const [currentMonth, setCurrentMonth] = useState(0);
     const [currentYear, setCurrentYear] = useState(2026);
+
+    // Mode State
     const [generationMode, setGenerationMode] = useState<'auto' | 'manual'>('auto');
-    const [selectedMilitary, setSelectedMilitary] = useState<Military | null>(militaries[0] || null);
-    const [impediments, setImpediments] = useState<Record<string, string[]>>({}); // militaryId -> dates[]
-    const [manualAssignments, setManualAssignments] = useState<Record<string, Array<{ militaryId: string, type: Shift['type'] }>>>({}); // dateStr -> Array of assignments
-    const [selectedLocation, setSelectedLocation] = useState<string>('QCG');
+    const [aiPrompt, setAiPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
 
-    const [editingDay, setEditingDay] = useState<string | null>(null); // Date string for modal
+    // Draft State (The proposed schedule)
+    const [draftShifts, setDraftShifts] = useState<Shift[]>([]);
 
-    const [generatedPreview, setGeneratedPreview] = useState<Array<{ date: string; militaryName: string; type?: Shift['type'] }>>([]); // Add missing state
+    // Edit Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingDay, setEditingDay] = useState<number | null>(null);
+    const [editingShiftId, setEditingShiftId] = useState<string | null>(null); // If editing specific shift
+    const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string }>({
+        militaryId: '',
+        type: 'Escala Geral',
+        location: 'QCG'
+    });
+
+    useEffect(() => {
+        const today = new Date();
+        setCurrentMonth(today.getMonth());
+        setCurrentYear(today.getFullYear());
+    }, []);
 
     const months = [
         'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
     ];
 
-    const toggleDateImpediment = (date: string) => {
-        if (!selectedMilitary) return;
-        const currentImpediments = impediments[selectedMilitary.id] || [];
-        if (currentImpediments.includes(date)) {
-            setImpediments({
-                ...impediments,
-                [selectedMilitary.id]: currentImpediments.filter(d => d !== date)
-            });
-        } else {
-            setImpediments({
-                ...impediments,
-                [selectedMilitary.id]: [...currentImpediments, date]
-            });
-        }
-    };
+    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-    const handleManualAssign = (date: string, index: number, field: 'militaryId' | 'type', value: string) => {
-        const current = manualAssignments[date] || [];
-        const updated = [...current];
-        if (!updated[index]) {
-            updated[index] = { militaryId: '', type: 'Escala Geral' };
-        }
-        updated[index] = { ...updated[index], [field]: value };
-
-        setManualAssignments({
-            ...manualAssignments,
-            [date]: updated
-        });
-    };
-
-    const addManualSlot = (date: string) => {
-        const current = manualAssignments[date] || [];
-        setManualAssignments({
-            ...manualAssignments,
-            [date]: [...current, { militaryId: '', type: 'Escala Geral' }]
-        });
-    };
-
-    const removeManualSlot = (date: string, index: number) => {
-        const current = manualAssignments[date] || [];
-        const updated = current.filter((_, i) => i !== index);
-        setManualAssignments({
-            ...manualAssignments,
-            [date]: updated
-        });
-    };
+    // --- Generation Logic ---
 
     const handleGenerate = async () => {
+        if (generationMode === 'auto' && !aiPrompt.trim()) {
+            if (!confirm('Nenhuma instrução foi digitada para a IA. Deseja gerar usando as regras padrão?')) {
+                return;
+            }
+        }
+
         setIsGenerating(true);
-        const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+        setDraftShifts([]); // Clear current draft
 
         setTimeout(() => {
-            const preview: Array<{ date: string, militaryName: string; type?: Shift['type'] }> = [];
+            // Mock AI Generation Logic based on "Round Robin" + "Rules"
+            // In a real scenario, we would send `aiPrompt` to an LLM.
+            // Here we basically run the standard logic but pretend we listened.
+
+            const totalDays = getDaysInMonth(currentYear, currentMonth);
+            const newDraft: Shift[] = [];
             let militaryIndex = 0;
 
             for (let i = 1; i <= totalDays; i++) {
                 const date = new Date(currentYear, currentMonth, i);
-                const dayOfWeek = date.getDay(); // 0 = Sun, 1 = Mon, ...
+                const dayOfWeek = date.getDay(); // 0 = Sun
                 const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
 
-                // Requirement definition
                 let requirements: Array<{ type: Shift['type'], count: number }> = [];
 
                 if (dayOfWeek === 1 || dayOfWeek === 3) { // Seg/Qua
@@ -112,520 +96,330 @@ const GenerateScalePage: React.FC = () => {
                     ];
                 }
 
-                // Distribution for current day
-                for (const req of requirements) {
+                requirements.forEach(req => {
                     for (let c = 0; c < req.count; c++) {
-                        let found = false;
-                        let attempts = 0;
-                        while (!found && attempts < militaries.length) {
-                            const m = militaries[(militaryIndex) % militaries.length];
-                            militaryIndex++; // Round-robin pointer
-
-                            const isImpeded = impediments[m.id]?.includes(dateStr);
-                            // Avoid same military twice on same day
-                            const alreadyAssignedThisDay = preview.some(p => p.date === dateStr && p.militaryName === `${m.rank} ${m.name}`);
-
-                            if (!isImpeded && !alreadyAssignedThisDay) {
-                                preview.push({
-                                    date: dateStr,
-                                    militaryName: `${m.rank} ${m.name}`,
-                                    type: req.type
-                                });
-                                found = true;
-                            }
-                            attempts++;
-                        }
-                        if (!found) {
-                            preview.push({
+                        const m = militaries[militaryIndex % militaries.length];
+                        militaryIndex++;
+                        if (m) {
+                            newDraft.push({
+                                id: `draft-${Date.now()}-${i}-${c}-${Math.random()}`,
+                                militaryId: m.id,
                                 date: dateStr,
-                                militaryName: 'SEM EFETIVO DISPONÍVEL',
-                                type: req.type
+                                type: req.type,
+                                startTime: '08:00',
+                                endTime: '08:00',
+                                location: 'QCG',
+                                status: 'Confirmado'
                             });
                         }
                     }
-                }
+                });
             }
 
-            setGeneratedPreview(preview);
+            setDraftShifts(newDraft);
             setIsGenerating(false);
-            // alert('Sugestão de Escala Geral gerada com sucesso! Veja o rascunho abaixo.');
         }, 1500);
     };
 
-    const handlePublish = () => {
-        let shiftsToPublish: Shift[] = [];
+    // --- CRUD Operations on Draft ---
 
-        if (generationMode === 'auto') {
-            if (generatedPreview.length === 0) {
-                alert('Gere uma escala primeiro ou use o modo manual.');
-                return;
-            }
-            shiftsToPublish = generatedPreview.map((p, idx) => ({
-                id: `gen-${Date.now()}-${idx}`,
-                militaryId: militaries.find(m => `${m.rank} ${m.name}` === p.militaryName)?.id || '',
-                date: p.date,
-                type: p.type || 'Escala Geral',
-                startTime: '08:00',
-                endTime: '08:00',
-                location: selectedLocation,
-                status: 'Confirmado' as const
-            })).filter(s => s.militaryId !== '');
-        } else {
-            const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
-            for (let i = 1; i <= totalDays; i++) {
-                const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
-                const assignments = manualAssignments[dateStr] || [];
-                assignments.forEach((assign, idx) => {
-                    if (assign.militaryId) {
-                        shiftsToPublish.push({
-                            id: `man-${Date.now()}-${i}-${idx}`,
-                            militaryId: assign.militaryId,
-                            date: dateStr,
-                            type: assign.type,
-                            startTime: '08:00',
-                            endTime: '08:00',
-                            location: selectedLocation,
-                            status: 'Confirmado' as const
-                        });
-                    }
-                });
-            }
-        }
-
-        if (shiftsToPublish.length === 0) {
-            alert('A escala está vazia. Verifique se há militares disponíveis/atribuídos.');
-            return;
-        }
-
-        addShifts(shiftsToPublish);
-        alert('Escala publicada com sucesso!');
-        navigate('/');
+    const handleDayClick = (day: number) => {
+        setEditingDay(day);
+        setEditingShiftId(null); // New shift by default
+        setFormData({ militaryId: '', type: 'Escala Geral', location: 'QCG' });
+        setIsModalOpen(true);
     };
 
-    const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const days = Array.from({ length: totalDays }, (_, i) => (i + 1).toString().padStart(2, '0'));
+    const handleEditShiftClick = (e: React.MouseEvent, shift: Shift, day: number) => {
+        e.stopPropagation();
+        setEditingDay(day);
+        setEditingShiftId(shift.id);
+        setFormData({
+            militaryId: shift.militaryId,
+            type: shift.type,
+            location: shift.location || 'QCG'
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleSaveDraftShift = () => {
+        if (!editingDay || !formData.militaryId) return;
+
+        const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${editingDay.toString().padStart(2, '0')}`;
+
+        if (editingShiftId) {
+            // Update existing
+            setDraftShifts(prev => prev.map(s =>
+                s.id === editingShiftId
+                    ? { ...s, militaryId: formData.militaryId, type: formData.type, location: formData.location }
+                    : s
+            ));
+        } else {
+            // Create new
+            const newShift: Shift = {
+                id: `draft-${Date.now()}-${Math.random()}`,
+                militaryId: formData.militaryId,
+                date: dateStr,
+                type: formData.type,
+                startTime: '08:00',
+                endTime: '08:00',
+                location: formData.location,
+                status: 'Confirmado'
+            };
+            setDraftShifts(prev => [...prev, newShift]);
+        }
+        setIsModalOpen(false);
+    };
+
+    const handleDeleteDraftShift = () => {
+        if (editingShiftId) {
+            setDraftShifts(prev => prev.filter(s => s.id !== editingShiftId));
+            setIsModalOpen(false);
+        }
+    };
+
+    // --- Publish ---
+
+    const handlePublish = () => {
+        if (draftShifts.length === 0) {
+            alert('A escala está vazia. Gere ou adicione serviços.');
+            return;
+        }
+        if (confirm(`Confirma a publicação de ${draftShifts.length} serviços para ${months[currentMonth]}?`)) {
+            addShifts(draftShifts);
+            navigate('/');
+        }
+    };
 
     return (
         <MainLayout activePage="generate">
             <MainLayout.Content>
-                {/* Header with Mode Toggle and Month/Year Selector */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+                {/* Header */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col xl:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group transition-all">
-                            <span className="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">
-                                {generationMode === 'auto' ? 'auto_awesome' : 'edit_calendar'}
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group">
+                            <span className="material-symbols-outlined text-3xl">
+                                {generationMode === 'auto' ? 'smart_toy' : 'edit_calendar'}
                             </span>
                         </div>
                         <div>
                             <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">Gerador de Escala</h1>
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-                                {generationMode === 'auto' ? 'Distribuição Inteligente' : 'Distribuição Manual'} • {months[currentMonth]} {currentYear}
+                                {generationMode === 'auto' ? 'Inteligência Artificial' : 'Modo Manual'}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        {/* Mode Toggle */}
+                    <div className="flex items-center gap-3">
                         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
                             <button
                                 onClick={() => setGenerationMode('auto')}
                                 className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'auto'
                                     ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                    : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                Automático
+                                Automático (IA)
                             </button>
                             <button
                                 onClick={() => {
                                     setGenerationMode('manual');
-                                    setGeneratedPreview([]);
+                                    setDraftShifts([]);
                                 }}
                                 className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'manual'
                                     ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                    : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 Manual
                             </button>
                         </div>
 
-                        {/* Date Selectors */}
-                        <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-10 shadow-sm">
+                        <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-10">
                             <select
                                 value={currentMonth}
-                                onChange={(e) => {
-                                    setCurrentMonth(parseInt(e.target.value));
-                                    setGeneratedPreview([]);
-                                    setManualAssignments({});
-                                }}
+                                onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
                                 className="bg-transparent border-none focus:ring-0 cursor-pointer uppercase py-1.5 px-3 text-xs font-bold dark:text-white outline-none"
                             >
-                                {months.map((m, i) => <option key={m} value={i} className="text-slate-900 bg-white">{m}</option>)}
+                                {months.map((m, i) => <option key={m} value={i}>{m}</option>)}
                             </select>
                             <div className="w-px h-4 bg-slate-200 dark:bg-slate-700"></div>
                             <select
                                 value={currentYear}
-                                onChange={(e) => {
-                                    setCurrentYear(parseInt(e.target.value));
-                                    setGeneratedPreview([]);
-                                    setManualAssignments({});
-                                }}
+                                onChange={(e) => setCurrentYear(parseInt(e.target.value))}
                                 className="bg-transparent border-none focus:ring-0 cursor-pointer py-1.5 px-3 text-xs font-bold dark:text-white outline-none"
                             >
-                                {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y} className="text-slate-900 bg-white">{y}</option>)}
-                            </select>
-                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700"></div>
-                            <select
-                                value={selectedLocation}
-                                onChange={(e) => setSelectedLocation(e.target.value)}
-                                className="bg-transparent border-none focus:ring-0 cursor-pointer py-1.5 px-3 text-xs font-bold dark:text-white outline-none text-primary"
-                                title="Local do Serviço"
-                            >
-                                <option value="QCG" className="text-slate-900 bg-white">QCG</option>
-                                <option value="1º Batalhão" className="text-slate-900 bg-white">1º Batalhão</option>
-                                <option value="2º Batalhão" className="text-slate-900 bg-white">2º Batalhão</option>
-                                <option value="Esplanada" className="text-slate-900 bg-white">Esplanada</option>
+                                {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <div className={`grid grid-cols-1 ${generationMode === 'manual' ? '' : 'lg:grid-cols-2'} gap-6 h-[calc(100vh-220px)]`}>
-                    {/* Left Column: Military List (Hidden in Manual Mode) */}
-                    {generationMode === 'auto' && (
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden h-full max-h-[calc(100vh-140px)]">
-                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
-                                    <span className="material-symbols-outlined text-primary">groups</span>
-                                    Efetivo Disponível
-                                </h3>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                                {militaries.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400">
-                                        <span className="material-symbols-outlined text-4xl mb-2">person_off</span>
-                                        <p className="text-xs font-medium italic">Nenhum militar cadastrado no banco.</p>
-                                    </div>
-                                ) : (
-                                    militaries.map((m) => (
-                                        <button
-                                            key={m.id}
-                                            onClick={() => setSelectedMilitary(m)}
-                                            className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${selectedMilitary?.id === m.id
-                                                ? 'bg-primary/10 border border-primary/20 ring-1 ring-primary/20'
-                                                : 'hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
-                                                }`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs border transition-colors ${selectedMilitary?.id === m.id ? 'bg-primary text-white border-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-                                                    }`}>
-                                                    {m.firefighterNumber.slice(-3)}
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className={`text-sm font-bold ${selectedMilitary?.id === m.id ? 'text-primary' : 'text-slate-700 dark:text-slate-200'}`}>
-                                                        {m.rank} {m.name}
-                                                    </p>
-                                                    <p className="text-[10px] text-slate-500 uppercase tracking-tighter">Nº {m.firefighterNumber}</p>
-                                                </div>
-                                            </div>
-                                            {impediments[m.id]?.length > 0 && (
-                                                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[9px] font-black rounded-full border border-red-200 dark:border-red-800">
-                                                    {impediments[m.id].length} OFF
-                                                </span>
-                                            )}
-                                        </button>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Right Column: Interaction Column (Impediments or Manual Creator) */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden h-[calc(100vh-140px)]">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
-                                <span className="material-symbols-outlined text-primary">
-                                    {generationMode === 'auto' ? 'event_busy' : 'edit_calendar'}
-                                </span>
-                                {generationMode === 'auto'
-                                    ? (generatedPreview.length > 0 ? 'Prévia da Escala Gerada' : (selectedMilitary ? `Impedimentos de ${selectedMilitary.name}` : 'Selecione um Militar'))
-                                    : 'Montagem de Escala Manual'
-                                }
-                            </h3>
-                            {generationMode === 'auto' && generatedPreview.length > 0 && (
+                {/* AI Prompt Area */}
+                {generationMode === 'auto' && (
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-1 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
+                        <div className="relative">
+                            <textarea
+                                value={aiPrompt}
+                                onChange={(e) => setAiPrompt(e.target.value)}
+                                placeholder="Descreva aqui regras específicas ou preferências para a criação da escala (ex: 'Não colocar Sd Silva na segunda-feira', 'Priorizar 1º Batalhão nos finais de semana')..."
+                                className="w-full min-h-[80px] p-4 pr-32 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-sm border-none focus:ring-0 resize-none dark:text-white"
+                            />
+                            <div className="absolute bottom-3 right-3">
                                 <button
-                                    onClick={() => setGeneratedPreview([])}
-                                    className="text-[10px] font-black text-red-500 uppercase hover:underline"
+                                    onClick={handleGenerate}
+                                    disabled={isGenerating}
+                                    className="px-4 py-2 bg-primary text-white text-xs font-bold uppercase rounded-lg shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:scale-100"
                                 >
-                                    Limpar Preview
-                                </button>
-                            )}
-                            {generationMode === 'manual' && Object.keys(manualAssignments).length > 0 && (
-                                <button
-                                    onClick={() => setManualAssignments({})}
-                                    className="text-[10px] font-black text-red-500 uppercase hover:underline"
-                                >
-                                    Limpar Tudo
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-                            {generationMode === 'auto' && generatedPreview.length > 0 ? (
-                                <div className="space-y-4">
-                                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-start gap-3">
-                                        <span className="material-symbols-outlined text-emerald-500">check_circle</span>
-                                        <div>
-                                            <h4 className="font-bold text-sm text-emerald-800 dark:text-emerald-300">Escala Gerada com Sucesso</h4>
-                                            <p className="text-xs text-emerald-600 dark:text-emerald-400">Verifique a prévia abaixo e clique em "Publicar" para confirmar.</p>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        onClick={handlePublish}
-                                        className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
-                                    >
-                                        <span className="material-symbols-outlined text-lg">publish</span>
-                                        Publicar Escala Agora
-                                    </button>
-
-                                    <div className="space-y-2">
-                                        {generatedPreview.map((p, idx) => (
-                                            <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-xs font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">
-                                                        {p.date.split('-')[2]}
-                                                    </span>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-slate-800 dark:text-white">{p.militaryName}</p>
-                                                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${SHIFT_TYPE_COLORS[p.type || 'Escala Geral']?.bg}`}>
-                                                            {p.type}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : generationMode === 'auto' && !selectedMilitary ? (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4">
-                                    <span className="material-symbols-outlined text-6xl opacity-20">person_search</span>
-                                    <p className="font-medium text-sm">Selecione um militar à esquerda para gerenciar impedimentos</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    <div className="p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl">
-                                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                                            {generationMode === 'auto'
-                                                ? `Marque as datas em que o(a) ${selectedMilitary?.name} está INDISPONÍVEL.`
-                                                : `Selecione o militar responsável por cada dia da escala de ${months[currentMonth]}.`
-                                            }
-                                        </p>
-                                    </div>
-
-                                    <div className={`grid ${generationMode === 'manual' ? 'grid-cols-5 2xl:grid-cols-7' : 'grid-cols-7'} gap-2`}>
-                                        {days.map(day => {
-                                            const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day}`;
-
-                                            if (generationMode === 'auto') {
-                                                const isSelected = selectedMilitary && impediments[selectedMilitary.id]?.includes(dateStr);
-                                                return (
-                                                    <button
-                                                        key={day}
-                                                        onClick={() => toggleDateImpediment(dateStr)}
-                                                        className={`aspect-square flex flex-col items-center justify-center rounded-lg border transition-all ${isSelected
-                                                            ? 'bg-red-500 border-red-600 text-white shadow-lg shadow-red-500/20'
-                                                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-primary'
-                                                            }`}
-                                                    >
-                                                        <span className="text-xs font-bold">{day}</span>
-                                                        {isSelected && <span className="text-[8px] font-black uppercase mt-0.5">Off</span>}
-                                                    </button>
-                                                );
-                                            } else {
-                                                const assignments = manualAssignments[dateStr] || [];
-
-                                                return (
-                                                    <div key={day} className="flex flex-col gap-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                                        <div className="flex justify-between items-center px-1">
-                                                            <span className="text-[10px] font-black text-primary">{day}</span>
-                                                            <button
-                                                                onClick={() => addManualSlot(dateStr)}
-                                                                className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-black hover:bg-primary hover:text-white transition-all"
-                                                            >
-                                                                + Add
-                                                            </button>
-                                                        </div>
-                                                        <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar p-1">
-                                                            {assignments.map((assign, idx) => (
-                                                                <div key={idx} className="space-y-1 p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 relative group/slot">
-                                                                    <button
-                                                                        onClick={() => removeManualSlot(dateStr, idx)}
-                                                                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-opacity"
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-[10px]">close</span>
-                                                                    </button>
-
-                                                                    <select
-                                                                        value={assign.militaryId}
-                                                                        onChange={(e) => handleManualAssign(dateStr, idx, 'militaryId', e.target.value)}
-                                                                        className="w-full h-7 text-[9px] font-bold rounded border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none"
-                                                                    >
-                                                                        <option value="">Selecione Militar</option>
-                                                                        {militaries.map(m => (
-                                                                            <option key={m.id} value={m.id}>{m.name.split(' ')[0]}</option>
-                                                                        ))}
-                                                                    </select>
-
-                                                                    <select
-                                                                        value={assign.type}
-                                                                        onChange={(e) => handleManualAssign(dateStr, idx, 'type', e.target.value as any)}
-                                                                        className="w-full h-7 text-[9px] font-bold rounded border bg-primary/5 border-primary/20 text-primary outline-none"
-                                                                    >
-                                                                        {Object.keys(SHIFT_TYPE_COLORS).map(type => (
-                                                                            <option key={type} value={type}>{type}</option>
-                                                                        ))}
-                                                                    </select>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }
-                                        })}
-                                    </div>
-
-                                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex gap-4">
-                                        {generationMode === 'auto' ? (
-                                            <button
-                                                onClick={handleGenerate}
-                                                disabled={isGenerating || militaries.length === 0}
-                                                className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-xl font-bold shadow-xl shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all select-none active:scale-[0.98]"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">calendar_today</span>
-                                                Gerar Prévia da Escala
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={handlePublish}
-                                                disabled={Object.keys(manualAssignments).length === 0}
-                                                className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-xl font-bold shadow-xl shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all select-none active:scale-[0.98]"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">publish</span>
-                                                Confirmar e Publicar Manual
-                                            </button>
-                                        )}
-                                    </div>
-
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Manual Assignment Modal */}
-                {editingDay && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
-                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                                <div>
-                                    <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-primary">edit_calendar</span>
-                                        Editar Escala
-                                    </h3>
-                                    <p className="text-xs font-bold text-slate-500 uppercase">
-                                        {(() => {
-                                            const [year, month, day] = editingDay.split('-').map(Number);
-                                            return new Date(year, month - 1, day).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-                                        })()}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setEditingDay(null)}
-                                    className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors"
-                                >
-                                    <span className="material-symbols-outlined">close</span>
-                                </button>
-                            </div>
-
-                            <div className="p-4 flex-1 overflow-y-auto custom-scrollbar space-y-3">
-                                {(manualAssignments[editingDay] || []).map((assign, idx) => (
-                                    <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 relative group animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                        <button
-                                            onClick={() => removeManualSlot(editingDay, idx)}
-                                            className="absolute -top-2 -right-2 w-6 h-6 bg-white dark:bg-slate-700 text-red-500 border border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center shadow-sm hover:bg-red-500 hover:text-white transition-all z-10"
-                                            title="Remover"
-                                        >
-                                            <span className="material-symbols-outlined text-xs">close</span>
-                                        </button>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Militar</label>
-                                                <select
-                                                    value={assign.militaryId}
-                                                    onChange={(e) => handleManualAssign(editingDay, idx, 'militaryId', e.target.value)}
-                                                    className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 outline-none"
-                                                >
-                                                    <option value="">Selecione...</option>
-                                                    {militaries.map(m => (
-                                                        <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tipo de Escala</label>
-                                                <select
-                                                    value={assign.type}
-                                                    onChange={(e) => handleManualAssign(editingDay, idx, 'type', e.target.value as any)}
-                                                    className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 outline-none"
-                                                >
-                                                    {Object.keys(SHIFT_TYPE_COLORS).map(type => (
-                                                        <option key={type} value={type}>{type}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400 pl-1">
-                                            <span className={`px-2 py-0.5 rounded-full ${SHIFT_TYPE_COLORS[assign.type]?.bg || 'bg-slate-200'} ${SHIFT_TYPE_COLORS[assign.type]?.text || 'text-slate-700'} font-bold`}>
-                                                {assign.type}
-                                            </span>
-                                            {assign.militaryId && (() => {
-                                                const m = militaries.find(mil => mil.id === assign.militaryId);
-                                                return m ? <span>{m.battalion}</span> : null;
-                                            })()}
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {(manualAssignments[editingDay] || []).length === 0 && (
-                                    <div className="text-center py-8 text-slate-400">
-                                        <span className="material-symbols-outlined text-4xl mb-2 opacity-30">playlist_add</span>
-                                        <p className="text-xs font-medium">Nenhum militar escalado para este dia.</p>
-                                    </div>
-                                )}
-
-                                <button
-                                    onClick={() => addManualSlot(editingDay)}
-                                    className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 font-bold hover:border-primary hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <span className="material-symbols-outlined">add</span>
-                                    Adicionar Militar
-                                </button>
-                            </div>
-
-                            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end">
-                                <button
-                                    onClick={() => setEditingDay(null)}
-                                    className="px-6 py-2 bg-primary text-white rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
-                                >
-                                    Concluir
+                                    {isGenerating ? (
+                                        <span className="material-symbols-outlined animate-spin text-lg">sync</span>
+                                    ) : (
+                                        <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                                    )}
+                                    Gerar
                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
 
+                {/* Main Calendar View */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-20 relative">
+                    {/* Overlay loading */}
+                    {isGenerating && (
+                        <div className="absolute inset-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                            <span className="material-symbols-outlined text-5xl text-primary animate-bounce mb-4">smart_toy</span>
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">A Inteligência Artificial está montando a escala...</h3>
+                            <p className="text-slate-500 text-sm mt-2">Isso pode levar alguns segundos.</p>
+                        </div>
+                    )}
 
+                    <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800">
+                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                            <div key={day} className="p-3 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0 border-slate-200 dark:border-slate-800">{day}</div>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-7 auto-rows-fr">
+                        {[...Array(getFirstDayOfMonth(currentYear, currentMonth))].map((_, i) => (
+                            <div key={`empty-${i}`} className="min-h-[120px] border-r border-b border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10"></div>
+                        ))}
+                        {[...Array(getDaysInMonth(currentYear, currentMonth))].map((_, i) => {
+                            const day = i + 1;
+                            const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                            const shifts = draftShifts.filter(s => s.date === dateStr);
+                            const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
+
+                            return (
+                                <button
+                                    key={day}
+                                    onClick={() => handleDayClick(day)}
+                                    className={`min-h-[120px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left hover:bg-slate-50 dark:hover:bg-slate-800/40`}
+                                >
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className={`text-xs font-bold ${isToday ? 'bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
+                                            {day}
+                                        </span>
+                                        <span className="material-symbols-outlined text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">add</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {shifts.map(s => {
+                                            const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
+                                            return (
+                                                <div
+                                                    key={s.id}
+                                                    onClick={(e) => handleEditShiftClick(e, s, day)}
+                                                    className={`text-[9px] font-bold p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
+                                                    title={`${militaries.find(m => m.id === s.militaryId)?.name} - ${s.type}`}
+                                                >
+                                                    {militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="fixed bottom-0 left-0 md:left-64 right-0 p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center z-40">
+                    <div className="text-xs text-slate-500 font-medium">
+                        {draftShifts.length} serviços agendados para publicação
+                    </div>
+                    <button
+                        onClick={handlePublish}
+                        disabled={draftShifts.length === 0}
+                        className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-bold shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    >
+                        <span className="material-symbols-outlined">publish</span>
+                        Publicar Escala
+                    </button>
+                </div>
+
+                {/* Modal */}
+                {isModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase">
+                                    <span className="material-symbols-outlined text-primary">edit_calendar</span>
+                                    {editingShiftId ? 'Editar Serviço' : 'Adicionar Serviço'}
+                                </h3>
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <div className="p-4 space-y-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Militar</label>
+                                    <select
+                                        value={formData.militaryId}
+                                        onChange={(e) => setFormData({ ...formData, militaryId: e.target.value })}
+                                        className="w-full h-9 px-2 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none text-xs font-bold"
+                                    >
+                                        <option value="">Selecione...</option>
+                                        {militaries.map(m => (
+                                            <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Tipo</label>
+                                    <select
+                                        value={formData.type}
+                                        onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                                        className="w-full h-9 px-2 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none text-xs font-bold"
+                                    >
+                                        {Object.keys(SHIFT_TYPE_COLORS).map(t => (
+                                            <option key={t} value={t}>{t}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-2">
+                                {editingShiftId && (
+                                    <button
+                                        onClick={handleDeleteDraftShift}
+                                        className="px-3 py-2 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-100 transition-colors text-xs flex items-center gap-1"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">delete</span>
+                                        Excluir
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleSaveDraftShift}
+                                    disabled={!formData.militaryId}
+                                    className="flex-1 px-3 py-2 bg-primary text-white rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all text-xs flex items-center justify-center gap-1 disabled:opacity-50"
+                                >
+                                    <span className="material-symbols-outlined text-sm">check</span>
+                                    Salvar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </MainLayout.Content>
         </MainLayout>
     );
