@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/MainLayout';
 import { MOCK_MILITARY } from '../constants';
 import { Military, Rank } from '../types';
 import { optimizeScale } from '../geminiService';
 import { useMilitary } from '../contexts/MilitaryContext';
+import { useShift } from '../contexts/ShiftContext';
+import { Shift } from '../types';
 
 const GenerateScalePage: React.FC = () => {
+    const navigate = useNavigate();
     const { militaries } = useMilitary();
+    const { addShifts } = useShift();
     const [selectedMilitary, setSelectedMilitary] = useState<Military | null>(militaries[0] || null);
     const [impediments, setImpediments] = useState<Record<string, string[]>>({}); // militaryId -> dates[]
     const [isGenerating, setIsGenerating] = useState(false);
@@ -61,6 +66,24 @@ const GenerateScalePage: React.FC = () => {
             setIsGenerating(false);
             alert('Sugestão de Escala Geral gerada com sucesso! Veja o rascunho abaixo.');
         }, 1500);
+    };
+
+    const handlePublish = () => {
+        if (generatedPreview.length === 0) return;
+
+        const newShifts: Shift[] = generatedPreview.map((p, idx) => ({
+            id: `gen-${Date.now()}-${idx}`,
+            militaryId: militaries.find(m => `${m.rank} ${m.name}` === p.militaryName)?.id || '4',
+            date: p.date,
+            type: 'Escala Geral',
+            startTime: '08:00',
+            endTime: '08:00',
+            status: 'Confirmado'
+        }));
+
+        addShifts(newShifts);
+        alert('Escala publicada com sucesso!');
+        navigate('/');
     };
 
     const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
@@ -180,7 +203,10 @@ const GenerateScalePage: React.FC = () => {
                                 >
                                     Limpar
                                 </button>
-                                <button className="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-lg shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
+                                <button
+                                    onClick={handlePublish}
+                                    className="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-lg shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                                >
                                     Confirmar e Publicar
                                 </button>
                             </div>

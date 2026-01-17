@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import MainLayout from '../components/MainLayout';
 import { MOCK_SHIFTS, MOCK_MILITARY } from '../constants';
 import { useMilitary } from '../contexts/MilitaryContext';
+import { useShift } from '../contexts/ShiftContext';
 
 const PersonalShiftPage: React.FC = () => {
   const { militaries } = useMilitary();
+  const { shifts: allShifts } = useShift();
   const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>(militaries[0]?.id || '4');
   const [searchTerm, setSearchTerm] = useState('');
   const [serviceFilter, setServiceFilter] = useState('');
@@ -18,7 +20,7 @@ const PersonalShiftPage: React.FC = () => {
     m.rank.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const personalShifts = MOCK_SHIFTS.filter(s => s.militaryId === selectedMilitaryId);
+  const personalShifts = allShifts.filter(s => s.militaryId === selectedMilitaryId);
   const filteredShifts = personalShifts.filter(s =>
     s.date.includes(serviceFilter) ||
     s.type.toLowerCase().includes(serviceFilter.toLowerCase())

@@ -9,41 +9,44 @@ import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import { MilitaryProvider } from './contexts/MilitaryContext';
+import { ShiftProvider } from './contexts/ShiftContext';
 
 const App: React.FC = () => {
   return (
     <MilitaryProvider>
-      <HashRouter>
-        <Routes>
-          <Route path="/auth" element={<AuthPage />} />
+      <ShiftProvider>
+        <HashRouter>
+          <Routes>
+            <Route path="/auth" element={<AuthPage />} />
 
-          <Route path="/" element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          } />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/contacts" element={
-            <ProtectedRoute>
-              <ContactsPage />
-            </ProtectedRoute>
-          } />
+            <Route path="/contacts" element={
+              <ProtectedRoute>
+                <ContactsPage />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/generate-scale" element={
-            <ProtectedRoute>
-              <GenerateScalePage />
-            </ProtectedRoute>
-          } />
+            <Route path="/generate-scale" element={
+              <ProtectedRoute>
+                <GenerateScalePage />
+              </ProtectedRoute>
+            } />
 
-          <Route path="/personal" element={
-            <ProtectedRoute>
-              <PersonalShiftPage />
-            </ProtectedRoute>
-          } />
+            <Route path="/personal" element={
+              <ProtectedRoute>
+                <PersonalShiftPage />
+              </ProtectedRoute>
+            } />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </HashRouter>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </HashRouter>
+      </ShiftProvider>
     </MilitaryProvider>
   );
 };

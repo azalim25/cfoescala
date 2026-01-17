@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import MainLayout from '../components/MainLayout';
 import { MOCK_SHIFTS, MOCK_MILITARY } from '../constants';
+import { useShift } from '../contexts/ShiftContext';
 
 const DashboardPage: React.FC = () => {
+  const { shifts: allShifts } = useShift();
   const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
   const [currentYear, setCurrentYear] = useState(2026);
   const [selectedDay, setSelectedDay] = useState(2); // Default to 2nd day
@@ -105,7 +107,7 @@ const DashboardPage: React.FC = () => {
             {[...Array(getDaysInMonth(currentYear, currentMonth))].map((_, i) => {
               const day = i + 1;
               const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-              const shifts = MOCK_SHIFTS.filter(s => s.date === dateStr);
+              const shifts = allShifts.filter(s => s.date === dateStr);
               const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
 
               return (
@@ -152,9 +154,9 @@ const DashboardPage: React.FC = () => {
             </div>
             <section className="space-y-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({MOCK_SHIFTS.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length})
+                <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length})
               </div>
-              {MOCK_SHIFTS.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).map(s => {
+              {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).map(s => {
                 const m = MOCK_MILITARY.find(mil => mil.id === s.militaryId);
                 return (
                   <div key={s.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-4 shadow-sm">
@@ -172,7 +174,7 @@ const DashboardPage: React.FC = () => {
                   </div>
                 )
               })}
-              {MOCK_SHIFTS.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length === 0 && (
+              {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length === 0 && (
                 <p className="text-xs text-slate-400 italic text-center py-10">Nenhum serviço escalado para este dia.</p>
               )}
             </section>
