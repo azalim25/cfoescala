@@ -1,20 +1,34 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# CFO - Guarani Escalas
 
-# Run and deploy your AI Studio app
+Sistema de gestão militar para controle de escalas de serviço, efetivo e otimização por IA.
 
-This contains everything you need to run your app locally.
+## Como Executar Localmente
 
-View your app in AI Studio: https://ai.studio/apps/drive/1ysM3OAf8XoxUMrP2wZBfHPD1UJ4WzKMb
+**Pré-requisitos:** Node.js instalado.
 
-## Run Locally
+1. Instale as dependências:
+   ```bash
+   npm install
+   ```
+2. Configure as variáveis de ambiente no arquivo `.env.local`:
+   - `VITE_GEMINI_API_KEY`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+3. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
 
-**Prerequisites:**  Node.js
+## Deploy na Vercel
 
+Este projeto está configurado para deploy automático na Vercel.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. Conecte seu repositório GitHub à Vercel.
+2. No painel da Vercel, adicione as seguintes **Environment Variables**:
+   - `VITE_GEMINI_API_KEY`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+3. A Vercel detectará automaticamente o Vite e usará o comando `npm run build`.
+
+---
+*Desenvolvido para gestão militar eficiente.*

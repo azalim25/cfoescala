@@ -1,7 +1,13 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!apiKey || apiKey === "PLACEHOLDER_API_KEY") {
+  console.warn("AVISO: VITE_GEMINI_API_KEY não configurada ou é um placeholder.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
 export async function optimizeScale(militaryData: any, existingShifts: any) {
   const prompt = `
