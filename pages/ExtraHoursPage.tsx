@@ -1,0 +1,261 @@
+import React, { useState, useEffect } from 'react';
+import MainLayout from '../components/MainLayout';
+import { useMilitary } from '../contexts/MilitaryContext';
+import { supabase } from '../supabase';
+import { Military } from '../types';
+
+interface ExtraHourRecord {
+    id: string;
+    military_id: string;
+    hours: number;
+    minutes: number;
+    description: string;
+    date: string;
+    created_at: string;
+    militaries?: Military;
+}
+
+const ExtraHoursPage: React.FC = () => {
+    const { militaries } = useMilitary();
+    const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
+    const [hours, setHours] = useState<number>(0);
+    const [minutes, setMinutes] = useState<number>(0);
+    const [description, setDescription] = useState<string>('');
+    const [records, setRecords] = useState<ExtraHourRecord[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const fetchRecords = async () => {
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('extra_hours')
+            .select('*, militaries(*)')
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            setRecords(data);
+        }
+        setIsLoading(false);
+    };
+
+    useEffect(() => {
+        fetchRecords();
+    }, []);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedMilitaryId || (hours === 0 && minutes === 0)) {
+            alert('Por favor, selecione um militar e informe o tempo.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        const { error } = await supabase
+            .from('extra_hours')
+            .insert([{
+                military_id: selectedMilitaryId,
+                hours,
+                minutes,
+                description
+            }]);
+
+        if (!error) {
+            setSelectedMilitaryId('');
+            setHours(0);
+            setMinutes(0);
+            setDescription('');
+            fetchRecords();
+            alert('Horas extras registradas com sucesso!');
+        } else {
+            alert('Erro ao salvar horas extras.');
+        }
+        setIsSubmitting(false);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Tem certeza que deseja excluir este registro?')) return;
+
+        const { error } = await supabase
+            .from('extra_hours')
+            .delete()
+            .eq('id', id);
+
+        if (!error) {
+            fetchRecords();
+        }
+    };
+
+    return (
+        <MainLayout activePage="extra-hours">
+            <MainLayout.Content>
+                {/* Header Section */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                            <span className="material-symbols-outlined text-3xl">more_time</span>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">Horas Extras</h1>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestão de Atividades Externas</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Form Section */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
+                                    <span className="material-symbols-outlined text-primary text-lg">add_circle</span>
+                                    Novo Registro
+                                </h3>
+                            </div>
+                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Militar</label>
+                                    <select
+                                        value={selectedMilitaryId}
+                                        onChange={(e) => setSelectedMilitaryId(e.target.value)}
+                                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        required
+                                    >
+                                        <option value="">Selecione um militar...</option>
+                                        {militaries.map(m => (
+                                            <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Horas</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={hours}
+                                            onChange={(e) => setHours(parseInt(e.target.value) || 0)}
+                                            className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Minutos</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="59"
+                                            value={minutes}
+                                            onChange={(e) => setMinutes(parseInt(e.target.value) || 0)}
+                                            className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Descrição da Atividade</label>
+                                    <textarea
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        rows={4}
+                                        placeholder="Ex: Reforço no 1º Batalhão, Instrução de salvamento..."
+                                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
+                                        required
+                                    ></textarea>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full h-12 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-lg">save</span>
+                                    {isSubmitting ? 'Salvando...' : 'Registrar Horas'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {/* List Section */}
+                    <div className="lg:col-span-2">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-270px)]">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
+                                    <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
+                                    Histórico de Registros
+                                </h3>
+                                <span className="text-[10px] font-black text-slate-400 uppercase bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                    {records.length} Total
+                                </span>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                                {isLoading ? (
+                                    <div className="h-full flex items-center justify-center text-slate-400">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                    </div>
+                                ) : records.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4 opacity-50">
+                                        <span className="material-symbols-outlined text-6xl">history</span>
+                                        <p className="font-bold text-sm">Nenhum registro encontrado.</p>
+                                    </div>
+                                ) : (
+                                    <table className="w-full text-left">
+                                        <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
+                                            <tr>
+                                                <th className="px-6 py-4">Militar</th>
+                                                <th className="px-6 py-4">Tempo</th>
+                                                <th className="px-6 py-4">Atividade</th>
+                                                <th className="px-6 py-4 text-right">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                            {records.map((record) => (
+                                                <tr key={record.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                                                <span className="material-symbols-outlined text-sm">person</span>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                                    {record.militaries?.rank} {record.militaries?.name}
+                                                                </p>
+                                                                <p className="text-[10px] text-slate-400 uppercase font-black">
+                                                                    {new Date(record.created_at).toLocaleDateString('pt-BR')}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-xs font-black rounded uppercase border border-blue-100 dark:border-blue-800/50">
+                                                            {record.hours}h {record.minutes}min
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <p className="text-sm text-slate-600 dark:text-slate-400 font-medium line-clamp-1" title={record.description}>
+                                                            {record.description}
+                                                        </p>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <button
+                                                            onClick={() => handleDelete(record.id)}
+                                                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg">delete</span>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </MainLayout.Content>
+        </MainLayout>
+    );
+};
+
+export default ExtraHoursPage;

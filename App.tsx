@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage';
 import ContactsPage from './pages/ContactsPage';
 import GenerateScalePage from './pages/GenerateScalePage';
 import PersonalShiftPage from './pages/PersonalShiftPage';
+import ExtraHoursPage from './pages/ExtraHoursPage';
 import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -40,6 +41,12 @@ const App: React.FC = () => {
             <Route path="/personal" element={
               <ProtectedRoute>
                 <PersonalShiftPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/extra-hours" element={
+              <ProtectedRoute>
+                <ExtraHoursPage />
               </ProtectedRoute>
             } />
 
