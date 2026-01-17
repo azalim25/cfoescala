@@ -12,6 +12,7 @@ interface ExtraHourRecord {
   military_id: string;
   hours: number;
   minutes: number;
+  category: string;
   description: string;
   date: string;
   created_at: string;
@@ -223,8 +224,8 @@ const PersonalShiftPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{e.description}</span>
-                        <span className="text-[10px] text-primary uppercase font-bold">Hora Extra</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{e.category || 'Hora Extra'}</span>
+                        <span className="text-[10px] text-primary uppercase font-bold">{e.description || 'Atividade Extra'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">

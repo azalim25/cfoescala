@@ -15,6 +15,7 @@ const GenerateScalePage: React.FC = () => {
     const [selectedMilitary, setSelectedMilitary] = useState<Military | null>(militaries[0] || null);
     const [impediments, setImpediments] = useState<Record<string, string[]>>({}); // militaryId -> dates[]
     const [manualAssignments, setManualAssignments] = useState<Record<string, string>>({}); // dateStr -> militaryId
+    const [selectedLocation, setSelectedLocation] = useState<string>('QCG');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedPreview, setGeneratedPreview] = useState<Array<{ date: string, militaryName: string }>>([]);
 
@@ -96,7 +97,8 @@ const GenerateScalePage: React.FC = () => {
                 type: 'Escala Geral',
                 startTime: '08:00',
                 endTime: '08:00',
-                status: 'Confirmado'
+                location: selectedLocation,
+                status: 'Confirmado' as const
             })).filter(s => s.militaryId !== '');
         } else {
             const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -111,7 +113,8 @@ const GenerateScalePage: React.FC = () => {
                         type: 'Escala Geral',
                         startTime: '08:00',
                         endTime: '08:00',
-                        status: 'Confirmado'
+                        location: selectedLocation,
+                        status: 'Confirmado' as const
                     });
                 }
             }
@@ -196,6 +199,18 @@ const GenerateScalePage: React.FC = () => {
                                 className="bg-transparent border-none focus:ring-0 cursor-pointer py-1.5 px-3 text-xs font-bold dark:text-white outline-none"
                             >
                                 {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y} className="text-slate-900 bg-white">{y}</option>)}
+                            </select>
+                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700"></div>
+                            <select
+                                value={selectedLocation}
+                                onChange={(e) => setSelectedLocation(e.target.value)}
+                                className="bg-transparent border-none focus:ring-0 cursor-pointer py-1.5 px-3 text-xs font-bold dark:text-white outline-none text-primary"
+                                title="Local do Serviço"
+                            >
+                                <option value="QCG" className="text-slate-900 bg-white">QCG</option>
+                                <option value="1º Batalhão" className="text-slate-900 bg-white">1º Batalhão</option>
+                                <option value="2º Batalhão" className="text-slate-900 bg-white">2º Batalhão</option>
+                                <option value="Esplanada" className="text-slate-900 bg-white">Esplanada</option>
                             </select>
                         </div>
                     </div>

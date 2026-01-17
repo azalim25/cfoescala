@@ -10,6 +10,7 @@ interface ExtraHourRecord {
     hours: number;
     minutes: number;
     description: string;
+    category: string;
     date: string;
     created_at: string;
     militaries?: Military;
@@ -20,10 +21,17 @@ const ExtraHoursPage: React.FC = () => {
     const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
     const [hours, setHours] = useState<number>(0);
     const [minutes, setMinutes] = useState<number>(0);
+    const [category, setCategory] = useState<string>('CFO I - Sentinela');
     const [description, setDescription] = useState<string>('');
     const [records, setRecords] = useState<ExtraHourRecord[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const categories = [
+        'CFO I - Sentinela',
+        'CFO I - Acumulado',
+        'CFO II - Horas Extras'
+    ];
 
     const fetchRecords = async () => {
         setIsLoading(true);
@@ -56,6 +64,7 @@ const ExtraHoursPage: React.FC = () => {
                 military_id: selectedMilitaryId,
                 hours,
                 minutes,
+                category,
                 description
             }]);
 
@@ -63,6 +72,7 @@ const ExtraHoursPage: React.FC = () => {
             setSelectedMilitaryId('');
             setHours(0);
             setMinutes(0);
+            setCategory('CFO I - Sentinela');
             setDescription('');
             fetchRecords();
             alert('Horas extras registradas com sucesso!');
@@ -127,6 +137,20 @@ const ExtraHoursPage: React.FC = () => {
                                     </select>
                                 </div>
 
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Tipo de Atividade</label>
+                                    <select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        required
+                                    >
+                                        {categories.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Horas</label>
@@ -152,14 +176,13 @@ const ExtraHoursPage: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Descrição da Atividade</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Observações (Opcional)</label>
                                     <textarea
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
-                                        rows={4}
-                                        placeholder="Ex: Reforço no 1º Batalhão, Instrução de salvamento..."
+                                        rows={3}
+                                        placeholder="Detalhes adicionais..."
                                         className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
-                                        required
                                     ></textarea>
                                 </div>
 
@@ -204,7 +227,7 @@ const ExtraHoursPage: React.FC = () => {
                                             <tr>
                                                 <th className="px-6 py-4">Militar</th>
                                                 <th className="px-6 py-4">Tempo</th>
-                                                <th className="px-6 py-4">Atividade</th>
+                                                <th className="px-6 py-4">Tipo/Observação</th>
                                                 <th className="px-6 py-4 text-right">Ações</th>
                                             </tr>
                                         </thead>
@@ -232,9 +255,12 @@ const ExtraHoursPage: React.FC = () => {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <p className="text-sm text-slate-600 dark:text-slate-400 font-medium line-clamp-1" title={record.description}>
-                                                            {record.description}
-                                                        </p>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-black text-primary uppercase tracking-tight mb-0.5">{record.category || 'Outros'}</span>
+                                                            <p className="text-sm text-slate-600 dark:text-slate-400 font-medium line-clamp-1" title={record.description}>
+                                                                {record.description || '-'}
+                                                            </p>
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <button
