@@ -3,9 +3,11 @@ import MainLayout from '../components/MainLayout';
 import { MOCK_MILITARY } from '../constants';
 import { Military, Rank } from '../types';
 import { optimizeScale } from '../geminiService';
+import { useMilitary } from '../contexts/MilitaryContext';
 
 const GenerateScalePage: React.FC = () => {
-    const [selectedMilitary, setSelectedMilitary] = useState<Military | null>(MOCK_MILITARY[0]);
+    const { militaries } = useMilitary();
+    const [selectedMilitary, setSelectedMilitary] = useState<Military | null>(militaries[0] || null);
     const [impediments, setImpediments] = useState<Record<string, string[]>>({}); // militaryId -> dates[]
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiResponse, setAiResponse] = useState<string | null>(null);
@@ -31,7 +33,7 @@ const GenerateScalePage: React.FC = () => {
         setAiResponse(null);
 
         // Format data for AI
-        const militaryWithImpediments = MOCK_MILITARY.map(m => ({
+        const militaryWithImpediments = militaries.map(m => ({
             ...m,
             impediments: impediments[m.id] || []
         }));
@@ -61,13 +63,13 @@ const GenerateScalePage: React.FC = () => {
                             </h3>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                            {MOCK_MILITARY.map((m) => (
+                            {militaries.map((m) => (
                                 <button
                                     key={m.id}
                                     onClick={() => setSelectedMilitary(m)}
                                     className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${selectedMilitary?.id === m.id
-                                            ? 'bg-primary/10 border border-primary/20 ring-1 ring-primary/20'
-                                            : 'hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
+                                        ? 'bg-primary/10 border border-primary/20 ring-1 ring-primary/20'
+                                        : 'hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -124,8 +126,8 @@ const GenerateScalePage: React.FC = () => {
                                                     key={day}
                                                     onClick={() => toggleDate(dateStr)}
                                                     className={`aspect-square flex flex-col items-center justify-center rounded-lg border transition-all ${isSelected
-                                                            ? 'bg-red-500 border-red-600 text-white shadow-lg shadow-red-500/20'
-                                                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-primary'
+                                                        ? 'bg-red-500 border-red-600 text-white shadow-lg shadow-red-500/20'
+                                                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-primary'
                                                         }`}
                                                 >
                                                     <span className="text-xs font-bold">{day}</span>

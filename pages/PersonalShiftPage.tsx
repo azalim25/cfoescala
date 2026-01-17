@@ -3,14 +3,16 @@
 import React, { useState } from 'react';
 import MainLayout from '../components/MainLayout';
 import { MOCK_SHIFTS, MOCK_MILITARY } from '../constants';
+import { useMilitary } from '../contexts/MilitaryContext';
 
 const PersonalShiftPage: React.FC = () => {
-  const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('4'); // Default to Marcus Holloway
+  const { militaries } = useMilitary();
+  const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>(militaries[0]?.id || '4');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const selectedMilitary = MOCK_MILITARY.find(m => m.id === selectedMilitaryId) || MOCK_MILITARY[0];
+  const selectedMilitary = militaries.find(m => m.id === selectedMilitaryId) || militaries[0];
 
-  const filteredMilitary = MOCK_MILITARY.filter(m =>
+  const filteredMilitary = militaries.filter(m =>
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     m.rank.toLowerCase().includes(searchTerm.toLowerCase())
   );

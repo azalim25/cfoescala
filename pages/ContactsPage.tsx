@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import MainLayout from '../components/MainLayout';
 import { MOCK_MILITARY } from '../constants';
 import { Military, Rank } from '../types';
+import { useMilitary } from '../contexts/MilitaryContext';
 
 const ContactsPage: React.FC = () => {
-  const [militaries, setMilitaries] = useState<Military[]>(MOCK_MILITARY);
+  const { militaries, addMilitary, updateMilitary, deleteMilitary } = useMilitary();
   const [editingMilitary, setEditingMilitary] = useState<Military | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newMilitary, setNewMilitary] = useState<Partial<Military>>({
@@ -22,7 +23,7 @@ const ContactsPage: React.FC = () => {
     e.preventDefault();
     if (!editingMilitary) return;
 
-    setMilitaries((prev: Military[]) => prev.map((m: Military) => m.id === editingMilitary.id ? editingMilitary : m));
+    updateMilitary(editingMilitary);
     setEditingMilitary(null);
   };
 
@@ -36,7 +37,7 @@ const ContactsPage: React.FC = () => {
       ...newMilitary as Military,
       id: Math.random().toString(36).substr(2, 9),
     };
-    setMilitaries((prev: Military[]) => [...prev, military]);
+    addMilitary(military);
     setIsAdding(false);
     setAuthCode('');
     setNewMilitary({
@@ -51,7 +52,7 @@ const ContactsPage: React.FC = () => {
   const handleDelete = (id: string) => {
     const code = prompt('Para excluir este militar, digite o código de autorização:');
     if (code?.toLowerCase() === 'guarani') {
-      setMilitaries((prev: Military[]) => prev.filter((m: Military) => m.id !== id));
+      deleteMilitary(id);
     } else if (code !== null) {
       alert('Código incorreto! A exclusão foi cancelada.');
     }
