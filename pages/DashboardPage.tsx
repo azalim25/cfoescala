@@ -152,7 +152,7 @@ const DashboardPage: React.FC = () => {
                 <span className="material-symbols-outlined text-primary text-lg">groups</span>
                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Efetivo</span>
               </div>
-              <span className="text-lg font-bold text-slate-800 dark:text-slate-100">12/12</span>
+              <span className="text-lg font-bold text-slate-800 dark:text-slate-100">{militaries.length}</span>
             </div>
             <section className="space-y-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
