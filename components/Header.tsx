@@ -69,7 +69,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               to="/extra-hours"
               className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${activePage === 'extra-hours' ? 'bg-primary/10 text-primary font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
             >
-              <span className="material-symbols-outlined text-sm">more_time</span> Horas Extras
+              <span className="material-symbols-outlined text-sm">more_time</span> Registro de Horas
             </Link>
           </nav>
         </div>

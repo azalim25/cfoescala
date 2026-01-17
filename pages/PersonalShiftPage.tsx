@@ -184,7 +184,6 @@ const PersonalShiftPage: React.FC = () => {
             <table className="w-full text-left min-w-[700px]">
               <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-6 py-4">Data</th>
                   <th className="px-6 py-4">Atividade</th>
                   <th className="px-6 py-4">Horário/Tempo</th>
                   <th className="px-6 py-4 text-right">Carga Horária</th>
@@ -194,11 +193,6 @@ const PersonalShiftPage: React.FC = () => {
                 {/* Regular Shifts */}
                 {personalShifts.map(s => (
                   <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {new Date(s.date).toLocaleDateString('pt-BR')}
-                      </span>
-                    </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{s.type}</span>
@@ -217,11 +211,6 @@ const PersonalShiftPage: React.FC = () => {
                 {/* Extra Hours */}
                 {extraHours.map(e => (
                   <tr key={e.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {new Date(e.date || e.created_at).toLocaleDateString('pt-BR')}
-                      </span>
-                    </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{e.category || 'Hora Extra'}</span>
@@ -241,7 +230,7 @@ const PersonalShiftPage: React.FC = () => {
 
                 {personalShifts.length === 0 && extraHours.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</td>
+                    <td colSpan={3} className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</td>
                   </tr>
                 )}
               </tbody>
@@ -307,7 +296,7 @@ const PersonalShiftPage: React.FC = () => {
                   <span>{totalShiftHours}h</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-white/70 font-bold uppercase tracking-tight">
-                  <span>Horas Extras:</span>
+                  <span>Reg. Horas:</span>
                   <span>{totalExtraHours.toFixed(1)}h</span>
                 </div>
               </div>

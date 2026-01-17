@@ -31,7 +31,7 @@ const ExtraHoursPage: React.FC = () => {
     const categories = [
         'CFO I - Sentinela',
         'CFO I - Acumulado',
-        'CFO II - Horas Extras'
+        'CFO II - Registro de Horas'
     ];
 
     const fetchRecords = async () => {
@@ -79,9 +79,9 @@ const ExtraHoursPage: React.FC = () => {
         if (!error) {
             handleCancelEdit();
             fetchRecords();
-            alert(editingRecordId ? 'Registro atualizado com sucesso!' : 'Horas extras registradas com sucesso!');
+            alert(editingRecordId ? 'Registro atualizado com sucesso!' : 'Horas registradas com sucesso!');
         } else {
-            alert('Erro ao salvar horas extras.');
+            alert('Erro ao salvar horas.');
         }
         setIsSubmitting(false);
     };
@@ -129,7 +129,7 @@ const ExtraHoursPage: React.FC = () => {
                             <span className="material-symbols-outlined text-3xl">more_time</span>
                         </div>
                         <div>
-                            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">Horas Extras</h1>
+                            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">Registro de Horas</h1>
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestão de Atividades Externas</p>
                         </div>
                     </div>
