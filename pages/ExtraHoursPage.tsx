@@ -24,6 +24,7 @@ const ExtraHoursPage: React.FC = () => {
     const [category, setCategory] = useState<string>('CFO I - Sentinela');
     const [description, setDescription] = useState<string>('');
     const [records, setRecords] = useState<ExtraHourRecord[]>([]);
+    const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,28 +59,51 @@ const ExtraHoursPage: React.FC = () => {
         }
 
         setIsSubmitting(true);
-        const { error } = await supabase
-            .from('extra_hours')
-            .insert([{
-                military_id: selectedMilitaryId,
-                hours,
-                minutes,
-                category,
-                description
-            }]);
+        const recordData = {
+            military_id: selectedMilitaryId,
+            hours,
+            minutes,
+            category,
+            description
+        };
+
+        const { error } = editingRecordId
+            ? await supabase
+                .from('extra_hours')
+                .update(recordData)
+                .eq('id', editingRecordId)
+            : await supabase
+                .from('extra_hours')
+                .insert([recordData]);
 
         if (!error) {
-            setSelectedMilitaryId('');
-            setHours(0);
-            setMinutes(0);
-            setCategory('CFO I - Sentinela');
-            setDescription('');
+            handleCancelEdit();
             fetchRecords();
-            alert('Horas extras registradas com sucesso!');
+            alert(editingRecordId ? 'Registro atualizado com sucesso!' : 'Horas extras registradas com sucesso!');
         } else {
             alert('Erro ao salvar horas extras.');
         }
         setIsSubmitting(false);
+    };
+
+    const handleEdit = (record: ExtraHourRecord) => {
+        setEditingRecordId(record.id);
+        setSelectedMilitaryId(record.military_id);
+        setHours(record.hours);
+        setMinutes(record.minutes);
+        setCategory(record.category || 'CFO I - Sentinela');
+        setDescription(record.description || '');
+        // Scroll to form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingRecordId(null);
+        setSelectedMilitaryId('');
+        setHours(0);
+        setMinutes(0);
+        setCategory('CFO I - Sentinela');
+        setDescription('');
     };
 
     const handleDelete = async (id: string) => {
@@ -117,8 +141,10 @@ const ExtraHoursPage: React.FC = () => {
                         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                                 <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
-                                    <span className="material-symbols-outlined text-primary text-lg">add_circle</span>
-                                    Novo Registro
+                                    <span className="material-symbols-outlined text-primary text-lg">
+                                        {editingRecordId ? 'edit_note' : 'add_circle'}
+                                    </span>
+                                    {editingRecordId ? 'Editar Registro' : 'Novo Registro'}
                                 </h3>
                             </div>
                             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -186,14 +212,26 @@ const ExtraHoursPage: React.FC = () => {
                                     ></textarea>
                                 </div>
 
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="w-full h-12 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <span className="material-symbols-outlined text-lg">save</span>
-                                    {isSubmitting ? 'Salvando...' : 'Registrar Horas'}
-                                </button>
+                                <div className="flex flex-col gap-2">
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="w-full h-12 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">save</span>
+                                        {isSubmitting ? 'Salvando...' : (editingRecordId ? 'Salvar Alterações' : 'Registrar Horas')}
+                                    </button>
+                                    {editingRecordId && (
+                                        <button
+                                            type="button"
+                                            onClick={handleCancelEdit}
+                                            className="w-full h-10 text-slate-500 font-bold hover:text-red-500 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">cancel</span>
+                                            Cancelar Edição
+                                        </button>
+                                    )}
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -263,12 +301,22 @@ const ExtraHoursPage: React.FC = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <button
-                                                            onClick={() => handleDelete(record.id)}
-                                                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-lg">delete</span>
-                                                        </button>
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => handleEdit(record)}
+                                                                className={`p-1.5 transition-colors ${editingRecordId === record.id ? 'text-primary' : 'text-slate-400 hover:text-primary'}`}
+                                                                title="Editar"
+                                                            >
+                                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(record.id)}
+                                                                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                                                title="Excluir"
+                                                            >
+                                                                <span className="material-symbols-outlined text-lg">delete</span>
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
