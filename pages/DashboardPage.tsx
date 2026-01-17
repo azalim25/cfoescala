@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
 import { MOCK_SHIFTS, SHIFT_TYPE_COLORS } from '../constants';
 import { useShift } from '../contexts/ShiftContext';
 import { useMilitary } from '../contexts/MilitaryContext';
+import { Shift, Rank } from '../types';
 
 const DashboardPage: React.FC = () => {
-  const { shifts: allShifts } = useShift();
+  const { shifts: allShifts, createShift, updateShift, removeShift } = useShift();
   const { militaries } = useMilitary();
   const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
   const [currentYear, setCurrentYear] = useState(2026);
-  const [selectedDay, setSelectedDay] = useState(2); // Default to 2nd day
+  const [selectedDay, setSelectedDay] = useState(2); // Default
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string }>({
+    militaryId: '',
+    type: 'Escala Geral',
+    location: 'QCG'
+  });
+
+  // Set default day to today
+  useEffect(() => {
+    const today = new Date();
+    setSelectedDay(today.getDate());
+    setCurrentMonth(today.getMonth());
+    setCurrentYear(today.getFullYear());
+  }, []);
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -56,9 +74,68 @@ const DashboardPage: React.FC = () => {
     return new Date(year, month, 1).getDay();
   };
 
+  const handleOpenAddModal = () => {
+    setEditingShift(null);
+    setFormData({
+      militaryId: '',
+      type: 'Escala Geral',
+      location: 'QCG'
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (shift: Shift) => {
+    setEditingShift(shift);
+    setFormData({
+      militaryId: shift.militaryId,
+      type: shift.type,
+      location: shift.location || 'QCG'
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSaveShift = async () => {
+    if (!formData.militaryId) {
+      alert('Selecione um militar.');
+      return;
+    }
+
+    const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+
+    if (editingShift) {
+      await updateShift(editingShift.id, {
+        militaryId: formData.militaryId,
+        type: formData.type,
+        location: formData.location
+      });
+    } else {
+      await createShift({
+        militaryId: formData.militaryId,
+        date: dateStr,
+        type: formData.type,
+        startTime: '08:00',
+        endTime: '08:00',
+        location: formData.location,
+        status: 'Confirmado'
+      });
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleDeleteShift = async () => {
+    if (editingShift && confirm('Tem certeza que deseja remover este serviço?')) {
+      await removeShift(editingShift.id);
+      setIsModalOpen(false);
+    }
+  };
+
+  const selectedDateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+  const dayShifts = allShifts.filter(s => s.date === selectedDateStr);
+
   return (
     <MainLayout activePage="dashboard" className="pb-20">
       <MainLayout.Content>
+        {/* Header Controls */}
         <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
@@ -88,14 +165,12 @@ const DashboardPage: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-              <span className="material-symbols-outlined text-sm">filter_alt</span> Filtrar
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
               <span className="material-symbols-outlined text-sm">print</span> Imprimir
             </button>
           </div>
         </div>
 
+        {/* Calendar Grid */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
           <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
@@ -128,7 +203,15 @@ const DashboardPage: React.FC = () => {
                     {shifts.map(s => {
                       const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
                       return (
-                        <div key={s.id} className={`text-[9px] font-bold p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border}`}>
+                        <div
+                          key={s.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDay(day);
+                            handleOpenEditModal(s);
+                          }}
+                          className={`text-[9px] font-bold p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
+                        >
                           {militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}
                         </div>
                       );
@@ -148,6 +231,13 @@ const DashboardPage: React.FC = () => {
               <h2 className="font-bold text-slate-800 dark:text-slate-100 uppercase text-sm">FICHA DO DIA</h2>
               <p className="text-[11px] text-primary font-bold">{selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}</p>
             </div>
+            <button
+              onClick={handleOpenAddModal}
+              className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity"
+              title="Adicionar Serviço"
+            >
+              <span className="material-symbols-outlined text-lg">add</span>
+            </button>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex justify-between items-center border border-slate-100 dark:border-slate-800">
@@ -164,7 +254,11 @@ const DashboardPage: React.FC = () => {
               {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).map(s => {
                 const m = militaries.find(mil => mil.id === s.militaryId);
                 return (
-                  <div key={s.id} className={`bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-4 space-y-4 shadow-sm relative overflow-hidden`}>
+                  <button
+                    key={s.id}
+                    onClick={() => handleOpenEditModal(s)}
+                    className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-4 space-y-4 shadow-sm relative overflow-hidden hover:opacity-90 transition-opacity group`}
+                  >
                     <div className="flex items-start justify-between relative z-10">
                       <div className="flex gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
@@ -180,9 +274,10 @@ const DashboardPage: React.FC = () => {
                           <p className="text-[11px] text-slate-500 mt-1 uppercase">BM: {m?.firefighterNumber}</p>
                         </div>
                       </div>
+                      <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">edit</span>
                     </div>
                     <div className={`absolute top-0 right-0 w-1 h-full ${SHIFT_TYPE_COLORS[s.type]?.dot || 'bg-slate-200'}`}></div>
-                  </div>
+                  </button>
                 )
               })}
               {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length === 0 && (
@@ -192,6 +287,89 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
       </MainLayout.Sidebar>
+
+      {/* Edit Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">
+                  {editingShift ? 'edit_calendar' : 'add_circle'}
+                </span>
+                {editingShift ? 'Editar Serviço' : 'Adicionar Serviço'}
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Militar</label>
+                <select
+                  value={formData.militaryId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, militaryId: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                >
+                  <option value="">Selecione um militar...</option>
+                  {militaries.map(m => (
+                    <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Tipo de Escala</label>
+                <select
+                  value={formData.type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                  className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                >
+                  {Object.keys(SHIFT_TYPE_COLORS).map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Local</label>
+                <select
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                >
+                  <option value="QCG">QCG</option>
+                  <option value="SCI">SCI</option>
+                  <option value="COB">COB</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-3">
+              {editingShift && (
+                <button
+                  onClick={handleDeleteShift}
+                  className="px-4 py-2 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-100 transition-colors flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-sm">delete</span>
+                  Excluir
+                </button>
+              )}
+              <button
+                onClick={handleSaveShift}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all ml-auto"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </MainLayout>
   );
 };

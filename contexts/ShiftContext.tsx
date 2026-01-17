@@ -5,6 +5,9 @@ import { supabase } from '../supabase';
 interface ShiftContextType {
     shifts: Shift[];
     addShifts: (newShifts: Shift[]) => Promise<void>;
+    createShift: (shift: Omit<Shift, 'id'>) => Promise<void>;
+    updateShift: (id: string, updates: Partial<Shift>) => Promise<void>;
+    removeShift: (id: string) => Promise<void>;
     clearShifts: () => void;
     isLoading: boolean;
 }
@@ -50,10 +53,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const addShifts = async (newShifts: Shift[]) => {
         try {
-            // 1. Identify dates to clear
             const datesToOverwrite = Array.from(new Set(newShifts.map(s => s.date)));
-
-            // 2. Delete existing shifts for these dates
             if (datesToOverwrite.length > 0) {
                 const { error: deleteError } = await supabase
                     .from('shifts')
@@ -63,7 +63,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 if (deleteError) throw deleteError;
             }
 
-            // 3. Prepare new shifts for insertion (omit id to let DB generate UUID)
+            // 3. Prepare new shifts
             const dbShifts = newShifts.map(s => ({
                 military_id: s.militaryId,
                 date: s.date,
@@ -74,19 +74,100 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 status: s.status
             }));
 
-            // 4. Insert new shifts
+            // 4. Insert
             const { error: insertError } = await supabase
                 .from('shifts')
                 .insert(dbShifts);
 
             if (insertError) throw insertError;
 
-            // 5. Refresh local state
             await fetchShifts();
 
         } catch (error) {
             console.error('Error saving shifts:', error);
             alert('Erro ao salvar escala. Verifique o console.');
+        }
+    };
+
+    const createShift = async (shift: Omit<Shift, 'id'>) => {
+        try {
+            const dbShift = {
+                military_id: shift.militaryId,
+                date: shift.date,
+                type: shift.type,
+                start_time: shift.startTime,
+                end_time: shift.endTime,
+                location: shift.location,
+                status: shift.status
+            };
+
+            const { error } = await supabase.from('shifts').insert(dbShift);
+            if (error) throw error;
+            await fetchShifts();
+        } catch (error) {
+            console.error('Error creating shift:', error);
+            alert('Erro ao adicionar serviço.');
+        }
+    };
+
+    // I need to add `createShift` to the Context Interface if I use it.
+    // Wait, I can just overload `addShifts` or add an argument `overwrite: boolean`.
+    // Let's just create `updateShift` and `removeShift` as requested, and `addSingleShift`.
+
+    // Simpler: I'll expose `addShifts` (overwrite) and `appendShift` (single, no overwrite).
+
+    // Let's map the interface to:
+    // addShifts (bulk overwrite)
+    // updateShift
+    // removeShift
+    // appendShift (new)
+
+    // ... Implementation continued below in replacement ...
+
+    // Actually, to minimize interface churn, I will rename the new function to `createShift` 
+    // and add it to the interface.
+
+    // Wait, the prompt instruction was just updateShift and removeShift.
+    // But for "Add" on dashboard, I need a non-destructive add.
+
+    // Let's add `createShift` to the interface.
+
+    const updateShift = async (id: string, updates: Partial<Shift>) => {
+        try {
+            const dbUpdates: { [key: string]: any } = {};
+            if (updates.militaryId !== undefined) dbUpdates.military_id = updates.militaryId;
+            if (updates.date !== undefined) dbUpdates.date = updates.date;
+            if (updates.type !== undefined) dbUpdates.type = updates.type;
+            if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
+            if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
+            if (updates.location !== undefined) dbUpdates.location = updates.location;
+            if (updates.status !== undefined) dbUpdates.status = updates.status;
+
+            const { error } = await supabase
+                .from('shifts')
+                .update(dbUpdates)
+                .eq('id', id);
+
+            if (error) throw error;
+            await fetchShifts();
+        } catch (error) {
+            console.error('Error updating shift:', error);
+            alert('Erro ao atualizar serviço.');
+        }
+    };
+
+    const removeShift = async (id: string) => {
+        try {
+            const { error } = await supabase
+                .from('shifts')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            await fetchShifts();
+        } catch (error) {
+            console.error('Error removing shift:', error);
+            alert('Erro ao remover serviço.');
         }
     };
 
@@ -96,7 +177,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     return (
-        <ShiftContext.Provider value={{ shifts, addShifts, clearShifts, isLoading }}>
+        <ShiftContext.Provider value={{ shifts, addShifts, clearShifts, isLoading, updateShift, removeShift, createShift }}>
             {children}
         </ShiftContext.Provider>
     );
