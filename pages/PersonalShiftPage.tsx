@@ -194,8 +194,6 @@ const PersonalShiftPage: React.FC = () => {
                 <tr>
                   <th className="px-6 py-4">Data</th>
                   <th className="px-6 py-4">Tipo de Serviço</th>
-                  <th className="px-6 py-4">Horário</th>
-                  <th className="px-6 py-4">Local</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -211,15 +209,11 @@ const PersonalShiftPage: React.FC = () => {
                         {s.type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm font-bold text-primary">{s.startTime} - {s.endTime}</td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{s.location || '-'}</span>
-                    </td>
                   </tr>
                 ))}
                 {upcomingShifts.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço agendado.</td>
+                    <td colSpan={2} className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço agendado.</td>
                   </tr>
                 )}
               </tbody>

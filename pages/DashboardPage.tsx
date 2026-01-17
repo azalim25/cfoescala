@@ -335,18 +335,6 @@ const DashboardPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Local</label>
-                <select
-                  value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
-                >
-                  <option value="QCG">QCG</option>
-                  <option value="SCI">SCI</option>
-                  <option value="COB">COB</option>
-                </select>
-              </div>
             </div>
 
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-3">
