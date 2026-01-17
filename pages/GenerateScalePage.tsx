@@ -18,7 +18,7 @@ const GenerateScalePage: React.FC = () => {
     const [manualAssignments, setManualAssignments] = useState<Record<string, Array<{ militaryId: string, type: Shift['type'] }>>>({}); // dateStr -> Array of assignments
     const [selectedLocation, setSelectedLocation] = useState<string>('QCG');
     const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedPreview, setGeneratedPreview] = useState<Array<{ date: string, militaryName: string }>>([]);
+
     const [editingDay, setEditingDay] = useState<string | null>(null); // Date string for modal
 
     const months = [
@@ -579,63 +579,7 @@ const GenerateScalePage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Preview Table Section - only for Auto mode */}
-                {generationMode === 'auto' && generatedPreview.length > 0 && (
-                    <div className="mt-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in slide-in-from-bottom duration-500">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
-                                <span className="material-symbols-outlined text-primary">previews</span> Rascunho da Escala Gerada
-                            </h3>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setGeneratedPreview([])}
-                                    className="px-3 py-1.5 text-[10px] font-black text-slate-500 hover:text-red-500 transition-colors uppercase"
-                                >
-                                    Descartar
-                                </button>
-                                <button
-                                    onClick={handlePublish}
-                                    className="px-4 py-1.5 bg-primary text-white text-[10px] font-black rounded-lg shadow-lg shadow-primary/20 hover:opacity-90 transition-all uppercase"
-                                >
-                                    Confirmar e Publicar
-                                </button>
-                            </div>
-                        </div>
-                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-                            <table className="w-full text-left">
-                                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
-                                    <tr>
-                                        <th className="px-6 py-4">Data</th>
-                                        <th className="px-6 py-4">Militar Escalado</th>
-                                        <th className="px-6 py-4 text-right">Missão</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    {generatedPreview.map((p, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                            <td className="px-6 py-4 font-mono text-xs font-black text-slate-400 dark:text-slate-500">{p.date}</td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                                        <span className="material-symbols-outlined text-sm">person</span>
-                                                    </div>
-                                                    <span className={`text-sm font-bold ${p.militaryName === 'SEM EFETIVO DISPONÍVEL' ? 'text-red-500 italic' : 'text-slate-700 dark:text-slate-200'}`}>
-                                                        {p.militaryName}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <span className={`px-2.5 py-0.5 ${(p as any).type ? (SHIFT_TYPE_COLORS[(p as any).type]?.bg || 'bg-primary/10') : 'bg-primary/10'} ${(p as any).type ? (SHIFT_TYPE_COLORS[(p as any).type]?.text || 'text-primary') : 'text-primary'} text-[10px] font-black rounded uppercase border ${(p as any).type ? (SHIFT_TYPE_COLORS[(p as any).type]?.border || 'border-primary/20') : 'border-primary/20'}`}>
-                                                    {(p as any).type || 'Escala Geral'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
+
             </MainLayout.Content>
         </MainLayout>
     );
