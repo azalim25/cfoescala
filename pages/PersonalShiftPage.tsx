@@ -9,6 +9,7 @@ const PersonalShiftPage: React.FC = () => {
   const { militaries } = useMilitary();
   const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>(militaries[0]?.id || '4');
   const [searchTerm, setSearchTerm] = useState('');
+  const [serviceFilter, setServiceFilter] = useState('');
 
   const selectedMilitary = militaries.find(m => m.id === selectedMilitaryId) || militaries[0];
 
@@ -16,6 +17,27 @@ const PersonalShiftPage: React.FC = () => {
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     m.rank.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const personalShifts = MOCK_SHIFTS.filter(s => s.militaryId === selectedMilitaryId);
+  const filteredShifts = personalShifts.filter(s =>
+    s.date.includes(serviceFilter) ||
+    s.type.toLowerCase().includes(serviceFilter.toLowerCase())
+  );
+
+  const totalHours = personalShifts.length * 24; // Assuming each shift is 24h
+
+  const handleExport = () => {
+    const headers = ['Data', 'Tipo', 'Início', 'Fim', 'Status'].join(',');
+    const rows = filteredShifts.map(s => [s.date, s.type, s.startTime, s.endTime, s.status].join(','));
+    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `escala_${selectedMilitary.name.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <MainLayout activePage="personal">
@@ -33,15 +55,21 @@ const PersonalShiftPage: React.FC = () => {
                 </h1>
                 <span className="material-symbols-outlined text-primary text-lg">verified</span>
               </div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Escala Individual • Janeiro 2024</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Escala Individual • Janeiro 2026</p>
               <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{selectedMilitary.battalion} • ID: {selectedMilitary.id}</p>
             </div>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
               <span className="material-symbols-outlined text-sm">download</span> Exportar
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:opacity-90 transition-colors">
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:opacity-90 transition-colors"
+            >
               <span className="material-symbols-outlined text-sm">print</span> Imprimir
             </button>
           </div>
@@ -67,7 +95,7 @@ const PersonalShiftPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {MOCK_SHIFTS.filter(s => s.militaryId === selectedMilitaryId).map(s => (
+                {filteredShifts.map(s => (
                   <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
                       <span className="text-sm font-extrabold text-slate-900 dark:text-white">{s.date}</span>
@@ -85,7 +113,7 @@ const PersonalShiftPage: React.FC = () => {
                     </td>
                   </tr>
                 ))}
-                {MOCK_SHIFTS.filter(s => s.militaryId === selectedMilitaryId).length === 0 && (
+                {filteredShifts.length === 0 && (
                   <tr>
                     <td colSpan={4} className="p-10 text-center text-slate-400 italic text-sm">Nenhum registro encontrado para este militar.</td>
                   </tr>
@@ -151,7 +179,7 @@ const PersonalShiftPage: React.FC = () => {
             <div className="relative z-10">
               <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Carga Horária Total</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold text-white tracking-tighter">1,240.5</span>
+                <span className="text-4xl font-extrabold text-white tracking-tighter">{totalHours.toLocaleString('pt-BR')}</span>
                 <span className="text-sm font-bold text-white/80">HRS</span>
               </div>
             </div>
@@ -167,6 +195,8 @@ const PersonalShiftPage: React.FC = () => {
                 className="w-full h-10 pl-10 pr-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm md:text-xs font-semibold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all outline-none dark:text-white"
                 placeholder="Buscar por mês ou tipo..."
                 type="text"
+                value={serviceFilter}
+                onChange={(e) => setServiceFilter(e.target.value)}
               />
             </div>
           </div>
@@ -175,12 +205,10 @@ const PersonalShiftPage: React.FC = () => {
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Legenda</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded bg-blue-100 border border-blue-200"></span>
                 <span className="text-xs text-slate-600 dark:text-slate-400">Serviço Escala Geral</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded bg-purple-100 border border-purple-200"></span>
-                <span className="text-xs text-slate-600 dark:text-slate-400">Serviço Extra</span>
+              <div className="flex items-center gap-2 text-slate-400 italic text-[10px] mt-2 border-t border-slate-100 dark:border-slate-800 pt-2">
+                Escala baseada no calendário 2026.
               </div>
             </div>
           </div>

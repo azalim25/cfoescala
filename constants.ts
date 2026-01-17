@@ -39,7 +39,7 @@ export const MOCK_MILITARY: Military[] = [
 export const MOCK_SHIFTS: Shift[] = [
   {
     id: 's1',
-    date: '2024-01-01',
+    date: '2026-01-01',
     type: 'Oficial de Dia',
     startTime: '08:00',
     endTime: '08:00',
@@ -48,7 +48,7 @@ export const MOCK_SHIFTS: Shift[] = [
   },
   {
     id: 's2',
-    date: '2024-01-02',
+    date: '2026-01-02',
     type: 'Comandante da Guarda',
     startTime: '08:00',
     endTime: '08:00',
@@ -57,7 +57,7 @@ export const MOCK_SHIFTS: Shift[] = [
   },
   {
     id: 's3',
-    date: '2024-10-24',
+    date: '2026-01-03',
     type: 'Patrulha Perímetro',
     startTime: '06:00',
     endTime: '18:00',

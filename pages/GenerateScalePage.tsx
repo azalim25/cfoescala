@@ -10,7 +10,7 @@ const GenerateScalePage: React.FC = () => {
     const [selectedMilitary, setSelectedMilitary] = useState<Military | null>(militaries[0] || null);
     const [impediments, setImpediments] = useState<Record<string, string[]>>({}); // militaryId -> dates[]
     const [isGenerating, setIsGenerating] = useState(false);
-    const [aiResponse, setAiResponse] = useState<string | null>(null);
+    const [generatedPreview, setGeneratedPreview] = useState<Array<{ date: string, militaryName: string }>>([]);
 
     const toggleDate = (date: string) => {
         if (!selectedMilitary) return;
@@ -30,23 +30,37 @@ const GenerateScalePage: React.FC = () => {
 
     const handleGenerate = async () => {
         setIsGenerating(true);
-        setAiResponse(null);
+        // Realistic simulation: simple round-robin skipping people with impediments
+        setTimeout(() => {
+            const preview: Array<{ date: string, militaryName: string }> = [];
+            let militaryIndex = 0;
 
-        // Format data for AI
-        const militaryWithImpediments = militaries.map(m => ({
-            ...m,
-            impediments: impediments[m.id] || []
-        }));
+            for (let i = 1; i <= 31; i++) {
+                const dateStr = `2026-01-${i.toString().padStart(2, '0')}`;
 
-        try {
-            const result = await optimizeScale(militaryWithImpediments, []);
-            setAiResponse(result);
-        } catch (err) {
-            console.error(err);
-            setAiResponse("Erro ao gerar escala. Tente novamente.");
-        } finally {
+                // Find next available military (simple fallback logic)
+                let found = false;
+                let attempts = 0;
+                while (!found && attempts < militaries.length) {
+                    const m = militaries[(militaryIndex + attempts) % militaries.length];
+                    const isImpeded = impediments[m.id]?.includes(dateStr);
+                    if (!isImpeded) {
+                        preview.push({ date: dateStr, militaryName: `${m.rank} ${m.name}` });
+                        militaryIndex = (militaryIndex + attempts + 1) % militaries.length;
+                        found = true;
+                    }
+                    attempts++;
+                }
+
+                if (!found) {
+                    preview.push({ date: dateStr, militaryName: 'SEM EFETIVO DISPONÍVEL' });
+                }
+            }
+
+            setGeneratedPreview(preview);
             setIsGenerating(false);
-        }
+            alert('Sugestão de Escala Geral gerada com sucesso! Veja o rascunho abaixo.');
+        }, 1500);
     };
 
     const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
@@ -119,7 +133,7 @@ const GenerateScalePage: React.FC = () => {
 
                                     <div className="grid grid-cols-7 gap-2">
                                         {days.map(day => {
-                                            const dateStr = `2024-01-${day}`;
+                                            const dateStr = `2026-01-${day}`;
                                             const isSelected = impediments[selectedMilitary.id]?.includes(dateStr);
                                             return (
                                                 <button
@@ -143,38 +157,64 @@ const GenerateScalePage: React.FC = () => {
                                             disabled={isGenerating}
                                             className="w-full flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-xl font-bold shadow-xl shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all select-none"
                                         >
-                                            {isGenerating ? (
-                                                <>
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                    Processando com IA...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span className="material-symbols-outlined text-lg">auto_awesome</span>
-                                                    Gerar Escala Otimizada
-                                                </>
-                                            )}
+                                            <span className="material-symbols-outlined text-lg">calendar_today</span>
+                                            Configurar Escala Geral
                                         </button>
                                     </div>
-
-                                    {aiResponse && (
-                                        <div className="mt-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <div className="p-4 bg-slate-900 text-slate-100 rounded-2xl border border-slate-800 shadow-2xl relative">
-                                                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
-                                                    <span className="material-symbols-outlined text-primary text-sm">auto_awesome</span>
-                                                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Sugestão da IA</span>
-                                                </div>
-                                                <p className="text-sm leading-relaxed whitespace-pre-wrap font-mono">
-                                                    {aiResponse}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
+
+                {generatedPreview.length > 0 && (
+                    <div className="mt-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in slide-in-from-bottom duration-500">
+                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">previews</span> Rascunho da Escala Gerada
+                            </h3>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setGeneratedPreview([])}
+                                    className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-red-500 transition-colors"
+                                >
+                                    Limpar
+                                </button>
+                                <button className="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-lg shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
+                                    Confirmar e Publicar
+                                </button>
+                            </div>
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto">
+                            <table className="w-full text-left">
+                                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
+                                    <tr>
+                                        <th className="px-6 py-3">Data</th>
+                                        <th className="px-6 py-3">Convocado</th>
+                                        <th className="px-6 py-3">Tipo</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {generatedPreview.map((p, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="px-6 py-3 font-mono text-xs font-bold text-slate-600 dark:text-slate-400">{p.date}</td>
+                                            <td className="px-6 py-3">
+                                                <span className={`text-sm font-bold ${p.militaryName === 'SEM EFETIVO DISPONÍVEL' ? 'text-red-500' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                    {p.militaryName}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-[10px] font-bold rounded uppercase border border-blue-100 dark:border-blue-800/50">
+                                                    Escala Geral
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </MainLayout.Content>
         </MainLayout>
     );
