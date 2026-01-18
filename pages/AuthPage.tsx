@@ -78,26 +78,26 @@ const AuthPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-primary/30">
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 sm:p-6 selection:bg-primary/30 overflow-y-auto">
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px]"></div>
+                <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[120px]"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-600/5 rounded-full blur-[120px]"></div>
             </div>
 
-            <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in duration-500">
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <div className="w-full max-w-md relative z-10 animate-fade-in py-8 sm:py-0">
+                <div className="bg-slate-900/60 backdrop-blur-lg border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
                     <div className="text-center mb-6 sm:mb-8">
                         <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary rounded-2xl flex items-center justify-center text-white mx-auto mb-4 shadow-xl shadow-primary/20 rotate-3 shrink-0">
                             <span className="material-symbols-outlined text-2xl sm:text-3xl">shield</span>
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">CFO • GUARANI</h1>
-                        <p className="text-slate-400 text-xs sm:text-sm mt-2 font-medium">
+                        <p className="text-slate-400 text-[10px] sm:text-sm mt-2 font-black uppercase tracking-widest">
                             {isSignUp ? 'Crie sua conta no sistema' : 'Sistema de Gestão Militar'}
                         </p>
                     </div>
 
                     {error && (
-                        <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl text-xs font-bold mb-6 animate-shake text-center">
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl text-xs font-bold mb-6 text-center">
                             {error}
                         </div>
                     )}
@@ -111,7 +111,7 @@ const AuthPage: React.FC = () => {
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
                                 placeholder="Ex: Sgt. Smith"
-                                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                className="w-full bg-slate-800/40 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
                             />
                         </div>
 
@@ -123,14 +123,14 @@ const AuthPage: React.FC = () => {
                                 value={firefighterNumber}
                                 onChange={(e) => setFirefighterNumber(e.target.value)}
                                 placeholder="Ex: 123.456"
-                                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                className="w-full bg-slate-800/40 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
                             />
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none mt-4 text-sm uppercase tracking-widest"
+                            className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none mt-4 text-xs sm:text-sm uppercase tracking-widest"
                         >
                             {loading ? 'Aguarde...' : isSignUp ? 'Criar Cadastro' : 'Acessar Sistema'}
                         </button>
@@ -140,24 +140,24 @@ const AuthPage: React.FC = () => {
                                 <div className="w-full border-t border-slate-800"></div>
                             </div>
                             <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-slate-900/50 px-2 text-slate-500 font-bold">ou</span>
+                                <span className="bg-[#0f172a] px-2 text-slate-500 font-bold">ou</span>
                             </div>
                         </div>
 
                         <button
                             type="button"
                             onClick={handleGuestLogin}
-                            className="w-full bg-slate-800/50 border border-slate-700 text-slate-300 font-bold py-4 rounded-xl hover:bg-slate-800 hover:border-slate-600 active:scale-[0.98] transition-all text-sm uppercase tracking-widest"
+                            className="w-full bg-slate-800/30 border border-slate-700 text-slate-300 font-bold py-4 rounded-xl hover:bg-slate-800 hover:border-slate-600 active:scale-[0.98] transition-all text-[10px] sm:text-xs uppercase tracking-widest"
                         >
                             <span className="flex items-center justify-center gap-2">
-                                <span className="material-symbols-outlined text-xl">visibility</span>
+                                <span className="material-symbols-outlined text-lg sm:text-xl">visibility</span>
                                 Entrar como Visitante
                             </span>
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center text-sm">
-                        <p className="text-slate-500">
+                    <div className="mt-8 text-center text-xs sm:text-sm">
+                        <p className="text-slate-500 font-medium">
                             {isSignUp ? 'Já possui cadastro?' : 'Novo bombeiro na unidade?'}
                             <button
                                 onClick={() => setIsSignUp(!isSignUp)}
@@ -169,8 +169,8 @@ const AuthPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="mt-8 flex justify-center items-center gap-6 grayscale opacity-50 grayscale-0 pointer-events-none">
-                    <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em]">Exército Brasileiro • 2026</p>
+                <div className="mt-8 flex justify-center items-center gap-6 opacity-40 pointer-events-none">
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Exército Brasileiro • 2026</p>
                 </div>
             </div>
         </div>
