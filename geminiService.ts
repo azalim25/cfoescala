@@ -39,9 +39,10 @@ export async function generateAIScale(
   try {
     const response = await (ai as any).models.generateContent({
       model: 'gemini-1.5-flash',
+      systemInstruction: "Você é um especialista em escalas militares. Responda apenas com o JSON da escala, sem formatação markdown.",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
-        systemInstruction: { parts: [{ text: "Você é um especialista em escalas. Responda apenas com o JSON da escala, sem formatação markdown." }] }
+        responseMimeType: 'application/json'
       }
     });
 
