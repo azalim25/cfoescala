@@ -71,11 +71,13 @@ export async function generateAIScale(
     contents: [{ parts: [{ text: promptText }] }]
   };
 
-  // Matriz de tentativas: Modelos e Versões de API
+  // Matriz de tentativas: Modelos e Versões de API (Ordenado por estabilidade)
   const configsToTry = [
-    { model: 'gemini-1.5-flash', version: 'v1beta' },
-    { model: 'gemini-1.5-pro', version: 'v1beta' },
-    { model: 'gemini-pro', version: 'v1' }, // Fallback para versão estável
+    { model: 'gemini-1.5-flash', version: 'v1' },      // Estável v1
+    { model: 'gemini-1.5-pro', version: 'v1' },        // Estável v1
+    { model: 'gemini-1.5-flash', version: 'v1beta' },  // Beta
+    { model: 'gemini-1.5-pro', version: 'v1beta' },    // Beta
+    { model: 'gemini-pro', version: 'v1' },            // Legacy
   ];
 
   try {
