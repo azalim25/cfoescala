@@ -30,18 +30,14 @@ export async function generateAIScale(
   `;
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
 
     const payload = {
       contents: [{
-        parts: [{ text: promptText }]
-      }],
-      systemInstruction: {
-        parts: [{ text: "Você é um especialista em escalas militares. Responda apenas com o JSON da escala, sem explicações ou markdown." }]
-      },
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
+        parts: [{
+          text: `Você é um especialista em escalas militares. Responda apenas com o JSON da escala, sem explicações ou markdown.\n\n${promptText}`
+        }]
+      }]
     };
 
     const response = await fetch(url, {
