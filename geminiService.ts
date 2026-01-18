@@ -11,16 +11,15 @@ if (isPlaceholder) {
 }
 
 /**
- * Tenta gerar o conteúdo usando uma lista de modelos em ordem de preferência.
- * Isso resolve os erros 404 quando um modelo específico não está disponível para a chave.
+ * Tenta gerar o conteúdo usando uma lista de modelos e versões de API.
  */
-async function fetchWithFallback(payload: any, models: string[]) {
-  let lastError = null;
+async function fetchWithFallback(payload: any, configs: { model: string, version: string }[]) {
+  let lastError = "";
 
-  for (const model of models) {
+  for (const config of configs) {
     try {
-      console.log(`Tentando gerar com o modelo: ${model}...`);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      console.log(`Tentando: ${config.model} (${config.version})...`);
+      const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:generateContent?key=${apiKey}`;
 
       const response = await fetch(url, {
         method: "POST",
@@ -28,25 +27,28 @@ async function fetchWithFallback(payload: any, models: string[]) {
         body: JSON.stringify(payload)
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        return await response.json();
+        return data;
       }
 
-      const errorData = await response.json();
-      lastError = errorData.error?.message || `Erro HTTP ${response.status}`;
-      console.warn(`Modelo ${model} falhou: ${lastError}`);
+      const errorMsg = data.error?.message || `Erro HTTP ${response.status}`;
 
-      // Se não for um erro de "Modelo não encontrado" (404), não adianta tentar outros modelos
-      if (response.status !== 404 && response.status !== 400) {
-        break;
+      // Detecção de cota zero (API desativada)
+      if (errorMsg.includes("limit: 0") || errorMsg.includes("Quota exceeded")) {
+        throw new Error("COTA_ZERO: Sua chave API está com limite ZERO. Isso significa que você precisa ativar a 'Generative Language API' no Google AI Studio (aistudio.google.com) ou aceitar os Termos de Serviço.");
       }
+
+      lastError = errorMsg;
+      console.warn(`Tentativa com ${config.model} falhou: ${errorMsg}`);
     } catch (e: any) {
+      if (e.message.startsWith("COTA_ZERO")) throw e;
       lastError = e.message;
-      console.error(`Erro na requisição para ${model}:`, e);
     }
   }
 
-  throw new Error(`Nenhum modelo disponível conseguiu processar a solicitação. Último erro: ${lastError}`);
+  throw new Error(`Não foi possível conectar ao Gemini. Verifique se o modelo está habilitado na sua conta. Detalhe: ${lastError}`);
 }
 
 export async function generateAIScale(
@@ -56,54 +58,36 @@ export async function generateAIScale(
   customPrompt: string
 ) {
   if (isPlaceholder) {
-    throw new Error("Chave API não configurada. Configure o VITE_GEMINI_API_KEY no ambiente do Vercel ou no arquivo .env.local.");
+    throw new Error("Chave API não configurada no Vercel.");
   }
 
-  const promptText = `
-    Ação: Como especialista em escalas militares, monte a escala para ${month + 1}/${year}.
-    
+  const promptText = `Ação: Gere uma escala militar para ${month + 1}/${year}. 
     Militares: ${JSON.stringify(militaryData.map(m => ({ id: m.id, rank: m.rank, name: m.name })))}
-    
-    Regras:
-    1. Descanso: Mínimo 48h.
-    2. Serviços: Comandante da Guarda, Sobreaviso, Faxina, Manutenção, Estágio, Escala Geral.
-    3. Instruções: "${customPrompt || 'Nenhuma.'}"
-
-    Saída: Retorne APENAS o JSON (array de objetos) com: militaryId, date (YYYY-MM-DD), type, startTime, endTime, location, status.
-  `;
+    Regras: 48h de descanso, distribuição justa.
+    Instruções: ${customPrompt || 'Nenhuma.'}
+    Saída: APENAS o JSON do array de objetos.`;
 
   const payload = {
-    contents: [{
-      parts: [{ text: promptText }]
-    }],
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 2048,
-    }
+    contents: [{ parts: [{ text: promptText }] }]
   };
 
-  // Lista de modelos para fallback em ordem de prioridade
-  const modelsToTry = [
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
-    'gemini-2.0-flash-exp'
+  // Matriz de tentativas: Modelos e Versões de API
+  const configsToTry = [
+    { model: 'gemini-1.5-flash', version: 'v1beta' },
+    { model: 'gemini-1.5-pro', version: 'v1beta' },
+    { model: 'gemini-pro', version: 'v1' }, // Fallback para versão estável
   ];
 
   try {
-    const data = await fetchWithFallback(payload, modelsToTry);
+    const data = await fetchWithFallback(payload, configsToTry);
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!text) throw new Error("A IA retornou uma resposta sem conteúdo.");
+    if (!text) throw new Error("Resposta vazia da IA.");
 
-    try {
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      return JSON.parse(jsonMatch ? jsonMatch[0] : text);
-    } catch (e) {
-      console.error("Falha ao processar JSON. Texto recebido:", text);
-      throw new Error("A resposta da IA não está em um formato JSON válido.");
-    }
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    return JSON.parse(jsonMatch ? jsonMatch[0] : text);
   } catch (error: any) {
-    console.error("Erro final na geração da escala:", error);
+    console.error("Erro final:", error);
     throw error;
   }
 }
