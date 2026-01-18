@@ -11,57 +11,61 @@ import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import { MilitaryProvider } from './contexts/MilitaryContext';
+import { MilitaryProvider } from './contexts/MilitaryContext';
 import { ShiftProvider } from './contexts/ShiftContext';
+import { AuthProvider } from './contexts/AuthContext';
 
 const App: React.FC = () => {
   return (
-    <MilitaryProvider>
-      <ShiftProvider>
-        <HashRouter>
-          <Routes>
-            <Route path="/auth" element={<AuthPage />} />
+    <AuthProvider>
+      <MilitaryProvider>
+        <ShiftProvider>
+          <HashRouter>
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
 
-            <Route path="/" element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            } />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/contacts" element={
-              <ProtectedRoute>
-                <ContactsPage />
-              </ProtectedRoute>
-            } />
+              <Route path="/contacts" element={
+                <ProtectedRoute>
+                  <ContactsPage />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/generate-scale" element={
-              <ProtectedRoute>
-                <GenerateScalePage />
-              </ProtectedRoute>
-            } />
+              <Route path="/generate-scale" element={
+                <ProtectedRoute>
+                  <GenerateScalePage />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/personal" element={
-              <ProtectedRoute>
-                <PersonalShiftPage />
-              </ProtectedRoute>
-            } />
+              <Route path="/personal" element={
+                <ProtectedRoute>
+                  <PersonalShiftPage />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/extra-hours" element={
-              <ProtectedRoute>
-                <ExtraHoursPage />
-              </ProtectedRoute>
-            } />
+              <Route path="/extra-hours" element={
+                <ProtectedRoute>
+                  <ExtraHoursPage />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/ranking" element={
-              <ProtectedRoute>
-                <RankingPage />
-              </ProtectedRoute>
-            } />
+              <Route path="/ranking" element={
+                <ProtectedRoute>
+                  <RankingPage />
+                </ProtectedRoute>
+              } />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </HashRouter>
-      </ShiftProvider>
-    </MilitaryProvider>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </HashRouter>
+        </ShiftProvider>
+      </MilitaryProvider>
+    </AuthProvider>
   );
 };
 
