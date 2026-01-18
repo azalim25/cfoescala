@@ -25,6 +25,7 @@ const EstadoMaiorPage: React.FC = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Form state
     const [formName, setFormName] = useState('');
@@ -237,15 +238,27 @@ const EstadoMaiorPage: React.FC = () => {
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestão de Funções e Atribuições</p>
                         </div>
                     </div>
-                    {!isGuest && (
-                        <button
-                            onClick={handleOpenAddModal}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
-                        >
-                            <span className="material-symbols-outlined text-lg">add_circle</span>
-                            Adicionar Estado Maior
-                        </button>
-                    )}
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Buscar por militar ou estado maior..."
+                                className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary w-80 dark:text-white"
+                            />
+                        </div>
+                        {!isGuest && (
+                            <button
+                                onClick={handleOpenAddModal}
+                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                            >
+                                <span className="material-symbols-outlined text-lg">add_circle</span>
+                                Adicionar Estado Maior
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -270,50 +283,62 @@ const EstadoMaiorPage: React.FC = () => {
                                         <p className="font-bold text-sm mt-4">Nenhum Estado Maior cadastrado.</p>
                                     </div>
                                 ) : (
-                                    estadosMaiores.map(em => (
-                                        <div key={em.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <h4 className="font-bold text-slate-800 dark:text-white">{em.name}</h4>
-                                                    <p className="text-xs text-slate-500 mt-1">{em.description}</p>
-                                                </div>
-                                                {!isGuest && (
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => handleOpenEditModal(em)}
-                                                            className="p-1.5 text-slate-400 hover:text-primary transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-lg">edit</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(em.id)}
-                                                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-lg">delete</span>
-                                                        </button>
+                                    estadosMaiores
+                                        .filter(em => {
+                                            if (!searchTerm) return true;
+                                            const searchLower = searchTerm.toLowerCase();
+                                            // Check if estado maior name matches
+                                            if (em.name.toLowerCase().includes(searchLower)) return true;
+                                            // Check if any assigned military name matches
+                                            return em.assignments.some(assignment => {
+                                                const military = militaries.find(m => m.id === assignment.militaryId);
+                                                return military?.name.toLowerCase().includes(searchLower);
+                                            });
+                                        })
+                                        .map(em => (
+                                            <div key={em.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-800 dark:text-white">{em.name}</h4>
+                                                        <p className="text-xs text-slate-500 mt-1">{em.description}</p>
                                                     </div>
-                                                )}
-                                            </div>
-                                            <div className="space-y-2">
-                                                {em.assignments.map((assignment, idx) => {
-                                                    const military = militaries.find(m => m.id === assignment.militaryId);
-                                                    return (
-                                                        <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
-                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                                                                <span className="material-symbols-outlined text-sm">person</span>
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                                                                    {military?.rank} {military?.name}
-                                                                </p>
-                                                                <p className="text-xs text-primary font-bold uppercase">{assignment.role}</p>
-                                                            </div>
+                                                    {!isGuest && (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleOpenEditModal(em)}
+                                                                className="p-1.5 text-slate-400 hover:text-primary transition-colors"
+                                                            >
+                                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(em.id)}
+                                                                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                                            >
+                                                                <span className="material-symbols-outlined text-lg">delete</span>
+                                                            </button>
                                                         </div>
-                                                    );
-                                                })}
+                                                    )}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {em.assignments.map((assignment, idx) => {
+                                                        const military = militaries.find(m => m.id === assignment.militaryId);
+                                                        return (
+                                                            <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
+                                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                                                    <span className="material-symbols-outlined text-sm">person</span>
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                                        {military?.rank} {military?.name}
+                                                                    </p>
+                                                                    <p className="text-xs text-primary font-bold uppercase">{assignment.role}</p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        ))
                                 )}
                             </div>
                         </div>
@@ -338,9 +363,9 @@ const EstadoMaiorPage: React.FC = () => {
                                     ranking.map((item, index) => (
                                         <div key={item.military.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300' :
-                                                    index === 1 ? 'bg-slate-200 text-slate-700 border-2 border-slate-300' :
-                                                        index === 2 ? 'bg-orange-100 text-orange-700 border-2 border-orange-300' :
-                                                            'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                                                index === 1 ? 'bg-slate-200 text-slate-700 border-2 border-slate-300' :
+                                                    index === 2 ? 'bg-orange-100 text-orange-700 border-2 border-orange-300' :
+                                                        'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                                                 }`}>
                                                 {index + 1}
                                             </div>
