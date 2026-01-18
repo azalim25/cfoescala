@@ -320,22 +320,33 @@ const EstadoMaiorPage: React.FC = () => {
                                                     )}
                                                 </div>
                                                 <div className="space-y-2">
-                                                    {em.assignments.map((assignment, idx) => {
-                                                        const military = militaries.find(m => m.id === assignment.militaryId);
-                                                        return (
-                                                            <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
-                                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                                                                    <span className="material-symbols-outlined text-sm">person</span>
+                                                    {em.assignments
+                                                        .filter(assignment => {
+                                                            // If no search term, show all assignments
+                                                            if (!searchTerm) return true;
+                                                            const searchLower = searchTerm.toLowerCase();
+                                                            // If search matches estado maior name, show all assignments
+                                                            if (em.name.toLowerCase().includes(searchLower)) return true;
+                                                            // Otherwise, only show assignments where military name matches
+                                                            const military = militaries.find(m => m.id === assignment.militaryId);
+                                                            return military?.name.toLowerCase().includes(searchLower);
+                                                        })
+                                                        .map((assignment, idx) => {
+                                                            const military = militaries.find(m => m.id === assignment.militaryId);
+                                                            return (
+                                                                <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
+                                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                                                        <span className="material-symbols-outlined text-sm">person</span>
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                                            {military?.rank} {military?.name}
+                                                                        </p>
+                                                                        <p className="text-xs text-primary font-bold uppercase">{assignment.role}</p>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="flex-1">
-                                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                                                                        {military?.rank} {military?.name}
-                                                                    </p>
-                                                                    <p className="text-xs text-primary font-bold uppercase">{assignment.role}</p>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                            );
+                                                        })}
                                                 </div>
                                             </div>
                                         ))
