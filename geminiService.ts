@@ -36,10 +36,12 @@ async function listAvailableModels() {
 async function fetchWithFallback(payload: any, configs: { model: string, version: string }[]) {
   let lastError = "";
 
+  // 1. Tentar os modelos pré-configurados
   for (const config of configs) {
     try {
       console.log(`Tentando: ${config.model} (${config.version})...`);
-      const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:generateContent?key=${apiKey}`;
+      // IMPORTANTE: usamos o nome completo do modelo como 'models/gemini-1.5-flash'
+      const url = `https://generativelanguage.googleapis.com/${config.version}/${config.model}:generateContent?key=${apiKey}`;
 
       const response = await fetch(url, {
         method: "POST",
@@ -48,10 +50,7 @@ async function fetchWithFallback(payload: any, configs: { model: string, version
       });
 
       const data = await response.json();
-
-      if (response.ok) {
-        return data;
-      }
+      if (response.ok) return data;
 
       const errorMsg = data.error?.message || `Erro HTTP ${response.status}`;
 
@@ -61,19 +60,42 @@ async function fetchWithFallback(payload: any, configs: { model: string, version
       }
 
       lastError = errorMsg;
-      console.warn(`Tentativa com ${config.model} falhou: ${errorMsg}`);
-
-      if (response.status === 404) {
-        console.log("DICA: Modelo não encontrado. Tentando listar modelos disponíveis para diagnóstico...");
-        await listAvailableModels();
-      }
+      console.warn(`Tentativa com ${config.model} falhou: ${lastError}`);
     } catch (e: any) {
       if (e.message.startsWith("COTA_EXCEDIDA")) throw e;
       lastError = e.message;
     }
   }
 
-  throw new Error(`Falha na conexão com Gemini. Detalhe: ${lastError}\n\nSugestão: Verifique se a 'Generative Language API' está ativada no Google Cloud Console.`);
+  // 2. Se falhar, tenta descobrir qual modelo a chave do usuário REALMENTE suporta
+  console.log("Iniciando descoberta dinâmica de modelos...");
+  const discoveredModels = await listAvailableModels();
+  // O retorno já vem no formato 'models/gemini-...'
+
+  for (const fullModelName of discoveredModels.slice(0, 3)) { // Tenta os 3 primeiros
+    try {
+      console.log(`Tentando modelo descoberto: ${fullModelName}...`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/${fullModelName}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (response.ok) return data;
+
+      const errorMsg = data.error?.message || `Erro HTTP ${response.status}`;
+      if (errorMsg.includes("limit: 0") || errorMsg.includes("Quota exceeded") || response.status === 429) {
+        throw new Error("COTA_EXCEDIDA: Sua chave API atingiu o limite ou a cota está zerada no Google Cloud. Verifique o faturamento ou as restrições da chave.");
+      }
+      lastError = errorMsg;
+    } catch (e: any) {
+      if (e.message.startsWith("COTA_EXCEDIDA")) throw e;
+      lastError = e.message;
+    }
+  }
+
+  throw new Error(`Falha na conexão. Detalhe: ${lastError}\n\nSugestão: Verifique se a 'Generative Language API' está ativada no Google Cloud Console.`);
 }
 
 export async function generateAIScale(
@@ -99,11 +121,11 @@ export async function generateAIScale(
     contents: [{ parts: [{ text: promptText }] }]
   };
 
+  // Modelos com o prefixo 'models/' exigido pela API REST direta
   const configsToTry = [
-    { model: 'gemini-1.5-flash', version: 'v1beta' },
-    { model: 'gemini-1.5-flash-latest', version: 'v1beta' },
-    { model: 'gemini-1.5-pro', version: 'v1beta' },
-    { model: 'gemini-pro', version: 'v1beta' },
+    { model: 'models/gemini-1.5-flash', version: 'v1beta' },
+    { model: 'models/gemini-1.5-pro', version: 'v1beta' },
+    { model: 'models/gemini-pro', version: 'v1' },
   ];
 
   try {
