@@ -3,11 +3,13 @@ import MainLayout from '../components/MainLayout';
 import { MOCK_SHIFTS, SHIFT_TYPE_COLORS } from '../constants';
 import { useShift } from '../contexts/ShiftContext';
 import { useMilitary } from '../contexts/MilitaryContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Shift, Rank } from '../types';
 
 const DashboardPage: React.FC = () => {
   const { shifts: allShifts, createShift, updateShift, removeShift } = useShift();
   const { militaries } = useMilitary();
+  const { isGuest } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
   const [currentYear, setCurrentYear] = useState(2026);
   const [selectedDay, setSelectedDay] = useState(2); // Default
@@ -208,7 +210,9 @@ const DashboardPage: React.FC = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedDay(day);
-                            handleOpenEditModal(s);
+                            if (!isGuest) {
+                              handleOpenEditModal(s);
+                            }
                           }}
                           className={`text-[9px] font-bold p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
                         >
@@ -244,13 +248,15 @@ const DashboardPage: React.FC = () => {
               <h2 className="font-bold text-slate-800 dark:text-slate-100 uppercase text-sm">FICHA DO DIA</h2>
               <p className="text-[11px] text-primary font-bold">{selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}</p>
             </div>
-            <button
-              onClick={handleOpenAddModal}
-              className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity"
-              title="Adicionar Serviço"
-            >
-              <span className="material-symbols-outlined text-lg">add</span>
-            </button>
+            {!isGuest && (
+              <button
+                onClick={handleOpenAddModal}
+                className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity"
+                title="Adicionar Serviço"
+              >
+                <span className="material-symbols-outlined text-lg">add</span>
+              </button>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex justify-between items-center border border-slate-100 dark:border-slate-800">
@@ -269,8 +275,8 @@ const DashboardPage: React.FC = () => {
                 return (
                   <button
                     key={s.id}
-                    onClick={() => handleOpenEditModal(s)}
-                    className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-4 space-y-4 shadow-sm relative overflow-hidden hover:opacity-90 transition-opacity group`}
+                    onClick={() => !isGuest && handleOpenEditModal(s)}
+                    className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-4 space-y-4 shadow-sm relative overflow-hidden ${!isGuest ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'} transition-opacity group`}
                   >
                     <div className="flex items-start justify-between relative z-10">
                       <div className="flex gap-3">
@@ -287,7 +293,7 @@ const DashboardPage: React.FC = () => {
                           <p className="text-[11px] text-slate-500 mt-1 uppercase">BM: {m?.firefighterNumber}</p>
                         </div>
                       </div>
-                      <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">edit</span>
+                      {!isGuest && <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">edit</span>}
                     </div>
                     <div className={`absolute top-0 right-0 w-1 h-full ${SHIFT_TYPE_COLORS[s.type]?.dot || 'bg-slate-200'}`}></div>
                   </button>

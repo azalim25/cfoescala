@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import MainLayout from '../components/MainLayout';
 import { Military, Rank } from '../types';
 import { useMilitary } from '../contexts/MilitaryContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const ContactsPage: React.FC = () => {
   const { militaries, addMilitary, updateMilitary, deleteMilitary } = useMilitary();
+  const { isGuest } = useAuth();
   const [editingMilitary, setEditingMilitary] = useState<Military | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newMilitary, setNewMilitary] = useState<Partial<Military>>({
@@ -80,13 +82,15 @@ const ContactsPage: React.FC = () => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               />
             </div>
-            <button
-              onClick={() => setIsAdding(true)}
-              className="flex items-center gap-2 px-4 py-1.5 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
-            >
-              <span className="material-symbols-outlined text-lg">person_add</span>
-              Adicionar Militar
-            </button>
+            {!isGuest && (
+              <button
+                onClick={() => setIsAdding(true)}
+                className="flex items-center gap-2 px-4 py-1.5 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+              >
+                <span className="material-symbols-outlined text-lg">person_add</span>
+                Adicionar Militar
+              </button>
+            )}
           </div>
         </div>
 
@@ -128,18 +132,22 @@ const ContactsPage: React.FC = () => {
                       </td>
                       <td className="p-4 text-sm text-slate-600 dark:text-slate-400 font-medium">{m.contact}</td>
                       <td className="p-4 text-right space-x-2">
-                        <button
-                          onClick={() => setEditingMilitary(m)}
-                          className="p-1.5 text-slate-400 hover:text-primary transition-colors border border-slate-100 dark:border-slate-800 rounded-lg"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(m.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-500 transition-colors border border-slate-100 dark:border-slate-800 rounded-lg"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
+                        {!isGuest && (
+                          <>
+                            <button
+                              onClick={() => setEditingMilitary(m)}
+                              className="p-1.5 text-slate-400 hover:text-primary transition-colors border border-slate-100 dark:border-slate-800 rounded-lg"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(m.id)}
+                              className="p-1.5 text-slate-400 hover:text-red-500 transition-colors border border-slate-100 dark:border-slate-800 rounded-lg"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}

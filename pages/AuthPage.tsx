@@ -1,9 +1,12 @@
 
+
 import React, { useState } from 'react';
 import { supabase } from '../supabase';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const AuthPage: React.FC = () => {
+    const { loginAsGuest } = useAuth();
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -69,6 +72,11 @@ const AuthPage: React.FC = () => {
         }
     };
 
+    const handleGuestLogin = () => {
+        loginAsGuest();
+        navigate('/');
+    };
+
     return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-primary/30">
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -125,6 +133,26 @@ const AuthPage: React.FC = () => {
                             className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none mt-4 text-sm uppercase tracking-widest"
                         >
                             {loading ? 'Aguarde...' : isSignUp ? 'Criar Cadastro' : 'Acessar Sistema'}
+                        </button>
+
+                        <div className="relative my-6">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-800"></div>
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-slate-900/50 px-2 text-slate-500 font-bold">ou</span>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleGuestLogin}
+                            className="w-full bg-slate-800/50 border border-slate-700 text-slate-300 font-bold py-4 rounded-xl hover:bg-slate-800 hover:border-slate-600 active:scale-[0.98] transition-all text-sm uppercase tracking-widest"
+                        >
+                            <span className="flex items-center justify-center gap-2">
+                                <span className="material-symbols-outlined text-xl">visibility</span>
+                                Entrar como Visitante
+                            </span>
                         </button>
                     </form>
 

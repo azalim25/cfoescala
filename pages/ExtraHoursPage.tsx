@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
 import { Military } from '../types';
 
@@ -18,6 +19,7 @@ interface ExtraHourRecord {
 
 const ExtraHoursPage: React.FC = () => {
     const { militaries } = useMilitary();
+    const { isGuest } = useAuth();
     const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
     const [hours, setHours] = useState<number>(0);
     const [minutes, setMinutes] = useState<number>(0);
@@ -146,107 +148,109 @@ const ExtraHoursPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Form Section */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
-                                    <span className="material-symbols-outlined text-primary text-lg">
-                                        {editingRecordId ? 'edit_note' : 'add_circle'}
-                                    </span>
-                                    {editingRecordId ? 'Editar Registro' : 'Novo Registro'}
-                                </h3>
-                            </div>
-                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Militar</label>
-                                    <select
-                                        value={selectedMilitaryId}
-                                        onChange={(e) => setSelectedMilitaryId(e.target.value)}
-                                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                        required
-                                    >
-                                        <option value="">Selecione um militar...</option>
-                                        {militaries.map(m => (
-                                            <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
-                                        ))}
-                                    </select>
+                    {!isGuest && (
+                        <div className="lg:col-span-1">
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                                <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                                    <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
+                                        <span className="material-symbols-outlined text-primary text-lg">
+                                            {editingRecordId ? 'edit_note' : 'add_circle'}
+                                        </span>
+                                        {editingRecordId ? 'Editar Registro' : 'Novo Registro'}
+                                    </h3>
                                 </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Tipo de Atividade</label>
-                                    <select
-                                        value={category}
-                                        onChange={(e) => setCategory(e.target.value)}
-                                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                        required
-                                    >
-                                        {categories.map(c => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
+                                <form onSubmit={handleSubmit} className="p-6 space-y-4">
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Horas</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={hours}
-                                            onChange={(e) => setHours(parseInt(e.target.value) || 0)}
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Militar</label>
+                                        <select
+                                            value={selectedMilitaryId}
+                                            onChange={(e) => setSelectedMilitaryId(e.target.value)}
                                             className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Minutos</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="59"
-                                            value={minutes}
-                                            onChange={(e) => setMinutes(parseInt(e.target.value) || 0)}
-                                            className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Observações (Opcional)</label>
-                                    <textarea
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        rows={3}
-                                        placeholder="Detalhes adicionais..."
-                                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
-                                    ></textarea>
-                                </div>
-
-                                <div className="flex flex-col gap-2">
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="w-full h-12 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <span className="material-symbols-outlined text-lg">save</span>
-                                        {isSubmitting ? 'Salvando...' : (editingRecordId ? 'Salvar Alterações' : 'Registrar Horas')}
-                                    </button>
-                                    {editingRecordId && (
-                                        <button
-                                            type="button"
-                                            onClick={handleCancelEdit}
-                                            className="w-full h-10 text-slate-500 font-bold hover:text-red-500 transition-colors flex items-center justify-center gap-2"
+                                            required
                                         >
-                                            <span className="material-symbols-outlined text-lg">cancel</span>
-                                            Cancelar Edição
+                                            <option value="">Selecione um militar...</option>
+                                            {militaries.map(m => (
+                                                <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Tipo de Atividade</label>
+                                        <select
+                                            value={category}
+                                            onChange={(e) => setCategory(e.target.value)}
+                                            className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                            required
+                                        >
+                                            {categories.map(c => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Horas</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={hours}
+                                                onChange={(e) => setHours(parseInt(e.target.value) || 0)}
+                                                className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Minutos</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="59"
+                                                value={minutes}
+                                                onChange={(e) => setMinutes(parseInt(e.target.value) || 0)}
+                                                className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Observações (Opcional)</label>
+                                        <textarea
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            rows={3}
+                                            placeholder="Detalhes adicionais..."
+                                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
+                                        ></textarea>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmitting}
+                                            className="w-full h-12 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">save</span>
+                                            {isSubmitting ? 'Salvando...' : (editingRecordId ? 'Salvar Alterações' : 'Registrar Horas')}
                                         </button>
-                                    )}
-                                </div>
-                            </form>
+                                        {editingRecordId && (
+                                            <button
+                                                type="button"
+                                                onClick={handleCancelEdit}
+                                                className="w-full h-10 text-slate-500 font-bold hover:text-red-500 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">cancel</span>
+                                                Cancelar Edição
+                                            </button>
+                                        )}
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* List Section */}
-                    <div className="lg:col-span-2">
+                    <div className={!isGuest ? "lg:col-span-2" : "lg:col-span-3"}>
                         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-270px)]">
                             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
                                 <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
@@ -310,22 +314,24 @@ const ExtraHoursPage: React.FC = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <button
-                                                                onClick={() => handleEdit(record)}
-                                                                className={`p-1.5 transition-colors ${editingRecordId === record.id ? 'text-primary' : 'text-slate-400 hover:text-primary'}`}
-                                                                title="Editar"
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">edit</span>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete(record.id)}
-                                                                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                                                                title="Excluir"
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">delete</span>
-                                                            </button>
-                                                        </div>
+                                                        {!isGuest && (
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => handleEdit(record)}
+                                                                    className={`p-1.5 transition-colors ${editingRecordId === record.id ? 'text-primary' : 'text-slate-400 hover:text-primary'}`}
+                                                                    title="Editar"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-lg">edit</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDelete(record.id)}
+                                                                    className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                                                    title="Excluir"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-lg">delete</span>
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}

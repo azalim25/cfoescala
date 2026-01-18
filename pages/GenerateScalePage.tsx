@@ -4,12 +4,14 @@ import MainLayout from '../components/MainLayout';
 import { Military, Shift } from '../types';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
+import { useAuth } from '../contexts/AuthContext';
 import { SHIFT_TYPE_COLORS } from '../constants';
 
 const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
     const { militaries } = useMilitary();
     const { addShifts } = useShift();
+    const { isGuest } = useAuth();
 
     // Time State
     const [currentMonth, setCurrentMonth] = useState(0);
@@ -211,27 +213,29 @@ const GenerateScalePage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                            <button
-                                onClick={() => setGenerationMode('auto')}
-                                className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'auto'
-                                    ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                                    : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                Automático (IA)
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setGenerationMode('manual');
-                                    setDraftShifts([]);
-                                }}
-                                className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'manual'
-                                    ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                                    : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                Manual
-                            </button>
-                        </div>
+                        {!isGuest && (
+                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <button
+                                    onClick={() => setGenerationMode('auto')}
+                                    className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'auto'
+                                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                                        : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Automático (IA)
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setGenerationMode('manual');
+                                        setDraftShifts([]);
+                                    }}
+                                    className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'manual'
+                                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                                        : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Manual
+                                </button>
+                            </div>
+                        )}
 
                         <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-10">
                             <select
@@ -254,7 +258,7 @@ const GenerateScalePage: React.FC = () => {
                 </div>
 
                 {/* AI Prompt Area */}
-                {generationMode === 'auto' && (
+                {generationMode === 'auto' && !isGuest && (
                     <div className="bg-white dark:bg-slate-900 rounded-xl p-1 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
                         <div className="relative">
                             <textarea
@@ -310,14 +314,14 @@ const GenerateScalePage: React.FC = () => {
                             return (
                                 <button
                                     key={day}
-                                    onClick={() => handleDayClick(day)}
-                                    className={`min-h-[120px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left hover:bg-slate-50 dark:hover:bg-slate-800/40`}
+                                    onClick={() => !isGuest && handleDayClick(day)}
+                                    className={`min-h-[120px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${!isGuest ? 'hover:bg-slate-50 dark:hover:bg-slate-800/40' : 'cursor-default'}`}
                                 >
                                     <div className="flex justify-between items-start mb-1">
                                         <span className={`text-xs font-bold ${isToday ? 'bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
                                             {day}
                                         </span>
-                                        <span className="material-symbols-outlined text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">add</span>
+                                        {!isGuest && <span className="material-symbols-outlined text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">add</span>}
                                     </div>
                                     <div className="space-y-1">
                                         {shifts.map(s => {
@@ -341,19 +345,21 @@ const GenerateScalePage: React.FC = () => {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="fixed bottom-0 left-0 md:left-64 right-0 p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center z-40">
-                    <div className="text-xs text-slate-500 font-medium">
-                        {draftShifts.length} serviços agendados para publicação
+                {!isGuest && (
+                    <div className="fixed bottom-0 left-0 md:left-64 right-0 p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center z-40">
+                        <div className="text-xs text-slate-500 font-medium">
+                            {draftShifts.length} serviços agendados para publicação
+                        </div>
+                        <button
+                            onClick={handlePublish}
+                            disabled={draftShifts.length === 0}
+                            className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-bold shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                        >
+                            <span className="material-symbols-outlined">publish</span>
+                            Publicar Escala
+                        </button>
                     </div>
-                    <button
-                        onClick={handlePublish}
-                        disabled={draftShifts.length === 0}
-                        className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-bold shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                    >
-                        <span className="material-symbols-outlined">publish</span>
-                        Publicar Escala
-                    </button>
-                </div>
+                )}
 
                 {/* Modal */}
                 {isModalOpen && (
