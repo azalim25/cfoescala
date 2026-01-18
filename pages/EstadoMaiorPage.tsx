@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../supabase';
 
 interface EstadoMaiorAssignment {
     militaryId: string;
@@ -22,6 +23,8 @@ const EstadoMaiorPage: React.FC = () => {
     const [estadosMaiores, setEstadosMaiores] = useState<EstadoMaior[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Form state
     const [formName, setFormName] = useState('');
@@ -30,18 +33,54 @@ const EstadoMaiorPage: React.FC = () => {
         { militaryId: '', role: '' }
     ]);
 
-    // Load from localStorage
-    useEffect(() => {
-        const stored = localStorage.getItem('estadosMaiores');
-        if (stored) {
-            setEstadosMaiores(JSON.parse(stored));
-        }
-    }, []);
+    // Fetch Estado Maior from Supabase
+    const fetchEstadosMaiores = async () => {
+        setIsLoading(true);
+        try {
+            const { data: emData, error: emError } = await supabase
+                .from('estado_maior')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-    // Save to localStorage
+            if (emError) throw emError;
+
+            if (emData) {
+                // Fetch assignments for each estado maior
+                const estadosWithAssignments = await Promise.all(
+                    emData.map(async (em) => {
+                        const { data: assignments, error: assignError } = await supabase
+                            .from('estado_maior_assignments')
+                            .select('military_id, role')
+                            .eq('estado_maior_id', em.id);
+
+                        if (assignError) throw assignError;
+
+                        return {
+                            id: em.id,
+                            name: em.name,
+                            description: em.description || '',
+                            assignments: assignments?.map(a => ({
+                                militaryId: a.military_id,
+                                role: a.role
+                            })) || [],
+                            createdAt: em.created_at
+                        };
+                    })
+                );
+
+                setEstadosMaiores(estadosWithAssignments);
+            }
+        } catch (error) {
+            console.error('Error fetching estados maiores:', error);
+            alert('Erro ao carregar Estados Maiores.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        localStorage.setItem('estadosMaiores', JSON.stringify(estadosMaiores));
-    }, [estadosMaiores]);
+        fetchEstadosMaiores();
+    }, []);
 
     const handleOpenAddModal = () => {
         setEditingId(null);
@@ -73,35 +112,106 @@ const EstadoMaiorPage: React.FC = () => {
         setFormAssignments(updated);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formName.trim()) {
             alert('Por favor, insira um nome para o Estado Maior.');
             return;
         }
 
-        // Filter out empty assignments
-        const validAssignments = formAssignments.filter(a => a.militaryId && a.role.trim());
+        setIsSaving(true);
+        try {
+            // Filter out empty assignments
+            const validAssignments = formAssignments.filter(a => a.militaryId && a.role.trim());
 
-        const newEstadoMaior: EstadoMaior = {
-            id: editingId || `em-${Date.now()}`,
-            name: formName,
-            description: formDescription,
-            assignments: validAssignments,
-            createdAt: editingId ? estadosMaiores.find(e => e.id === editingId)?.createdAt || new Date().toISOString() : new Date().toISOString()
-        };
+            if (editingId) {
+                // Update existing
+                const { error: updateError } = await supabase
+                    .from('estado_maior')
+                    .update({
+                        name: formName,
+                        description: formDescription,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', editingId);
 
-        if (editingId) {
-            setEstadosMaiores(estadosMaiores.map(e => e.id === editingId ? newEstadoMaior : e));
-        } else {
-            setEstadosMaiores([...estadosMaiores, newEstadoMaior]);
+                if (updateError) throw updateError;
+
+                // Delete old assignments
+                const { error: deleteError } = await supabase
+                    .from('estado_maior_assignments')
+                    .delete()
+                    .eq('estado_maior_id', editingId);
+
+                if (deleteError) throw deleteError;
+
+                // Insert new assignments
+                if (validAssignments.length > 0) {
+                    const { error: insertError } = await supabase
+                        .from('estado_maior_assignments')
+                        .insert(
+                            validAssignments.map(a => ({
+                                estado_maior_id: editingId,
+                                military_id: a.militaryId,
+                                role: a.role
+                            }))
+                        );
+
+                    if (insertError) throw insertError;
+                }
+            } else {
+                // Create new
+                const { data: newEM, error: createError } = await supabase
+                    .from('estado_maior')
+                    .insert({
+                        name: formName,
+                        description: formDescription
+                    })
+                    .select()
+                    .single();
+
+                if (createError) throw createError;
+
+                // Insert assignments
+                if (validAssignments.length > 0 && newEM) {
+                    const { error: insertError } = await supabase
+                        .from('estado_maior_assignments')
+                        .insert(
+                            validAssignments.map(a => ({
+                                estado_maior_id: newEM.id,
+                                military_id: a.militaryId,
+                                role: a.role
+                            }))
+                        );
+
+                    if (insertError) throw insertError;
+                }
+            }
+
+            setIsModalOpen(false);
+            fetchEstadosMaiores();
+        } catch (error) {
+            console.error('Error saving estado maior:', error);
+            alert('Erro ao salvar Estado Maior.');
+        } finally {
+            setIsSaving(false);
         }
-
-        setIsModalOpen(false);
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm('Tem certeza que deseja excluir este Estado Maior?')) {
-            setEstadosMaiores(estadosMaiores.filter(e => e.id !== id));
+    const handleDelete = async (id: string) => {
+        if (!confirm('Tem certeza que deseja excluir este Estado Maior?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('estado_maior')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            fetchEstadosMaiores();
+        } catch (error) {
+            console.error('Error deleting estado maior:', error);
+            alert('Erro ao excluir Estado Maior.');
         }
     };
 
@@ -149,7 +259,12 @@ const EstadoMaiorPage: React.FC = () => {
                                 </h3>
                             </div>
                             <div className="p-4 space-y-4">
-                                {estadosMaiores.length === 0 ? (
+                                {isLoading ? (
+                                    <div className="text-center py-12">
+                                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                        <p className="text-slate-400 text-sm mt-4">Carregando...</p>
+                                    </div>
+                                ) : estadosMaiores.length === 0 ? (
                                     <div className="text-center py-12 text-slate-400">
                                         <span className="material-symbols-outlined text-6xl opacity-50">folder_open</span>
                                         <p className="font-bold text-sm mt-4">Nenhum Estado Maior cadastrado.</p>
@@ -338,15 +453,17 @@ const EstadoMaiorPage: React.FC = () => {
                         <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-3">
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                disabled={isSaving}
+                                className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={handleSave}
-                                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                                disabled={isSaving}
+                                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50"
                             >
-                                Salvar
+                                {isSaving ? 'Salvando...' : 'Salvar'}
                             </button>
                         </div>
                     </div>
