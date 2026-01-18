@@ -20,12 +20,14 @@ async function listAvailableModels() {
     const response = await fetch(url);
     const data = await response.json();
     if (data.models) {
-      console.log("Modelos disponíveis para sua chave:", data.models.map((m: any) => m.name));
-      return data.models.map((m: any) => m.name.split('/').pop());
+      // Retornar o nome completo: 'models/gemini-1.5-flash'
+      const names = data.models.map((m: any) => m.name);
+      console.log("Modelos detectados na sua conta:", names);
+      return names;
     }
     console.error("Não foi possível listar modelos:", data);
   } catch (e) {
-    console.error("Erro ao tentar listar modelos:", e);
+    console.error("Erro ao listar modelos:", e);
   }
   return [];
 }
@@ -36,12 +38,11 @@ async function listAvailableModels() {
 async function fetchWithFallback(payload: any, configs: { model: string, version: string }[]) {
   let lastError = "";
 
-  // 1. Tentar os modelos pré-configurados
+  // 1. Tentar os modelos padrão (flash e pro)
   for (const config of configs) {
     try {
-      console.log(`Tentando: ${config.model} (${config.version})...`);
-      // IMPORTANTE: usamos o nome completo do modelo como 'models/gemini-1.5-flash'
       const url = `https://generativelanguage.googleapis.com/${config.version}/${config.model}:generateContent?key=${apiKey}`;
+      console.log(`Solicitando escala para: ${config.model}...`);
 
       const response = await fetch(url, {
         method: "POST",
@@ -52,50 +53,44 @@ async function fetchWithFallback(payload: any, configs: { model: string, version
       const data = await response.json();
       if (response.ok) return data;
 
-      const errorMsg = data.error?.message || `Erro HTTP ${response.status}`;
-
-      // Detecção de cota zero (API desativada)
-      if (errorMsg.includes("limit: 0") || errorMsg.includes("Quota exceeded") || response.status === 429) {
-        throw new Error("COTA_EXCEDIDA: Sua chave API atingiu o limite ou a cota está zerada no Google Cloud. Verifique o faturamento ou as restrições da chave.");
-      }
-
-      lastError = errorMsg;
-      console.warn(`Tentativa com ${config.model} falhou: ${lastError}`);
+      lastError = data.error?.message || `Status ${response.status}`;
+      console.warn(`${config.model} recusou: ${lastError}`);
     } catch (e: any) {
-      if (e.message.startsWith("COTA_EXCEDIDA")) throw e;
       lastError = e.message;
     }
   }
 
-  // 2. Se falhar, tenta descobrir qual modelo a chave do usuário REALMENTE suporta
-  console.log("Iniciando descoberta dinâmica de modelos...");
+  // 2. Fallback Dinâmico: usa a lista de 50 modelos que sua chave possui
+  console.log("Iniciando busca automática nos 50 modelos disponíveis...");
   const discoveredModels = await listAvailableModels();
-  // O retorno já vem no formato 'models/gemini-...'
 
-  for (const fullModelName of discoveredModels.slice(0, 3)) { // Tenta os 3 primeiros
+  // Filtra apenas modelos que suportam geração de conteúdo
+  const candidates = discoveredModels.filter(name =>
+    name.includes('flash') || name.includes('pro') || name.includes('1.5')
+  );
+
+  for (const fullModelName of candidates.slice(0, 5)) {
     try {
-      console.log(`Tentando modelo descoberto: ${fullModelName}...`);
       const url = `https://generativelanguage.googleapis.com/v1beta/${fullModelName}:generateContent?key=${apiKey}`;
+      console.log(`Tentativa automática com: ${fullModelName}`);
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+
       const data = await response.json();
       if (response.ok) return data;
 
-      const errorMsg = data.error?.message || `Erro HTTP ${response.status}`;
-      if (errorMsg.includes("limit: 0") || errorMsg.includes("Quota exceeded") || response.status === 429) {
-        throw new Error("COTA_EXCEDIDA: Sua chave API atingiu o limite ou a cota está zerada no Google Cloud. Verifique o faturamento ou as restrições da chave.");
-      }
+      const errorMsg = data.error?.message || `Status ${response.status}`;
       lastError = errorMsg;
-    } catch (e: any) {
-      if (e.message.startsWith("COTA_EXCEDIDA")) throw e;
-      lastError = e.message;
+    } catch (err: any) {
+      lastError = err.message;
     }
   }
 
-  throw new Error(`Falha na conexão. Detalhe: ${lastError}\n\nSugestão: Verifique se a 'Generative Language API' está ativada no Google Cloud Console.`);
+  throw new Error(`Falha na conexão. Detalhe: ${lastError}\n\nSugestão: Verifique se sua internet não está bloqueando o domínio googleapis.com.`);
 }
 
 export async function generateAIScale(
