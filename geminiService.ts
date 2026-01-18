@@ -1,8 +1,52 @@
-
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-if (!apiKey || apiKey === "PLACEHOLDER_API_KEY") {
-  console.warn("AVISO: VITE_GEMINI_API_KEY não configurada ou é um placeholder.");
+// Diagnóstico de Chave
+const isPlaceholder = !apiKey || apiKey === "PLACEHOLDER_API_KEY";
+const keyPrefix = apiKey ? apiKey.substring(0, 4) : "NULA";
+
+if (isPlaceholder) {
+  console.error("ERRO CRÍTICO: Chave API do Gemini não configurada!");
+} else {
+  console.log(`Gemini Service iniciado com chave iniciando em: ${keyPrefix}...`);
+}
+
+/**
+ * Tenta gerar o conteúdo usando uma lista de modelos em ordem de preferência.
+ * Isso resolve os erros 404 quando um modelo específico não está disponível para a chave.
+ */
+async function fetchWithFallback(payload: any, models: string[]) {
+  let lastError = null;
+
+  for (const model of models) {
+    try {
+      console.log(`Tentando gerar com o modelo: ${model}...`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+
+      const errorData = await response.json();
+      lastError = errorData.error?.message || `Erro HTTP ${response.status}`;
+      console.warn(`Modelo ${model} falhou: ${lastError}`);
+
+      // Se não for um erro de "Modelo não encontrado" (404), não adianta tentar outros modelos
+      if (response.status !== 404 && response.status !== 400) {
+        break;
+      }
+    } catch (e: any) {
+      lastError = e.message;
+      console.error(`Erro na requisição para ${model}:`, e);
+    }
+  }
+
+  throw new Error(`Nenhum modelo disponível conseguiu processar a solicitação. Último erro: ${lastError}`);
 }
 
 export async function generateAIScale(
@@ -11,72 +55,55 @@ export async function generateAIScale(
   year: number,
   customPrompt: string
 ) {
+  if (isPlaceholder) {
+    throw new Error("Chave API não configurada. Configure o VITE_GEMINI_API_KEY no ambiente do Vercel ou no arquivo .env.local.");
+  }
+
   const promptText = `
-    Como especialista em escalas militares (CFO), sua tarefa é montar a escala de serviço para o mês ${month + 1} de ${year}.
-
-    DADOS DOS MILITARES:
-    ${JSON.stringify(militaryData.map(m => ({ id: m.id, rank: m.rank, name: m.name })))}
-
-    REGRAS CRÍTICAS:
-    1. Descanso: Mínimo de 48h entre plantões.
-    2. Equidade: Distribua os serviços de forma justa.
-    3. Serviços: Comandante da Guarda, Sobreaviso, Faxina, Manutenção, Estágio, Escala Geral.
+    Ação: Como especialista em escalas militares, monte a escala para ${month + 1}/${year}.
     
-    INSTRUÇÕES ESPECIAIS:
-    "${customPrompt || 'Nenhuma.'}"
+    Militares: ${JSON.stringify(militaryData.map(m => ({ id: m.id, rank: m.rank, name: m.name })))}
+    
+    Regras:
+    1. Descanso: Mínimo 48h.
+    2. Serviços: Comandante da Guarda, Sobreaviso, Faxina, Manutenção, Estágio, Escala Geral.
+    3. Instruções: "${customPrompt || 'Nenhuma.'}"
 
-    SAÍDA:
-    Retorne apenas um array JSON: [{"militaryId": "...", "date": "YYYY-MM-DD", "type": "...", "startTime": "08:00", "endTime": "08:00", "location": "QCG", "status": "Confirmado"}]
+    Saída: Retorne APENAS o JSON (array de objetos) com: militaryId, date (YYYY-MM-DD), type, startTime, endTime, location, status.
   `;
 
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-    const payload = {
-      contents: [{
-        parts: [{
-          text: `Você é um especialista em escalas militares. Responda apenas com o JSON da escala, sem explicações ou markdown.\n\n${promptText}`
-        }]
-      }]
-    };
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || `Erro HTTP: ${response.status}`);
+  const payload = {
+    contents: [{
+      parts: [{ text: promptText }]
+    }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 2048,
     }
+  };
 
-    const data = await response.json();
+  // Lista de modelos para fallback em ordem de prioridade
+  const modelsToTry = [
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-2.0-flash-exp'
+  ];
 
-    // Access the text content from the candidate
+  try {
+    const data = await fetchWithFallback(payload, modelsToTry);
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!text) {
-      throw new Error("A IA retornou uma resposta vazia.");
-    }
+    if (!text) throw new Error("A IA retornou uma resposta sem conteúdo.");
 
-    // Parse the JSON array
     try {
-      // Find the JSON array in the response (robust parsing)
       const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-      return JSON.parse(text);
+      return JSON.parse(jsonMatch ? jsonMatch[0] : text);
     } catch (e) {
-      console.error("Erro ao processar JSON da IA:", e, "Texto:", text);
-      throw new Error("A resposta da IA não continha um JSON válido.");
+      console.error("Falha ao processar JSON. Texto recebido:", text);
+      throw new Error("A resposta da IA não está em um formato JSON válido.");
     }
-
   } catch (error: any) {
-    console.error("Erro na geração da escala:", error);
-    throw new Error(error.message || "Erro desconhecido na comunicação com o Gemini.");
+    console.error("Erro final na geração da escala:", error);
+    throw error;
   }
 }
