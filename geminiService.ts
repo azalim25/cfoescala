@@ -35,15 +35,14 @@ export async function generateAIScale(
   `;
 
   try {
-    const response = await (ai as any).models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: "Você é um especialista em escalas militares. Retorne APENAS o JSON solicitado.",
-      }
+    const model = ai.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: "Você é um especialista em escalas militares. Retorne APENAS o JSON solicitado."
     });
 
-    const text = response.text;
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) return JSON.parse(jsonMatch[0]);
     throw new Error("JSON não encontrado na resposta");
