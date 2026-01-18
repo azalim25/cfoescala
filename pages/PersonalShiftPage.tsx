@@ -26,14 +26,31 @@ const PersonalShiftPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
   const [isLoadingExtra, setIsLoadingExtra] = useState(false);
+  const [personalStages, setPersonalStages] = useState<any[]>([]);
+  const [isLoadingStages, setIsLoadingStages] = useState(false);
 
   const selectedMilitary = militaries.find(m => m.id === selectedMilitaryId) || militaries[0];
 
   useEffect(() => {
     if (selectedMilitaryId) {
       fetchExtraHours();
+      fetchPersonalStages();
     }
   }, [selectedMilitaryId]);
+
+  const fetchPersonalStages = async () => {
+    setIsLoadingStages(true);
+    const { data, error } = await supabase
+      .from('stages')
+      .select('*')
+      .eq('military_id', selectedMilitaryId)
+      .order('date', { ascending: false });
+
+    if (!error && data) {
+      setPersonalStages(data);
+    }
+    setIsLoadingStages(false);
+  };
 
   const fetchExtraHours = async () => {
     setIsLoadingExtra(true);
@@ -88,7 +105,18 @@ const PersonalShiftPage: React.FC = () => {
 
   // Sections
   const today = new Date().toISOString().split('T')[0];
-  const upcomingShifts = personalShifts.filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+
+  // Combine shifts and stages for upcoming view
+  const combinedUpcoming = [
+    ...personalShifts.map(s => ({ ...s, isStage: false })),
+    ...personalStages.map(s => ({
+      id: s.id,
+      date: s.date,
+      type: 'Estágio',
+      location: s.location,
+      isStage: true
+    }))
+  ].filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
 
   // Combined workloads
   const totalShiftHours = personalShifts.reduce((acc, s) => acc + calculateShiftHours(s), 0);
@@ -199,7 +227,7 @@ const PersonalShiftPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {upcomingShifts.map(s => (
+                  {combinedUpcoming.map((s: any) => (
                     <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-6 py-4">
                         <span className="text-sm font-extrabold text-slate-900 dark:text-white">
@@ -207,8 +235,8 @@ const PersonalShiftPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2.5 py-0.5 rounded-md ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-blue-700'} text-[10px] font-bold uppercase border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-blue-100'}`}>
-                          {s.type}
+                        <span className={`px-2.5 py-0.5 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[10px] font-bold uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
+                          {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
                         </span>
                       </td>
                     </tr>
@@ -219,7 +247,7 @@ const PersonalShiftPage: React.FC = () => {
 
             {/* Mobile View */}
             <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-              {upcomingShifts.map(s => (
+              {combinedUpcoming.map((s: any) => (
                 <div key={s.id} className="p-4 flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
@@ -227,15 +255,15 @@ const PersonalShiftPage: React.FC = () => {
                       {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
                     </span>
                   </div>
-                  <span className={`px-2 py-1 rounded-md ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-blue-700'} text-[9px] font-black uppercase border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-blue-100'}`}>
+                  <span className={`px-2 py-1 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[9px] font-black uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
                     {s.type}
                   </span>
                 </div>
               ))}
             </div>
 
-            {upcomingShifts.length === 0 && (
-              <div className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço agendado.</div>
+            {combinedUpcoming.length === 0 && (
+              <div className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço ou estágio agendado.</div>
             )}
           </div>
         </section>
@@ -412,6 +440,10 @@ const PersonalShiftPage: React.FC = () => {
                   <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate">{type}</span>
                 </div>
               ))}
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">Estágio</span>
+              </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-primary"></div>
                 <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">Atividade Extra</span>

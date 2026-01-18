@@ -13,6 +13,8 @@ const DashboardPage: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
   const [currentYear, setCurrentYear] = useState(2026);
   const [selectedDay, setSelectedDay] = useState(2); // Default
+  const [stages, setStages] = useState<any[]>([]);
+  const [isLoadingStages, setIsLoadingStages] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,7 +31,15 @@ const DashboardPage: React.FC = () => {
     setSelectedDay(today.getDate());
     setCurrentMonth(today.getMonth());
     setCurrentYear(today.getFullYear());
+    fetchStages();
   }, []);
+
+  const fetchStages = async () => {
+    setIsLoadingStages(true);
+    const { data, error } = await supabase.from('stages').select('*');
+    if (!error && data) setStages(data);
+    setIsLoadingStages(false);
+  };
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -187,6 +197,7 @@ const DashboardPage: React.FC = () => {
               const day = i + 1;
               const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
               const shifts = allShifts.filter(s => s.date === dateStr);
+              const dayStages = stages.filter(s => s.date === dateStr);
               const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
 
               return (
@@ -199,9 +210,18 @@ const DashboardPage: React.FC = () => {
                     <span className={`text-[10px] sm:text-xs font-bold ${isToday ? 'bg-primary text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
                       {day}
                     </span>
-                    {shifts.length > 0 && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary font-black uppercase text-[8px] text-primary"></span>}
+                    {(shifts.length > 0 || dayStages.length > 0) && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary font-black uppercase text-[8px] text-primary"></span>}
                   </div>
                   <div className="space-y-0.5 sm:space-y-1">
+                    {dayStages.map(s => (
+                      <div
+                        key={s.id}
+                        className="text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
+                      >
+                        <span className="hidden sm:inline">📌 {militaries.find(m => m.id === s.military_id)?.name.split(' ')[0]}</span>
+                        <span className="inline sm:hidden">📌 {militaries.find(m => m.id === s.military_id)?.name.charAt(0)}</span>
+                      </div>
+                    ))}
                     {shifts.slice(0, 3).map(s => {
                       const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
                       return (
@@ -235,12 +255,15 @@ const DashboardPage: React.FC = () => {
         <div className="mt-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
           <h3 className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Legenda de Escalas</h3>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {Object.entries(SHIFT_TYPE_COLORS).map(([type, colors]) => (
-              <div key={type} className="flex items-center gap-2">
-                <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></div>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">{type}</span>
-              </div>
+            <div key={type} className="flex items-center gap-2">
+              <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></div>
+              <span className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">{type}</span>
+            </div>
             ))}
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+              <span className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">Estágio</span>
+            </div>
           </div>
         </div>
       </MainLayout.Content>
@@ -272,9 +295,37 @@ const DashboardPage: React.FC = () => {
             </div>
             <section className="space-y-3 pb-4 lg:pb-0">
               <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length})
+                <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === selectedDateStr).length})
               </div>
-              {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).map(s => {
+
+              {stages.filter(s => s.date === selectedDateStr).map(s => {
+                const m = militaries.find(mil => mil.id === s.military_id);
+                return (
+                  <div
+                    key={s.id}
+                    className="w-full text-left bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden"
+                  >
+                    <div className="flex items-start justify-between relative z-10">
+                      <div className="flex gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center text-amber-500 border border-amber-200 dark:border-amber-700 shrink-0">
+                          <span className="material-symbols-outlined text-lg sm:text-xl">location_city</span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <h3 className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-100 leading-none truncate">{m?.rank} {m?.name}</h3>
+                            <span className="text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500 text-white border border-amber-600">
+                              ESTÁGIO
+                            </span>
+                          </div>
+                          <p className="text-[9px] sm:text-[11px] text-amber-600 mt-1 uppercase font-bold">{s.location.split(' - ')[0]}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {allShifts.filter(s => s.date === selectedDateStr).map(s => {
                 const m = militaries.find(mil => mil.id === s.militaryId);
                 return (
                   <button
