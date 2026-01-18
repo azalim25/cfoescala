@@ -139,14 +139,24 @@ const GenerateScalePage: React.FC = () => {
 
     // --- Publish ---
 
-    const handlePublish = () => {
+    const [isPublishing, setIsPublishing] = useState(false);
+
+    const handlePublish = async () => {
         if (draftShifts.length === 0) {
             alert('A escala está vazia. Gere ou adicione serviços.');
             return;
         }
         if (confirm(`Confirma a publicação de ${draftShifts.length} serviços para ${months[currentMonth]}?`)) {
-            addShifts(draftShifts);
-            navigate('/');
+            try {
+                setIsPublishing(true);
+                await addShifts(draftShifts);
+                navigate('/');
+            } catch (error) {
+                console.error("Erro ao publicar:", error);
+                alert("Erro ao publicar a escala. Tente novamente.");
+            } finally {
+                setIsPublishing(false);
+            }
         }
     };
 
@@ -215,10 +225,15 @@ const GenerateScalePage: React.FC = () => {
                         {!isGuest && draftShifts.length > 0 && (
                             <button
                                 onClick={handlePublish}
-                                className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white rounded-lg text-[10px] sm:text-xs font-black uppercase shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300"
+                                disabled={isPublishing}
+                                className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white rounded-lg text-[10px] sm:text-xs font-black uppercase shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300 disabled:opacity-50"
                             >
-                                <span className="material-symbols-outlined text-base">publish</span>
-                                Publicar Escala
+                                {isPublishing ? (
+                                    <span className="material-symbols-outlined animate-spin text-base">sync</span>
+                                ) : (
+                                    <span className="material-symbols-outlined text-base">publish</span>
+                                )}
+                                {isPublishing ? 'Publicando...' : 'Publicar Escala'}
                             </button>
                         )}
                     </div>
