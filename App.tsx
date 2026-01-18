@@ -8,6 +8,7 @@ import PersonalShiftPage from './pages/PersonalShiftPage';
 import ExtraHoursPage from './pages/ExtraHoursPage';
 import RankingPage from './pages/RankingPage';
 import EstadoMaiorPage from './pages/EstadoMaiorPage';
+import FuncoesTurmaPage from './pages/FuncoesTurmaPage';
 import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -63,6 +64,12 @@ const App: React.FC = () => {
               <Route path="/estado-maior" element={
                 <ProtectedRoute>
                   <EstadoMaiorPage />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/funcoes-turma" element={
+                <ProtectedRoute>
+                  <FuncoesTurmaPage />
                 </ProtectedRoute>
               } />
 
