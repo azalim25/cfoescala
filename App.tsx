@@ -9,6 +9,7 @@ import ExtraHoursPage from './pages/ExtraHoursPage';
 import RankingPage from './pages/RankingPage';
 import EstadoMaiorPage from './pages/EstadoMaiorPage';
 import FuncoesTurmaPage from './pages/FuncoesTurmaPage';
+import StagePage from './pages/StagePage';
 import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -70,6 +71,12 @@ const App: React.FC = () => {
               <Route path="/funcoes-turma" element={
                 <ProtectedRoute>
                   <FuncoesTurmaPage />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/stage" element={
+                <ProtectedRoute>
+                  <StagePage />
                 </ProtectedRoute>
               } />
 
