@@ -212,102 +212,158 @@ const FuncoesTurmaPage: React.FC = () => {
         <MainLayout activePage="funcoes-turma">
             <MainLayout.Content>
                 {/* Header */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                            <span className="material-symbols-outlined text-3xl">school</span>
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <span className="material-symbols-outlined text-2xl sm:text-3xl">school</span>
                         </div>
                         <div>
-                            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">Funções de Turma</h1>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestão de Funções por Semestre</p>
+                            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-none">Funções de Turma</h1>
+                            <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestão por Semestre</p>
                         </div>
                     </div>
                     {!isGuest && (
                         <button
                             onClick={handleOpenAddModal}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-primary text-white rounded-lg text-xs sm:text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
                         >
                             <span className="material-symbols-outlined text-lg">add_circle</span>
-                            Adicionar Funções de Turma
+                            Novo Semestre
                         </button>
                     )}
                 </div>
 
-                {/* Table */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        {isLoading ? (
-                            <div className="text-center py-12">
-                                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-                                <p className="text-slate-400 text-sm mt-4">Carregando...</p>
-                            </div>
-                        ) : (
-                            <table className="w-full text-left border-collapse min-w-[700px]">
-                                <thead>
-                                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                        <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest sticky left-0 bg-slate-50/50 dark:bg-slate-800/50 z-10">
-                                            Militar
-                                        </th>
-                                        {semestres.map(sem => (
-                                            <th key={sem.id} className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center min-w-[150px]">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <span className="flex-1">{sem.name}</span>
-                                                    {!isGuest && (
-                                                        <div className="flex gap-1">
-                                                            <button
-                                                                onClick={() => handleOpenEditModal(sem)}
-                                                                className="p-1 text-slate-400 hover:text-primary transition-colors"
-                                                                title="Editar semestre"
-                                                            >
-                                                                <span className="material-symbols-outlined text-sm">edit</span>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteSemestre(sem.id)}
-                                                                className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                                                                title="Excluir semestre"
-                                                            >
-                                                                <span className="material-symbols-outlined text-sm">delete</span>
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
+                {/* Content */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-8 sm:mb-0">
+                    {isLoading ? (
+                        <div className="text-center py-12">
+                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <p className="text-slate-400 text-sm mt-4">Carregando...</p>
+                        </div>
+                    ) : semestres.length === 0 ? (
+                        <div className="py-20 text-center text-slate-400">
+                            <span className="material-symbols-outlined text-5xl mb-2">school</span>
+                            <p className="text-sm font-bold">Nenhuma função de turma cadastrada.</p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Desktop Table View */}
+                            <div className="hidden lg:block overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-[700px]">
+                                    <thead>
+                                        <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                                            <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest sticky left-0 bg-slate-50/50 dark:bg-slate-800/50 z-10 w-64">
+                                                Militar
                                             </th>
-                                        ))}
-                                        {semestres.length === 0 && (
-                                            <th className="p-4 text-center text-slate-400 text-sm">
-                                                Nenhum semestre cadastrado
-                                            </th>
-                                        )}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    {militaries.map(military => (
-                                        <tr key={military.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                            <td className="p-4 sticky left-0 bg-white dark:bg-slate-900 z-10">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
-                                                        <span className="material-symbols-outlined text-sm">person</span>
+                                            {semestres.map(sem => (
+                                                <th key={sem.id} className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center min-w-[180px]">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="flex-1 text-center">{sem.name}</span>
+                                                        {!isGuest && (
+                                                            <div className="flex gap-1 shrink-0">
+                                                                <button
+                                                                    onClick={() => handleOpenEditModal(sem)}
+                                                                    className="p-1 text-slate-400 hover:text-primary transition-colors"
+                                                                    title="Editar semestre"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteSemestre(sem.id)}
+                                                                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                                    title="Excluir semestre"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div>
-                                                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                        {militaries.map(military => (
+                                            <tr key={military.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                                <td className="p-4 sticky left-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
+                                                            <span className="material-symbols-outlined text-sm">person</span>
+                                                        </div>
+                                                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
                                                             {military.rank} {military.name}
                                                         </p>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            {semestres.map(sem => (
-                                                <td key={sem.id} className="p-4 text-center">
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                        {getMilitaryRole(military.id, sem.id)}
-                                                    </span>
                                                 </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
+                                                {semestres.map(sem => {
+                                                    const role = getMilitaryRole(military.id, sem.id);
+                                                    return (
+                                                        <td key={sem.id} className="p-4 text-center">
+                                                            <span className={`text-xs font-bold leading-tight ${role !== '-' ? 'text-primary' : 'text-slate-400'}`}>
+                                                                {role}
+                                                            </span>
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile/Tablet Card View */}
+                            <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                                {militaries.map(military => {
+                                    const assignments = semestres
+                                        .map(sem => ({ semestre: sem.name, role: getMilitaryRole(military.id, sem.id), id: sem.id, raw: sem }))
+                                        .filter(a => a.role !== '-');
+
+                                    if (assignments.length === 0) return null;
+
+                                    return (
+                                        <div key={military.id} className="p-4 space-y-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
+                                                    <span className="material-symbols-outlined text-base">person</span>
+                                                </div>
+                                                <p className="font-black text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight">
+                                                    {military.rank} {military.name}
+                                                </p>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-2">
+                                                {assignments.map(a => (
+                                                    <div key={a.id} className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex justify-between items-center group">
+                                                        <div>
+                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{a.semestre}</p>
+                                                            <p className="text-xs font-bold text-primary uppercase">{a.role}</p>
+                                                        </div>
+                                                        {!isGuest && (
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={() => handleOpenEditModal(a.raw)}
+                                                                    className="p-1.5 text-slate-400 hover:text-primary transition-colors"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-lg">edit</span>
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {militaries.every(military =>
+                                    semestres.every(sem => getMilitaryRole(military.id, sem.id) === '-')
+                                ) && (
+                                        <div className="py-12 text-center text-slate-400">
+                                            <p className="text-xs font-bold px-6">Nenhuma função atribuída neste período.</p>
+                                        </div>
+                                    )}
+                            </div>
+                        </>
+                    )}
                 </div>
             </MainLayout.Content>
 

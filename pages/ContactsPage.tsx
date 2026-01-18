@@ -97,7 +97,8 @@ const ContactsPage: React.FC = () => {
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
@@ -183,6 +184,70 @@ const ContactsPage: React.FC = () => {
                   ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="block lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {militaries
+              .filter((m: Military) =>
+                m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                m.firefighterNumber.includes(searchTerm)
+              )
+              .sort((a, b) => {
+                if (sortBy === 'antiguidade') {
+                  const aAnt = a.antiguidade || 999999;
+                  const bAnt = b.antiguidade || 999999;
+                  return aAnt - bAnt;
+                }
+                return a.name.localeCompare(b.name);
+              })
+              .map((m: Military) => (
+                <div key={m.id} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
+                        <span className="material-symbols-outlined text-xl">person</span>
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{m.name}</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">{m.rank}</p>
+                      </div>
+                    </div>
+                    {!isGuest && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingMilitary(m)}
+                          className="p-1.5 text-slate-400 hover:text-primary transition-colors border border-slate-100 dark:border-slate-800 rounded-lg"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(m.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 transition-colors border border-slate-100 dark:border-slate-800 rounded-lg"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Nº Bombeiro</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 font-bold">{m.firefighterNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Antiguidade</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 font-bold">{m.antiguidade || '-'}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Contato</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">{m.contact}</p>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       </MainLayout.Content>

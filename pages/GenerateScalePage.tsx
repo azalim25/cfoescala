@@ -197,38 +197,38 @@ const GenerateScalePage: React.FC = () => {
         <MainLayout activePage="generate">
             <MainLayout.Content>
                 {/* Header */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col xl:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group">
-                            <span className="material-symbols-outlined text-3xl">
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 text-center sm:text-left">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group shrink-0">
+                            <span className="material-symbols-outlined text-2xl sm:text-3xl">
                                 {generationMode === 'auto' ? 'smart_toy' : 'edit_calendar'}
                             </span>
                         </div>
-                        <div>
-                            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">Gerador de Escala</h1>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
+                        <div className="text-left">
+                            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-none">Gerador de Escala</h1>
+                            <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
                                 {generationMode === 'auto' ? 'Inteligência Artificial' : 'Modo Manual'}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                         {!isGuest && (
-                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 w-full sm:w-auto">
                                 <button
                                     onClick={() => setGenerationMode('auto')}
-                                    className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'auto'
+                                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 text-[9px] sm:text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'auto'
                                         ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
                                         : 'text-slate-500 hover:text-slate-700'}`}
                                 >
-                                    Automático (IA)
+                                    Auto (IA)
                                 </button>
                                 <button
                                     onClick={() => {
                                         setGenerationMode('manual');
                                         setDraftShifts([]);
                                     }}
-                                    className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'manual'
+                                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 text-[9px] sm:text-[10px] font-black uppercase rounded-md transition-all ${generationMode === 'manual'
                                         ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
                                         : 'text-slate-500 hover:text-slate-700'}`}
                                 >
@@ -237,19 +237,19 @@ const GenerateScalePage: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-10">
+                        <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-10 w-full sm:w-auto justify-between sm:justify-start">
                             <select
                                 value={currentMonth}
                                 onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
-                                className="bg-transparent border-none focus:ring-0 cursor-pointer uppercase py-1.5 px-3 text-xs font-bold dark:text-white outline-none"
+                                className="bg-transparent border-none focus:ring-0 cursor-pointer uppercase py-1.5 px-3 text-[10px] sm:text-xs font-bold dark:text-white outline-none flex-1 sm:flex-none"
                             >
-                                {months.map((m, i) => <option key={m} value={i}>{m}</option>)}
+                                {months.map((m, i) => <option key={m} value={i}>{m.substring(0, 3)}</option>)}
                             </select>
                             <div className="w-px h-4 bg-slate-200 dark:bg-slate-700"></div>
                             <select
                                 value={currentYear}
                                 onChange={(e) => setCurrentYear(parseInt(e.target.value))}
-                                className="bg-transparent border-none focus:ring-0 cursor-pointer py-1.5 px-3 text-xs font-bold dark:text-white outline-none"
+                                className="bg-transparent border-none focus:ring-0 cursor-pointer py-1.5 px-3 text-[10px] sm:text-xs font-bold dark:text-white outline-none"
                             >
                                 {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
@@ -264,21 +264,22 @@ const GenerateScalePage: React.FC = () => {
                             <textarea
                                 value={aiPrompt}
                                 onChange={(e) => setAiPrompt(e.target.value)}
-                                placeholder="Descreva aqui regras específicas ou preferências para a criação da escala (ex: 'Não colocar Sd Silva na segunda-feira', 'Priorizar 1º Batalhão nos finais de semana')..."
-                                className="w-full min-h-[80px] p-4 pr-32 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-sm border-none focus:ring-0 resize-none dark:text-white"
+                                placeholder="Regras específicas para a escala..."
+                                className="w-full min-h-[80px] p-4 pr-24 sm:pr-32 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-sm border-none focus:ring-0 resize-none dark:text-white"
                             />
                             <div className="absolute bottom-3 right-3">
                                 <button
                                     onClick={handleGenerate}
                                     disabled={isGenerating}
-                                    className="px-4 py-2 bg-primary text-white text-xs font-bold uppercase rounded-lg shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:scale-100"
+                                    className="px-3 sm:px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase rounded-lg shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:scale-100"
                                 >
                                     {isGenerating ? (
-                                        <span className="material-symbols-outlined animate-spin text-lg">sync</span>
+                                        <span className="material-symbols-outlined animate-spin text-base sm:text-lg">sync</span>
                                     ) : (
-                                        <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                                        <span className="material-symbols-outlined text-base sm:text-lg">auto_awesome</span>
                                     )}
-                                    Gerar
+                                    <span className="hidden sm:inline">Gerar</span>
+                                    <span className="inline sm:hidden">Ok</span>
                                 </button>
                             </div>
                         </div>
@@ -286,24 +287,24 @@ const GenerateScalePage: React.FC = () => {
                 )}
 
                 {/* Main Calendar View */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-20 relative">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-24 sm:mb-20 relative">
                     {/* Overlay loading */}
                     {isGenerating && (
-                        <div className="absolute inset-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                            <span className="material-symbols-outlined text-5xl text-primary animate-bounce mb-4">smart_toy</span>
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">A Inteligência Artificial está montando a escala...</h3>
-                            <p className="text-slate-500 text-sm mt-2">Isso pode levar alguns segundos.</p>
+                        <div className="absolute inset-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6">
+                            <span className="material-symbols-outlined text-4xl sm:text-5xl text-primary animate-bounce mb-4">smart_toy</span>
+                            <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">A Inteligência Artificial está montando a escala...</h3>
+                            <p className="text-slate-500 text-xs sm:text-sm mt-2">Isso pode levar alguns segundos.</p>
                         </div>
                     )}
 
                     <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800">
                         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                            <div key={day} className="p-3 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0 border-slate-200 dark:border-slate-800">{day}</div>
+                            <div key={day} className="p-2 sm:p-3 text-center text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0 border-slate-200 dark:border-slate-800">{day}</div>
                         ))}
                     </div>
                     <div className="grid grid-cols-7 auto-rows-fr">
                         {[...Array(getFirstDayOfMonth(currentYear, currentMonth))].map((_, i) => (
-                            <div key={`empty-${i}`} className="min-h-[120px] border-r border-b border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10"></div>
+                            <div key={`empty-${i}`} className="min-h-[60px] sm:min-h-[120px] border-r border-b border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10"></div>
                         ))}
                         {[...Array(getDaysInMonth(currentYear, currentMonth))].map((_, i) => {
                             const day = i + 1;
@@ -315,28 +316,32 @@ const GenerateScalePage: React.FC = () => {
                                 <button
                                     key={day}
                                     onClick={() => !isGuest && handleDayClick(day)}
-                                    className={`min-h-[120px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${!isGuest ? 'hover:bg-slate-50 dark:hover:bg-slate-800/40' : 'cursor-default'}`}
+                                    className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${!isGuest ? 'hover:bg-slate-50 dark:hover:bg-slate-800/40' : 'cursor-default'}`}
                                 >
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className={`text-xs font-bold ${isToday ? 'bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
+                                    <div className="flex justify-between items-start mb-0.5 sm:mb-1">
+                                        <span className={`text-[10px] sm:text-xs font-bold ${isToday ? 'bg-primary text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[8px] sm:text-[10px]' : 'text-slate-400 dark:text-slate-500'}`}>
                                             {day}
                                         </span>
-                                        {!isGuest && <span className="material-symbols-outlined text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">add</span>}
+                                        {!isGuest && <span className="material-symbols-outlined text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline">add</span>}
                                     </div>
-                                    <div className="space-y-1">
-                                        {shifts.map(s => {
+                                    <div className="space-y-0.5 sm:space-y-1">
+                                        {shifts.slice(0, 3).map(s => {
                                             const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
                                             return (
                                                 <div
                                                     key={s.id}
                                                     onClick={(e) => handleEditShiftClick(e, s, day)}
-                                                    className={`text-[9px] font-bold p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
+                                                    className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
                                                     title={`${militaries.find(m => m.id === s.militaryId)?.name} - ${s.type}`}
                                                 >
-                                                    {militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}
+                                                    <span className="hidden sm:inline">{militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}</span>
+                                                    <span className="inline sm:hidden">{militaries.find(m => m.id === s.militaryId)?.name.charAt(0)}</span>
                                                 </div>
                                             );
                                         })}
+                                        {shifts.length > 3 && (
+                                            <div className="text-[6px] sm:text-[8px] text-slate-400 font-bold text-center">+{shifts.length - 3}</div>
+                                        )}
                                     </div>
                                 </button>
                             );
@@ -346,17 +351,17 @@ const GenerateScalePage: React.FC = () => {
 
                 {/* Footer Actions */}
                 {!isGuest && (
-                    <div className="fixed bottom-0 left-0 md:left-64 right-0 p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center z-40">
-                        <div className="text-xs text-slate-500 font-medium">
-                            {draftShifts.length} serviços agendados para publicação
+                    <div className="fixed bottom-0 left-0 lg:left-0 right-0 p-3 sm:p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex justify-between items-center z-40 transition-all">
+                        <div className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-tight max-w-[150px] sm:max-w-none">
+                            {draftShifts.length} agendados
                         </div>
                         <button
                             onClick={handlePublish}
                             disabled={draftShifts.length === 0}
-                            className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-bold shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-emerald-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                         >
-                            <span className="material-symbols-outlined">publish</span>
-                            Publicar Escala
+                            <span className="material-symbols-outlined text-lg sm:text-xl">publish</span>
+                            Publicar
                         </button>
                     </div>
                 )}

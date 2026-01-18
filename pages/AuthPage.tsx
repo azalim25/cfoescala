@@ -85,13 +85,13 @@ const AuthPage: React.FC = () => {
             </div>
 
             <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in duration-500">
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl">
-                    <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white mx-auto mb-4 shadow-xl shadow-primary/20 rotate-3">
-                            <span className="material-symbols-outlined text-3xl">shield</span>
+                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <div className="text-center mb-6 sm:mb-8">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary rounded-2xl flex items-center justify-center text-white mx-auto mb-4 shadow-xl shadow-primary/20 rotate-3 shrink-0">
+                            <span className="material-symbols-outlined text-2xl sm:text-3xl">shield</span>
                         </div>
-                        <h1 className="text-3xl font-extrabold text-white tracking-tight">CFO • GUARANI</h1>
-                        <p className="text-slate-400 text-sm mt-2 font-medium">
+                        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">CFO • GUARANI</h1>
+                        <p className="text-slate-400 text-xs sm:text-sm mt-2 font-medium">
                             {isSignUp ? 'Crie sua conta no sistema' : 'Sistema de Gestão Militar'}
                         </p>
                     </div>

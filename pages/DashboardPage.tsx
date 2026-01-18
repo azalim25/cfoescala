@@ -176,12 +176,12 @@ const DashboardPage: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
           <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-              <div key={day} className="p-3 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0 border-slate-200 dark:border-slate-800">{day}</div>
+              <div key={day} className="p-2 sm:p-3 text-center text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0 border-slate-200 dark:border-slate-800">{day}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 auto-rows-fr">
             {[...Array(getFirstDayOfMonth(currentYear, currentMonth))].map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[120px] border-r border-b border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10"></div>
+              <div key={`empty-${i}`} className="min-h-[60px] sm:min-h-[120px] border-r border-b border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10"></div>
             ))}
             {[...Array(getDaysInMonth(currentYear, currentMonth))].map((_, i) => {
               const day = i + 1;
@@ -193,16 +193,16 @@ const DashboardPage: React.FC = () => {
                 <button
                   key={day}
                   onClick={() => setSelectedDay(day)}
-                  className={`min-h-[120px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${isToday ? 'bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'} ${selectedDay === day ? 'ring-2 ring-primary ring-inset z-10' : ''}`}
+                  className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${isToday ? 'bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'} ${selectedDay === day ? 'ring-2 ring-primary ring-inset z-10' : ''}`}
                 >
-                  <div className="flex justify-between items-start mb-1">
-                    <span className={`text-xs font-bold ${isToday ? 'bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
+                  <div className="flex justify-between items-start mb-0.5 sm:mb-1">
+                    <span className={`text-[10px] sm:text-xs font-bold ${isToday ? 'bg-primary text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
                       {day}
                     </span>
-                    {shifts.length > 0 && <span className="w-1.5 h-1.5 rounded-full bg-primary font-black uppercase text-[8px] text-primary"></span>}
+                    {shifts.length > 0 && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary font-black uppercase text-[8px] text-primary"></span>}
                   </div>
-                  <div className="space-y-1">
-                    {shifts.map(s => {
+                  <div className="space-y-0.5 sm:space-y-1">
+                    {shifts.slice(0, 3).map(s => {
                       const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
                       return (
                         <div
@@ -214,12 +214,16 @@ const DashboardPage: React.FC = () => {
                               handleOpenEditModal(s);
                             }
                           }}
-                          className={`text-[9px] font-bold p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
+                          className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
                         >
-                          {militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}
+                          <span className="hidden sm:inline">{militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}</span>
+                          <span className="inline sm:hidden">{militaries.find(m => m.id === s.militaryId)?.name.charAt(0)}</span>
                         </div>
                       );
                     })}
+                    {shifts.length > 3 && (
+                      <div className="text-[6px] sm:text-[8px] text-slate-400 font-bold text-center">+{shifts.length - 3}</div>
+                    )}
                   </div>
                 </button>
               );
@@ -229,12 +233,12 @@ const DashboardPage: React.FC = () => {
 
         {/* Calendar Legend */}
         <div className="mt-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Legenda de Escalas</h3>
-          <div className="flex flex-wrap gap-4">
+          <h3 className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Legenda de Escalas</h3>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
             {Object.entries(SHIFT_TYPE_COLORS).map(([type, colors]) => (
               <div key={type} className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${colors.dot}`}></div>
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{type}</span>
+                <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></div>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">{type}</span>
               </div>
             ))}
           </div>
@@ -242,11 +246,11 @@ const DashboardPage: React.FC = () => {
       </MainLayout.Content>
 
       <MainLayout.Sidebar>
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[calc(100vh-120px)] sticky top-20">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div>
-              <h2 className="font-bold text-slate-800 dark:text-slate-100 uppercase text-sm">FICHA DO DIA</h2>
-              <p className="text-[11px] text-primary font-bold">{selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}</p>
+              <h2 className="font-bold text-slate-800 dark:text-100 uppercase text-xs sm:text-sm">FICHA DO DIA</h2>
+              <p className="text-[10px] sm:text-[11px] text-primary font-bold">{selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}</p>
             </div>
             {!isGuest && (
               <button
@@ -258,16 +262,16 @@ const DashboardPage: React.FC = () => {
               </button>
             )}
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 sm:space-y-6">
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex justify-between items-center border border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-lg">groups</span>
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Efetivo</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Efetivo</span>
               </div>
-              <span className="text-lg font-bold text-slate-800 dark:text-slate-100">{militaries.length}</span>
+              <span className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">{militaries.length}</span>
             </div>
-            <section className="space-y-3">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <section className="space-y-3 pb-4 lg:pb-0">
+              <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length})
               </div>
               {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).map(s => {
@@ -276,31 +280,31 @@ const DashboardPage: React.FC = () => {
                   <button
                     key={s.id}
                     onClick={() => !isGuest && handleOpenEditModal(s)}
-                    className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-4 space-y-4 shadow-sm relative overflow-hidden ${!isGuest ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'} transition-opacity group`}
+                    className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden ${!isGuest ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'} transition-opacity group`}
                   >
                     <div className="flex items-start justify-between relative z-10">
-                      <div className="flex gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
-                          <span className="material-symbols-outlined text-xl">person</span>
+                      <div className="flex gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
+                          <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-none">{m?.rank} {m?.name}</h3>
-                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-slate-100'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-slate-600'} border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'}`}>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
+                            <span className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-slate-100'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-slate-600'} border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'}`}>
                               {s.type}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-500 mt-1 uppercase">BM: {m?.firefighterNumber}</p>
+                          <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase">BM: {m?.firefighterNumber}</p>
                         </div>
                       </div>
-                      {!isGuest && <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">edit</span>}
+                      {!isGuest && <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">edit</span>}
                     </div>
                     <div className={`absolute top-0 right-0 w-1 h-full ${SHIFT_TYPE_COLORS[s.type]?.dot || 'bg-slate-200'}`}></div>
                   </button>
                 )
               })}
               {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length === 0 && (
-                <p className="text-xs text-slate-400 italic text-center py-10">Nenhum serviço escalado para este dia.</p>
+                <p className="text-xs text-slate-400 italic text-center py-6 sm:py-10">Nenhum serviço escalado para este dia.</p>
               )}
             </section>
           </div>

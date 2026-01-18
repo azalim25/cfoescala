@@ -228,34 +228,34 @@ const EstadoMaiorPage: React.FC = () => {
         <MainLayout activePage="estado-maior">
             <MainLayout.Content>
                 {/* Header */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                            <span className="material-symbols-outlined text-3xl">military_tech</span>
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 w-full">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <span className="material-symbols-outlined text-2xl sm:text-3xl">military_tech</span>
                         </div>
                         <div>
-                            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">Estado Maior</h1>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestão de Funções e Atribuições</p>
+                            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-none">Estado Maior</h1>
+                            <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestão de Funções</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+                        <div className="relative w-full">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
                             <input
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Buscar por militar ou estado maior..."
-                                className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary w-80 dark:text-white"
+                                placeholder="Buscar..."
+                                className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary w-full dark:text-white"
                             />
                         </div>
                         {!isGuest && (
                             <button
                                 onClick={handleOpenAddModal}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                                className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all w-full sm:w-auto"
                             >
                                 <span className="material-symbols-outlined text-lg">add_circle</span>
-                                Adicionar Estado Maior
+                                <span className="whitespace-nowrap">Adicionar</span>
                             </button>
                         )}
                     </div>
@@ -263,10 +263,10 @@ const EstadoMaiorPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* List Section */}
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-2 order-1 lg:order-1">
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-[11px] sm:text-sm uppercase tracking-tight">
                                     <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
                                     Estados Maiores Cadastrados
                                 </h3>
@@ -301,11 +301,11 @@ const EstadoMaiorPage: React.FC = () => {
                                             const isSearchingMilitary = searchTerm && !em.name.toLowerCase().includes(searchLower);
 
                                             return (
-                                                <div key={em.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                                                <div key={em.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-3 sm:p-4">
                                                     <div className="flex justify-between items-start mb-3">
                                                         <div>
-                                                            <h4 className="font-bold text-slate-800 dark:text-white">{em.name}</h4>
-                                                            <p className="text-xs text-slate-500 mt-1">{em.description}</p>
+                                                            <h4 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white">{em.name}</h4>
+                                                            <p className="text-[10px] sm:text-xs text-slate-500 mt-1">{em.description}</p>
                                                         </div>
                                                         {!isGuest && (
                                                             <div className="flex gap-2">
@@ -339,35 +339,36 @@ const EstadoMaiorPage: React.FC = () => {
                                                                 const military = militaries.find(m => m.id === assignment.militaryId);
                                                                 return (
                                                                     <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
-                                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
                                                                             <span className="material-symbols-outlined text-sm">person</span>
                                                                         </div>
-                                                                        <div className="flex-1">
-                                                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-[11px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
                                                                                 {military?.rank} {military?.name}
                                                                             </p>
-                                                                            <p className="text-xs text-primary font-bold uppercase">{assignment.role}</p>
+                                                                            <p className="text-[9px] sm:text-xs text-primary font-bold uppercase truncate">{assignment.role}</p>
                                                                         </div>
                                                                     </div>
                                                                 );
                                                             })}                         </div>
                                                 </div>
-                                            ))
+                                            );
+                                        })
                                 )}
                             </div>
                         </div>
                     </div>
 
                     {/* Ranking Section */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden sticky top-20">
+                    <div className="lg:col-span-1 order-2 lg:order-2">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden lg:sticky lg:top-20">
                             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-[11px] sm:text-sm uppercase tracking-tight">
                                     <span className="material-symbols-outlined text-primary text-lg">leaderboard</span>
                                     Ranking por Funções
                                 </h3>
                             </div>
-                            <div className="p-4 space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                            <div className="p-4 space-y-3 max-h-[300px] lg:max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
                                 {ranking.length === 0 ? (
                                     <div className="text-center py-8 text-slate-400">
                                         <span className="material-symbols-outlined text-4xl opacity-50">emoji_events</span>
@@ -375,19 +376,19 @@ const EstadoMaiorPage: React.FC = () => {
                                     </div>
                                 ) : (
                                     ranking.map((item, index) => (
-                                        <div key={item.military.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300' :
+                                        <div key={item.military.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700 text-left">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${index === 0 ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300' :
                                                 index === 1 ? 'bg-slate-200 text-slate-700 border-2 border-slate-300' :
                                                     index === 2 ? 'bg-orange-100 text-orange-700 border-2 border-orange-300' :
                                                         'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                                                 }`}>
                                                 {index + 1}
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[11px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
                                                     {item.military.rank} {item.military.name}
                                                 </p>
-                                                <p className="text-xs text-slate-500">
+                                                <p className="text-[10px] sm:text-xs text-slate-500">
                                                     {item.roleCount} {item.roleCount === 1 ? 'função' : 'funções'}
                                                 </p>
                                             </div>
@@ -402,7 +403,7 @@ const EstadoMaiorPage: React.FC = () => {
 
             {/* Add/Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden max-h-[90vh]">
                         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">

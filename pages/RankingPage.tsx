@@ -112,14 +112,14 @@ const RankingPage: React.FC = () => {
     return (
         <MainLayout activePage="ranking">
             <MainLayout.Content>
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Ranking de Horas</h1>
-                    <p className="text-sm text-slate-500">Classificação do efetivo por horas trabalhadas e acumuladas.</p>
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">Ranking de Horas</h1>
+                    <p className="text-xs sm:text-sm text-slate-500">Classificação do efetivo por horas trabalhadas e acumuladas.</p>
 
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                         {/* Filter: Shift Types */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tipos de Escala</label>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipos de Escala</label>
                             <div className="flex flex-wrap gap-2">
                                 {allShiftTypes.map(type => {
                                     const isSelected = selectedShiftTypes.includes(type);
@@ -128,9 +128,9 @@ const RankingPage: React.FC = () => {
                                         <button
                                             key={type}
                                             onClick={() => toggleShiftType(type)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${isSelected
+                                            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all border ${isSelected
                                                 ? `${colors.bg} ${colors.text} ${colors.border} ring-1 ring-offset-1 ring-primary/20`
-                                                : 'bg-slate-50 text-slate-400 border-slate-200 grayscale opacity-60'}`}
+                                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 grayscale opacity-60'}`}
                                         >
                                             {type}
                                         </button>
@@ -141,15 +141,15 @@ const RankingPage: React.FC = () => {
 
                         {/* Filter: Extra Hours */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Horas Extras</label>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Horas Extras</label>
                             <div className="flex flex-wrap gap-2">
                                 {allExtraCategories.map(cat => (
                                     <button
                                         key={cat}
                                         onClick={() => toggleExtraCategory(cat)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${selectedExtraHighCategories.includes(cat)
+                                        className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all border ${selectedExtraHighCategories.includes(cat)
                                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-offset-1 ring-emerald-500/20'
-                                            : 'bg-slate-50 text-slate-400 border-slate-200 opacity-60'}`}
+                                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 opacity-60'}`}
                                     >
                                         <span className="material-symbols-outlined text-[10px] mr-1 align-middle">more_time</span>
                                         {cat}
@@ -160,76 +160,139 @@ const RankingPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden overflow-x-auto">
-                    <table className="w-full text-left min-w-[800px]">
-                        <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
-                            <tr>
-                                <th className="px-6 py-4 w-16 text-center">#</th>
-                                <th className="px-6 py-4">Militar</th>
-                                <th className="px-4 py-4 text-center">Sobreaviso</th>
-                                <th className="px-4 py-4 text-center">Faxina</th>
-                                <th className="px-4 py-4 text-center">Manutenção</th>
-                                <th className="px-6 py-4 text-right">Total de Horas</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {rankingData.map((mil, index) => (
-                                <tr key={mil.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td className="px-6 py-4 text-center">
-                                        <span className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-xs font-bold ${index === 0 ? 'bg-yellow-100 text-yellow-700' :
-                                            index === 1 ? 'bg-slate-100 text-slate-700' :
-                                                index === 2 ? 'bg-orange-100 text-orange-800' :
-                                                    'text-slate-500'
+                {/* Mobile Ranking Summary (visible only on mobile) */}
+                <div className="lg:hidden grid grid-cols-2 gap-3 mb-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <span className="text-[10px] text-slate-500 uppercase font-black block mb-1">Total de Horas</span>
+                        <span className="text-xl font-black text-slate-800 dark:text-white">
+                            {rankingData.reduce((acc, curr) => acc + curr.totalHours, 0).toFixed(0)}h
+                        </span>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <span className="text-[10px] text-slate-500 uppercase font-black block mb-1">Média p/ Mil</span>
+                        <span className="text-xl font-black text-slate-800 dark:text-white">
+                            {(rankingData.length > 0 ? rankingData.reduce((acc, curr) => acc + curr.totalHours, 0) / rankingData.length : 0).toFixed(1)}h
+                        </span>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    {/* Desktop View */}
+                    <div className="hidden lg:block overflow-x-auto">
+                        <table className="w-full text-left min-w-[800px]">
+                            <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
+                                <tr>
+                                    <th className="px-6 py-4 w-16 text-center">#</th>
+                                    <th className="px-6 py-4">Militar</th>
+                                    <th className="px-4 py-4 text-center">Sobreaviso</th>
+                                    <th className="px-4 py-4 text-center">Faxina</th>
+                                    <th className="px-4 py-4 text-center">Manutenção</th>
+                                    <th className="px-6 py-4 text-right">Total de Horas</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {rankingData.map((mil, index) => (
+                                    <tr key={mil.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                        <td className="px-6 py-4 text-center">
+                                            <span className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-xs font-bold ${index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                                                index === 1 ? 'bg-slate-100 text-slate-700' :
+                                                    index === 2 ? 'bg-orange-100 text-orange-800' :
+                                                        'text-slate-500'
+                                                }`}>
+                                                {index + 1}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
+                                                    <span className="material-symbols-outlined">person</span>
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">{mil.rank} {mil.name}</h3>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase">{mil.battalion} • {mil.firefighterNumber}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            {mil.separateCounts['Sobreaviso'] > 0 && (
+                                                <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-100">
+                                                    {mil.separateCounts['Sobreaviso']}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            {mil.separateCounts['Faxina'] > 0 && (
+                                                <span className="px-2 py-1 bg-cyan-50 text-cyan-700 rounded text-xs font-bold border border-cyan-100">
+                                                    {mil.separateCounts['Faxina']}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            {mil.separateCounts['Manutenção'] > 0 && (
+                                                <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-bold border border-emerald-100">
+                                                    {mil.separateCounts['Manutenção']}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="inline-flex flex-col items-end">
+                                                <span className="text-lg font-black text-primary font-mono tabular-nums">
+                                                    {Math.floor(mil.totalHours)}h {(mil.totalHours % 1 * 60).toFixed(0).padStart(2, '0')}m
+                                                </span>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    {mil.totalHours.toFixed(1)}h
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile View */}
+                    <div className="block lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                        {rankingData.map((mil, index) => (
+                            <div key={mil.id} className="p-4 flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
+                                            <span className="material-symbols-outlined text-xl">person</span>
+                                        </div>
+                                        <div className={`absolute -top-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black border shadow-sm ${index === 0 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                            index === 1 ? 'bg-slate-100 text-slate-700 border-slate-200' :
+                                                index === 2 ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                                                    'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
                                             }`}>
                                             {index + 1}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
-                                                <span className="material-symbols-outlined">person</span>
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-sm text-slate-900 dark:text-white">{mil.rank} {mil.name}</h3>
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase">{mil.battalion} • {mil.firefighterNumber}</p>
-                                            </div>
                                         </div>
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        {mil.separateCounts['Sobreaviso'] > 0 && (
-                                            <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs font-bold border border-amber-100">
-                                                {mil.separateCounts['Sobreaviso']}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        {mil.separateCounts['Faxina'] > 0 && (
-                                            <span className="px-2 py-1 bg-cyan-50 text-cyan-700 rounded text-xs font-bold border border-cyan-100">
-                                                {mil.separateCounts['Faxina']}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        {mil.separateCounts['Manutenção'] > 0 && (
-                                            <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-bold border border-emerald-100">
-                                                {mil.separateCounts['Manutenção']}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="inline-flex flex-col items-end">
-                                            <span className="text-lg font-black text-primary font-mono tabular-nums">
-                                                {Math.floor(mil.totalHours)}h {(mil.totalHours % 1 * 60).toFixed(0).padStart(2, '0')}m
-                                            </span>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                {mil.totalHours.toFixed(1)}h
-                                            </span>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-sm text-slate-900 dark:text-white">{mil.rank} {mil.name.split(' ')[0]}</h3>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            {mil.separateCounts['Sobreaviso'] > 0 && (
+                                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1 rounded">S:{mil.separateCounts['Sobreaviso']}</span>
+                                            )}
+                                            {mil.separateCounts['Faxina'] > 0 && (
+                                                <span className="text-[9px] font-bold text-cyan-600 bg-cyan-50 dark:bg-cyan-900/20 px-1 rounded">F:{mil.separateCounts['Faxina']}</span>
+                                            )}
+                                            {mil.separateCounts['Manutenção'] > 0 && (
+                                                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-1 rounded">M:{mil.separateCounts['Manutenção']}</span>
+                                            )}
                                         </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <span className="block text-base font-black text-primary font-mono leading-none">
+                                        {Math.floor(mil.totalHours)}h {(mil.totalHours % 1 * 60).toFixed(0).padStart(2, '0')}m
+                                    </span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                        {mil.totalHours.toFixed(1)}h
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
             </MainLayout.Content>

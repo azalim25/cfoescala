@@ -11,7 +11,7 @@ const MainLayoutRoot = ({ children, activePage, className = '' }: MainLayoutProp
     return (
         <div className={`min-h-screen ${className}`}>
             <Header activePage={activePage} />
-            <main className="max-w-[1600px] mx-auto p-4 flex flex-col lg:flex-row gap-6">
+            <main className="max-w-[1600px] mx-auto p-2 sm:p-4 flex flex-col lg:flex-row gap-4 lg:gap-6">
                 {children}
             </main>
         </div>
@@ -19,7 +19,7 @@ const MainLayoutRoot = ({ children, activePage, className = '' }: MainLayoutProp
 };
 
 const Content = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
-    <div className={`flex-1 space-y-4 ${className}`}>
+    <div className={`flex-1 space-y-4 w-full overflow-hidden ${className}`}>
         {children}
     </div>
 );

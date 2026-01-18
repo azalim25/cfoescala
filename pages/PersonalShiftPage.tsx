@@ -147,32 +147,32 @@ const PersonalShiftPage: React.FC = () => {
     <MainLayout activePage="personal">
       <MainLayout.Content>
         {/* Header Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border-4 border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="material-symbols-outlined text-3xl">person</span>
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col items-center justify-between gap-6 sm:flex-row">
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border-2 sm:border-4 border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
+              <span className="material-symbols-outlined text-2xl sm:text-3xl">person</span>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-xl font-extrabold text-slate-900 dark:text-white leading-none">
+                <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-none truncate max-w-[180px] sm:max-w-none">
                   {selectedMilitary.rank} {selectedMilitary.name}
                 </h1>
-                <span className="material-symbols-outlined text-primary text-lg">verified</span>
+                <span className="material-symbols-outlined text-primary text-base sm:text-lg">verified</span>
               </div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Escala Individual • Janeiro 2026</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{selectedMilitary.battalion} • ID: {selectedMilitary.id}</p>
+              <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">Escala Individual • 2026</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase mt-1.5">{selectedMilitary.battalion}</p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 font-bold text-[10px] sm:text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <span className="material-symbols-outlined text-sm">download</span> Exportar
             </button>
             <button
               onClick={() => window.print()}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:opacity-90 transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-primary text-white rounded-lg font-bold text-[10px] sm:text-xs hover:opacity-90 transition-colors"
             >
               <span className="material-symbols-outlined text-sm">print</span> Imprimir
             </button>
@@ -182,91 +182,131 @@ const PersonalShiftPage: React.FC = () => {
         {/* Section: Próximos Serviços */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">event_upcoming</span>
+            <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
+              <span className="material-symbols-outlined text-primary text-xl">event_upcoming</span>
               Próximos Serviços
             </h2>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden overflow-x-auto">
-            <table className="w-full text-left min-w-[600px]">
-              <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
-                <tr>
-                  <th className="px-6 py-4">Data</th>
-                  <th className="px-6 py-4">Tipo de Serviço</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {upcomingShifts.map(s => (
-                  <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-md ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-blue-700'} text-[10px] font-bold uppercase border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-blue-100'}`}>
-                        {s.type}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {upcomingShifts.length === 0 && (
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            {/* Desktop View */}
+            <div className="hidden sm:block">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
                   <tr>
-                    <td colSpan={2} className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço agendado.</td>
+                    <th className="px-6 py-4">Data</th>
+                    <th className="px-6 py-4">Tipo de Serviço</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {upcomingShifts.map(s => (
+                    <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                          {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-0.5 rounded-md ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-blue-700'} text-[10px] font-bold uppercase border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-blue-100'}`}>
+                          {s.type}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile View */}
+            <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {upcomingShifts.map(s => (
+                <div key={s.id} className="p-4 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
+                    <span className="text-sm font-black text-slate-800 dark:text-white">
+                      {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                  <span className={`px-2 py-1 rounded-md ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-blue-700'} text-[9px] font-black uppercase border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-blue-100'}`}>
+                    {s.type}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {upcomingShifts.length === 0 && (
+              <div className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço agendado.</div>
+            )}
           </div>
         </section>
 
         {/* Section: Carga Horária (Atividades) */}
-        <section>
+        <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">history</span>
-              Carga Horária (Atividades)
+            <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
+              <span className="material-symbols-outlined text-primary text-xl">history</span>
+              Carga Horária
             </h2>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden overflow-x-auto">
-            <table className="w-full text-left min-w-[700px]">
-              <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
-                <tr>
-                  <th className="px-6 py-4">Atividade</th>
-                  <th className="px-6 py-4 text-right">Quantidade / Carga Horária</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {groupedSummary.map((item, index) => (
-                  <tr key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'}`}></div>
-                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.type}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${item.totalHours > 0
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            {/* Desktop View */}
+            <div className="hidden sm:block">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
+                  <tr>
+                    <th className="px-6 py-4">Atividade</th>
+                    <th className="px-6 py-4 text-right">Quantidade / Carga Horária</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {groupedSummary.map((item, index) => (
+                    <tr key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'}`}></div>
+                          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.type}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${item.totalHours > 0
                           ? 'bg-primary/10 text-primary'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                        }`}>
-                        {item.totalHours > 0
-                          ? `${item.totalHours.toFixed(1)}h`
-                          : `${item.totalServices} Serviço${item.totalServices !== 1 ? 's' : ''}`}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                          }`}>
+                          {item.totalHours > 0
+                            ? `${item.totalHours.toFixed(1)}h`
+                            : `${item.totalServices} Serviço${item.totalServices !== 1 ? 's' : ''}`}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-                {groupedSummary.length === 0 && (
-                  <tr>
-                    <td colSpan={2} className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            {/* Mobile View */}
+            <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {groupedSummary.map((item, index) => (
+                <div key={index} className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'} shrink-0`}></div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">{item.type}</span>
+                  </div>
+                  <span className={`px-2 py-1 rounded text-[10px] font-black ${item.totalHours > 0
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}>
+                    {item.totalHours > 0
+                      ? `${item.totalHours.toFixed(1)}h`
+                      : `${item.totalServices} Un`}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {groupedSummary.length === 0 && (
+              <div className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</div>
+            )}
           </div>
         </section>
       </MainLayout.Content>
