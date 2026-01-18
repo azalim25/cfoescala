@@ -36,7 +36,8 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
                 rank: m.rank,
                 firefighterNumber: m.firefighter_number,
                 contact: m.contact || '',
-                battalion: m.battalion || ''
+                battalion: m.battalion || '',
+                antiguidade: m.antiguidade || undefined
             }));
             setMilitaries(mappedData);
         }
@@ -51,7 +52,8 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
                 rank: military.rank,
                 firefighter_number: military.firefighterNumber,
                 contact: military.contact,
-                battalion: military.battalion
+                battalion: military.battalion,
+                antiguidade: military.antiguidade
             }])
             .select();
 
@@ -71,7 +73,8 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
                 rank: military.rank,
                 firefighter_number: military.firefighterNumber,
                 contact: military.contact,
-                battalion: military.battalion
+                battalion: military.battalion,
+                antiguidade: military.antiguidade
             })
             .eq('id', military.id);
 

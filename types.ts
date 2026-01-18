@@ -10,6 +10,7 @@ export interface Military {
   firefighterNumber: string;
   contact: string;
   battalion: string;
+  antiguidade?: number;
 }
 
 export interface Shift {

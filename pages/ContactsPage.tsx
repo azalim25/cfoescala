@@ -19,6 +19,7 @@ const ContactsPage: React.FC = () => {
   const [authCode, setAuthCode] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [sortBy, setSortBy] = useState<'name' | 'antiguidade'>('name');
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +40,8 @@ const ContactsPage: React.FC = () => {
       rank: newMilitary.rank as Rank,
       firefighterNumber: newMilitary.firefighterNumber as string,
       contact: newMilitary.contact as string,
-      battalion: newMilitary.battalion as string
+      battalion: newMilitary.battalion as string,
+      antiguidade: newMilitary.antiguidade
     };
     addMilitary(military);
     setIsAdding(false);
@@ -99,9 +101,26 @@ const ContactsPage: React.FC = () => {
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Militar</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <button
+                      onClick={() => setSortBy('name')}
+                      className="flex items-center gap-1 hover:text-primary transition-colors"
+                    >
+                      Militar
+                      {sortBy === 'name' && <span className="material-symbols-outlined text-xs">arrow_downward</span>}
+                    </button>
+                  </th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nº Bombeiro</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Posto</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <button
+                      onClick={() => setSortBy('antiguidade')}
+                      className="flex items-center gap-1 hover:text-primary transition-colors"
+                    >
+                      Antiguidade
+                      {sortBy === 'antiguidade' && <span className="material-symbols-outlined text-xs">arrow_downward</span>}
+                    </button>
+                  </th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contato</th>
                   <th className="p-4 text-right">Ações</th>
                 </tr>
@@ -112,6 +131,14 @@ const ContactsPage: React.FC = () => {
                     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     m.firefighterNumber.includes(searchTerm)
                   )
+                  .sort((a, b) => {
+                    if (sortBy === 'antiguidade') {
+                      const aAnt = a.antiguidade || 999999;
+                      const bAnt = b.antiguidade || 999999;
+                      return aAnt - bAnt;
+                    }
+                    return a.name.localeCompare(b.name);
+                  })
                   .map((m: Military) => (
                     <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="p-4">
@@ -129,6 +156,9 @@ const ContactsPage: React.FC = () => {
                         <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200 text-[10px] font-bold rounded uppercase border border-blue-200 dark:border-blue-800">
                           {m.rank}
                         </span>
+                      </td>
+                      <td className="p-4 text-sm text-slate-600 dark:text-slate-400 font-bold">
+                        {m.antiguidade || '-'}
                       </td>
                       <td className="p-4 text-sm text-slate-600 dark:text-slate-400 font-medium">{m.contact}</td>
                       <td className="p-4 text-right space-x-2">
@@ -221,6 +251,16 @@ const ContactsPage: React.FC = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Antiguidade</label>
+                <input
+                  type="number"
+                  value={editingMilitary.antiguidade || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingMilitary({ ...editingMilitary, antiguidade: e.target.value ? parseInt(e.target.value) : undefined })}
+                  placeholder="Ex: 1, 2, 3..."
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none dark:text-white"
+                />
+              </div>
 
 
               <div className="pt-4 flex gap-3">
