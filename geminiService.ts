@@ -35,8 +35,9 @@ export async function generateAIScale(
   `;
 
   try {
+    // Attempt to use gemini-2.0-flash which is more current and less likely to be blocked by v1beta constraints
     const response = await (ai as any).models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
         systemInstruction: { parts: [{ text: "Você é um especialista em escalas militares. Retorne APENAS o JSON solicitado." }] },
