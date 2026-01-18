@@ -7,7 +7,10 @@ if (!apiKey || apiKey === "PLACEHOLDER_API_KEY") {
   console.warn("AVISO: VITE_GEMINI_API_KEY não configurada ou é um placeholder.");
 }
 
-const ai = new GoogleGenAI({ apiKey: apiKey || '' });
+const ai = new GoogleGenAI({
+  apiKey: apiKey || '',
+  apiVersion: 'v1' // Force stable API version to avoid v1beta 404s
+});
 
 export async function generateAIScale(
   militaryData: any[],
@@ -16,32 +19,29 @@ export async function generateAIScale(
   customPrompt: string
 ) {
   const prompt = `
-    Você é um especialista em logística militar do CFO (Corpo de Bombeiros).
-    Sua tarefa é montar a escala de serviço para o mês ${month + 1} de ${year}.
+    Como especialista em escalas militares (CFO), sua tarefa é montar a escala de serviço para o mês ${month + 1} de ${year}.
 
     DADOS DOS MILITARES:
     ${JSON.stringify(militaryData.map(m => ({ id: m.id, rank: m.rank, name: m.name })))}
 
-    REGRAS BASE:
-    1. Respeite o descanso mínimo de 48h entre serviços.
-    2. Garanta uma distribuição equitativa de plantões.
-    3. Tipos de serviço: "Comandante da Guarda", "Sobreaviso", "Faxina", "Manutenção", "Estágio", "Escala Geral".
+    REGRAS CRÍTICAS:
+    1. Descanso: Mínimo de 48h entre plantões.
+    2. Equidade: Distribua os serviços de forma justa.
+    3. Serviços: Comandante da Guarda, Sobreaviso, Faxina, Manutenção, Estágio, Escala Geral.
     
-    INSTRUÇÕES ADICIONAIS:
+    INSTRUÇÕES ESPECIAIS:
     "${customPrompt || 'Nenhuma.'}"
 
     SAÍDA:
-    Retorne APENAS um JSON (array de objetos) com: militaryId, date (YYYY-MM-DD), type, startTime, endTime, location, status.
+    Retorne apenas um array JSON: [{"militaryId": "...", "date": "YYYY-MM-DD", "type": "...", "startTime": "08:00", "endTime": "08:00", "location": "QCG", "status": "Confirmado"}]
   `;
 
   try {
-    // Attempt to use gemini-2.0-flash which is more current and less likely to be blocked by v1beta constraints
     const response = await (ai as any).models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-1.5-flash',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
-        systemInstruction: { parts: [{ text: "Você é um especialista em escalas militares. Retorne APENAS o JSON solicitado." }] },
-        responseMimeType: 'application/json'
+        systemInstruction: { parts: [{ text: "Você é um especialista em escalas. Responda apenas com o JSON da escala, sem formatação markdown." }] }
       }
     });
 
