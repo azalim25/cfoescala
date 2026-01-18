@@ -295,61 +295,64 @@ const EstadoMaiorPage: React.FC = () => {
                                                 return military?.name.toLowerCase().includes(searchLower);
                                             });
                                         })
-                                        .map(em => (
-                                            <div key={em.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <div>
-                                                        <h4 className="font-bold text-slate-800 dark:text-white">{em.name}</h4>
-                                                        <p className="text-xs text-slate-500 mt-1">{em.description}</p>
-                                                    </div>
-                                                    {!isGuest && (
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                onClick={() => handleOpenEditModal(em)}
-                                                                className="p-1.5 text-slate-400 hover:text-primary transition-colors"
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">edit</span>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete(em.id)}
-                                                                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">delete</span>
-                                                            </button>
+                                        .map(em => {
+                                            // Determine if we're searching for a military name (not estado maior name)
+                                            const searchLower = searchTerm.toLowerCase();
+                                            const isSearchingMilitary = searchTerm && !em.name.toLowerCase().includes(searchLower);
+
+                                            return (
+                                                <div key={em.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div>
+                                                            <h4 className="font-bold text-slate-800 dark:text-white">{em.name}</h4>
+                                                            <p className="text-xs text-slate-500 mt-1">{em.description}</p>
                                                         </div>
-                                                    )}
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {em.assignments
-                                                        .filter(assignment => {
-                                                            // If no search term, show all assignments
-                                                            if (!searchTerm) return true;
-                                                            const searchLower = searchTerm.toLowerCase();
-                                                            // If search matches estado maior name, show all assignments
-                                                            if (em.name.toLowerCase().includes(searchLower)) return true;
-                                                            // Otherwise, only show assignments where military name matches
-                                                            const military = militaries.find(m => m.id === assignment.militaryId);
-                                                            return military?.name.toLowerCase().includes(searchLower);
-                                                        })
-                                                        .map((assignment, idx) => {
-                                                            const military = militaries.find(m => m.id === assignment.militaryId);
-                                                            return (
-                                                                <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
-                                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                                                                        <span className="material-symbols-outlined text-sm">person</span>
+                                                        {!isGuest && (
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={() => handleOpenEditModal(em)}
+                                                                    className="p-1.5 text-slate-400 hover:text-primary transition-colors"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-lg">edit</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDelete(em.id)}
+                                                                    className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-lg">delete</span>
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        {em.assignments
+                                                            .filter(assignment => {
+                                                                // If no search term, show all assignments
+                                                                if (!searchTerm) return true;
+                                                                // If searching by estado maior name, show all assignments
+                                                                if (!isSearchingMilitary) return true;
+                                                                // If searching by military name, only show matching military's assignments
+                                                                const military = militaries.find(m => m.id === assignment.militaryId);
+                                                                return military?.name.toLowerCase().includes(searchLower);
+                                                            })
+                                                            .map((assignment, idx) => {
+                                                                const military = militaries.find(m => m.id === assignment.militaryId);
+                                                                return (
+                                                                    <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
+                                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                                                            <span className="material-symbols-outlined text-sm">person</span>
+                                                                        </div>
+                                                                        <div className="flex-1">
+                                                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                                                {military?.rank} {military?.name}
+                                                                            </p>
+                                                                            <p className="text-xs text-primary font-bold uppercase">{assignment.role}</p>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="flex-1">
-                                                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                                                                            {military?.rank} {military?.name}
-                                                                        </p>
-                                                                        <p className="text-xs text-primary font-bold uppercase">{assignment.role}</p>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                                                );
+                                                            })}                         </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            ))
                                 )}
                             </div>
                         </div>
