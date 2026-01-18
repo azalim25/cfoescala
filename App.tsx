@@ -7,10 +7,10 @@ import GenerateScalePage from './pages/GenerateScalePage';
 import PersonalShiftPage from './pages/PersonalShiftPage';
 import ExtraHoursPage from './pages/ExtraHoursPage';
 import RankingPage from './pages/RankingPage';
+import EstadoMaiorPage from './pages/EstadoMaiorPage';
 import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import { MilitaryProvider } from './contexts/MilitaryContext';
 import { MilitaryProvider } from './contexts/MilitaryContext';
 import { ShiftProvider } from './contexts/ShiftContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -57,6 +57,12 @@ const App: React.FC = () => {
               <Route path="/ranking" element={
                 <ProtectedRoute>
                   <RankingPage />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/estado-maior" element={
+                <ProtectedRoute>
+                  <EstadoMaiorPage />
                 </ProtectedRoute>
               } />
 

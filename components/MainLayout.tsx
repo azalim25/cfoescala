@@ -3,7 +3,7 @@ import Header from './Header';
 
 interface MainLayoutProps {
     children: ReactNode;
-    activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking';
+    activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior';
     className?: string;
 }
 

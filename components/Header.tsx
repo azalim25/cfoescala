@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
 interface HeaderProps {
-  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking';
+  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior';
 }
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
@@ -76,6 +76,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${activePage === 'ranking' ? 'bg-primary/10 text-primary font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
             >
               <span className="material-symbols-outlined text-sm">leaderboard</span> Ranking
+            </Link>
+            <Link
+              to="/estado-maior"
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${activePage === 'estado-maior' ? 'bg-primary/10 text-primary font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            >
+              <span className="material-symbols-outlined text-sm">military_tech</span> Estado Maior
             </Link>
           </nav>
         </div>
