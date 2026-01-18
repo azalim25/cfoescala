@@ -35,19 +35,30 @@ export async function generateAIScale(
   `;
 
   try {
-    const model = ai.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: "Você é um especialista em escalas militares. Retorne APENAS o JSON solicitado."
+    const response = await (ai as any).models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction: { parts: [{ text: "Você é um especialista em escalas militares. Retorne APENAS o JSON solicitado." }] },
+        responseMimeType: 'application/json'
+      }
     });
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text = response.text || (response.candidates?.[0]?.content?.parts?.[0]?.text);
+    if (!text) throw new Error("A IA não retornou nenhum texto.");
 
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) return JSON.parse(jsonMatch[0]);
-    throw new Error("JSON não encontrado na resposta");
-  } catch (error) {
+
+    // Fallback: try parsing the whole text if it's already a clean JSON
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error("JSON não encontrado na resposta da IA.");
+    }
+  } catch (error: any) {
     console.error("Erro na geração:", error);
-    throw error;
+    const errorMsg = error.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+    throw new Error(`Erro na API Gemini: ${errorMsg}`);
   }
 }

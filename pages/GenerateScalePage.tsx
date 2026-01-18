@@ -72,9 +72,10 @@ const GenerateScalePage: React.FC = () => {
             }));
 
             setDraftShifts(processedShifts);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert('Erro ao gerar escala com IA. Verifique sua conexão e a chave da API.');
+            const errorMessage = error.message || 'Erro desconhecido ao gerar escala.';
+            alert(`Erro ao gerar escala: ${errorMessage}\n\nVerifique sua conexão e a chave da API no painel do Vercel.`);
         } finally {
             setIsGenerating(false);
         }
