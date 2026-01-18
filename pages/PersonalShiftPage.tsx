@@ -108,14 +108,31 @@ const PersonalShiftPage: React.FC = () => {
 
   // Combine shifts and stages for upcoming view
   const combinedUpcoming = [
-    ...personalShifts.map(s => ({ ...s, isStage: false })),
-    ...personalStages.map(s => ({
-      id: s.id,
-      date: s.date,
-      type: 'Estágio',
-      location: s.location,
-      isStage: true
-    }))
+    ...personalShifts.map(s => {
+      // Se for escala de estágio, tenta pegar o batalhão específico da tabela de stages
+      if (s.type === 'Estágio') {
+        const stageMatch = personalStages.find(ps => ps.date === s.date);
+        return {
+          ...s,
+          location: stageMatch ? stageMatch.location : s.location,
+          isStage: false
+        };
+      }
+      return { ...s, isStage: false };
+    }),
+    // Adiciona apenas os stages que não possuem uma escala de shift correspondente
+    ...personalStages
+      .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
+      .map(s => ({
+        id: s.id,
+        date: s.date,
+        type: 'Estágio',
+        location: s.location,
+        isStage: true,
+        startTime: '08:00',
+        endTime: '08:00',
+        status: 'Confirmado'
+      }))
   ].filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
 
   // Combined workloads

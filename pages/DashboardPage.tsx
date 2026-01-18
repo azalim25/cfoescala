@@ -213,15 +213,17 @@ const DashboardPage: React.FC = () => {
                     {(shifts.length > 0 || dayStages.length > 0) && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary font-black uppercase text-[8px] text-primary"></span>}
                   </div>
                   <div className="space-y-0.5 sm:space-y-1">
-                    {dayStages.map(s => (
-                      <div
-                        key={s.id}
-                        className="text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
-                      >
-                        <span className="hidden sm:inline">📌 {militaries.find(m => m.id === s.military_id)?.name.split(' ')[0]}</span>
-                        <span className="inline sm:hidden">📌 {militaries.find(m => m.id === s.military_id)?.name.charAt(0)}</span>
-                      </div>
-                    ))}
+                    {dayStages
+                      .filter(st => !shifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'))
+                      .map(s => (
+                        <div
+                          key={s.id}
+                          className="text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
+                        >
+                          <span className="hidden sm:inline">📌 {militaries.find(m => m.id === s.military_id)?.name.split(' ')[0]}</span>
+                          <span className="inline sm:hidden">📌 {militaries.find(m => m.id === s.military_id)?.name.charAt(0)}</span>
+                        </div>
+                      ))}
                     {shifts.slice(0, 3).map(s => {
                       const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
                       return (
@@ -299,7 +301,7 @@ const DashboardPage: React.FC = () => {
                 <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === selectedDateStr).length})
               </div>
 
-              {stages.filter(s => s.date === selectedDateStr).map(s => {
+              {stages.filter(st => st.date === selectedDateStr && !allShifts.some(sh => sh.date === st.date && sh.militaryId === st.military_id && sh.type === 'Estágio')).map(s => {
                 const m = militaries.find(mil => mil.id === s.military_id);
                 return (
                   <div
@@ -346,7 +348,11 @@ const DashboardPage: React.FC = () => {
                               {s.type}
                             </span>
                           </div>
-                          <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase">BM: {m?.firefighterNumber}</p>
+                          <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase">
+                            {s.type === 'Estágio'
+                              ? (stages.find(st => st.date === s.date && st.military_id === s.militaryId)?.location.split(' - ')[0] || s.location)
+                              : `BM: ${m?.firefighterNumber}`}
+                          </p>
                         </div>
                       </div>
                       {!isGuest && <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">edit</span>}
