@@ -6,6 +6,7 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
 import { SHIFT_TYPE_COLORS } from '../constants';
+import { generateAIScale } from '../geminiService';
 
 const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
@@ -59,68 +60,24 @@ const GenerateScalePage: React.FC = () => {
         }
 
         setIsGenerating(true);
-        setDraftShifts([]); // Clear current draft
+        setDraftShifts([]);
 
-        setTimeout(() => {
-            // Mock AI Generation Logic based on "Round Robin" + "Rules"
-            // In a real scenario, we would send `aiPrompt` to an LLM.
-            // Here we basically run the standard logic but pretend we listened.
+        try {
+            const aiShifts = await generateAIScale(militaries, currentMonth, currentYear, aiPrompt);
 
-            const totalDays = getDaysInMonth(currentYear, currentMonth);
-            const newDraft: Shift[] = [];
-            let militaryIndex = 0;
+            // Add unique IDs to the generated shifts
+            const processedShifts = aiShifts.map((s: any) => ({
+                ...s,
+                id: `draft-${Date.now()}-${Math.random()}`
+            }));
 
-            for (let i = 1; i <= totalDays; i++) {
-                const date = new Date(currentYear, currentMonth, i);
-                const dayOfWeek = date.getDay(); // 0 = Sun
-                const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
-
-                let requirements: Array<{ type: Shift['type'], count: number }> = [];
-
-                if (dayOfWeek === 1 || dayOfWeek === 3) { // Seg/Qua
-                    requirements = [
-                        { type: 'Comandante da Guarda', count: 1 },
-                        { type: 'Sobreaviso', count: 1 },
-                        { type: 'Faxina', count: 3 },
-                        { type: 'Manutenção', count: 6 }
-                    ];
-                } else if (dayOfWeek === 2 || dayOfWeek === 4 || dayOfWeek === 5) { // Ter/Qui/Sex
-                    requirements = [
-                        { type: 'Comandante da Guarda', count: 1 },
-                        { type: 'Sobreaviso', count: 1 },
-                        { type: 'Faxina', count: 3 }
-                    ];
-                } else { // Sáb/Dom
-                    requirements = [
-                        { type: 'Comandante da Guarda', count: 1 },
-                        { type: 'Sobreaviso', count: 1 },
-                        { type: 'Estágio', count: 2 }
-                    ];
-                }
-
-                requirements.forEach(req => {
-                    for (let c = 0; c < req.count; c++) {
-                        const m = militaries[militaryIndex % militaries.length];
-                        militaryIndex++;
-                        if (m) {
-                            newDraft.push({
-                                id: `draft-${Date.now()}-${i}-${c}-${Math.random()}`,
-                                militaryId: m.id,
-                                date: dateStr,
-                                type: req.type,
-                                startTime: '08:00',
-                                endTime: '08:00',
-                                location: 'QCG',
-                                status: 'Confirmado'
-                            });
-                        }
-                    }
-                });
-            }
-
-            setDraftShifts(newDraft);
+            setDraftShifts(processedShifts);
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao gerar escala com IA. Verifique sua conexão e a chave da API.');
+        } finally {
             setIsGenerating(false);
-        }, 1500);
+        }
     };
 
     // --- CRUD Operations on Draft ---
@@ -254,6 +211,16 @@ const GenerateScalePage: React.FC = () => {
                                 {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
+
+                        {!isGuest && draftShifts.length > 0 && (
+                            <button
+                                onClick={handlePublish}
+                                className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white rounded-lg text-[10px] sm:text-xs font-black uppercase shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300"
+                            >
+                                <span className="material-symbols-outlined text-base">publish</span>
+                                Publicar Escala
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -264,22 +231,21 @@ const GenerateScalePage: React.FC = () => {
                             <textarea
                                 value={aiPrompt}
                                 onChange={(e) => setAiPrompt(e.target.value)}
-                                placeholder="Regras específicas para a escala..."
-                                className="w-full min-h-[80px] p-4 pr-24 sm:pr-32 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-sm border-none focus:ring-0 resize-none dark:text-white"
+                                placeholder="Regras específicas para a escala... Ex: 'Priorize Sgt Silva nos fins de semana e mantenha Cb Santos no Sobreaviso'"
+                                className="w-full min-h-[100px] p-4 pr-24 sm:pr-32 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-sm border-none focus:ring-0 resize-none dark:text-white font-medium"
                             />
                             <div className="absolute bottom-3 right-3">
                                 <button
                                     onClick={handleGenerate}
                                     disabled={isGenerating}
-                                    className="px-3 sm:px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase rounded-lg shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:scale-100"
+                                    className="px-4 sm:px-6 py-2.5 bg-primary text-white text-[10px] font-black uppercase rounded-lg shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:scale-100"
                                 >
                                     {isGenerating ? (
-                                        <span className="material-symbols-outlined animate-spin text-base sm:text-lg">sync</span>
+                                        <span className="material-symbols-outlined animate-spin text-lg">sync</span>
                                     ) : (
-                                        <span className="material-symbols-outlined text-base sm:text-lg">auto_awesome</span>
+                                        <span className="material-symbols-outlined text-lg">auto_awesome</span>
                                     )}
-                                    <span className="hidden sm:inline">Gerar</span>
-                                    <span className="inline sm:hidden">Ok</span>
+                                    <span>{isGenerating ? 'IA Processando...' : 'Gerar Escala'}</span>
                                 </button>
                             </div>
                         </div>
@@ -287,24 +253,27 @@ const GenerateScalePage: React.FC = () => {
                 )}
 
                 {/* Main Calendar View */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-24 sm:mb-20 relative">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-12 relative">
                     {/* Overlay loading */}
                     {isGenerating && (
-                        <div className="absolute inset-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6">
-                            <span className="material-symbols-outlined text-4xl sm:text-5xl text-primary animate-bounce mb-4">smart_toy</span>
-                            <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">A Inteligência Artificial está montando a escala...</h3>
-                            <p className="text-slate-500 text-xs sm:text-sm mt-2">Isso pode levar alguns segundos.</p>
+                        <div className="absolute inset-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center text-center p-6">
+                            <div className="relative mb-6">
+                                <div className="w-20 h-20 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
+                                <span className="material-symbols-outlined text-4xl text-primary absolute inset-0 flex items-center justify-center">smart_toy</span>
+                            </div>
+                            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">O Gemini está montando a escala...</h3>
+                            <p className="text-slate-500 text-sm mt-2 max-w-sm">Analisando militares, descansos e suas instruções especiais.</p>
                         </div>
                     )}
 
                     <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800">
                         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                            <div key={day} className="p-2 sm:p-3 text-center text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0 border-slate-200 dark:border-slate-800">{day}</div>
+                            <div key={day} className="p-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest border-r last:border-r-0 border-slate-200 dark:border-slate-800">{day}</div>
                         ))}
                     </div>
                     <div className="grid grid-cols-7 auto-rows-fr">
                         {[...Array(getFirstDayOfMonth(currentYear, currentMonth))].map((_, i) => (
-                            <div key={`empty-${i}`} className="min-h-[60px] sm:min-h-[120px] border-r border-b border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10"></div>
+                            <div key={`empty-${i}`} className="min-h-[100px] sm:min-h-[160px] border-r border-b border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10"></div>
                         ))}
                         {[...Array(getDaysInMonth(currentYear, currentMonth))].map((_, i) => {
                             const day = i + 1;
@@ -316,22 +285,22 @@ const GenerateScalePage: React.FC = () => {
                                 <button
                                     key={day}
                                     onClick={() => !isGuest && handleDayClick(day)}
-                                    className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${!isGuest ? 'hover:bg-slate-50 dark:hover:bg-slate-800/40' : 'cursor-default'}`}
+                                    className={`min-h-[100px] sm:min-h-[160px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left flex flex-col ${!isGuest ? 'hover:bg-slate-50 dark:hover:bg-slate-800/40' : 'cursor-default'}`}
                                 >
-                                    <div className="flex justify-between items-start mb-0.5 sm:mb-1">
-                                        <span className={`text-[10px] sm:text-xs font-bold ${isToday ? 'bg-primary text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[8px] sm:text-[10px]' : 'text-slate-400 dark:text-slate-500'}`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className={`text-[10px] sm:text-xs font-black ${isToday ? 'bg-primary text-white w-5 h-5 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20' : 'text-slate-400 dark:text-slate-500'}`}>
                                             {day}
                                         </span>
-                                        {!isGuest && <span className="material-symbols-outlined text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline">add</span>}
+                                        {!isGuest && <span className="material-symbols-outlined text-xs text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">add_circle</span>}
                                     </div>
-                                    <div className="space-y-0.5 sm:space-y-1">
-                                        {shifts.slice(0, 3).map(s => {
+                                    <div className="space-y-1 overflow-y-auto flex-1 custom-scrollbar pr-1">
+                                        {shifts.map(s => {
                                             const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
                                             return (
                                                 <div
                                                     key={s.id}
                                                     onClick={(e) => handleEditShiftClick(e, s, day)}
-                                                    className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
+                                                    className={`text-[8px] sm:text-[9px] font-bold p-1 rounded-md ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer shadow-sm`}
                                                     title={`${militaries.find(m => m.id === s.militaryId)?.name} - ${s.type}`}
                                                 >
                                                     <span className="hidden sm:inline">{militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}</span>
@@ -339,32 +308,12 @@ const GenerateScalePage: React.FC = () => {
                                                 </div>
                                             );
                                         })}
-                                        {shifts.length > 3 && (
-                                            <div className="text-[6px] sm:text-[8px] text-slate-400 font-bold text-center">+{shifts.length - 3}</div>
-                                        )}
                                     </div>
                                 </button>
                             );
                         })}
                     </div>
                 </div>
-
-                {/* Footer Actions */}
-                {!isGuest && (
-                    <div className="fixed bottom-0 left-0 lg:left-0 right-0 p-3 sm:p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex justify-between items-center z-40 transition-all">
-                        <div className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-tight max-w-[150px] sm:max-w-none">
-                            {draftShifts.length} agendados
-                        </div>
-                        <button
-                            onClick={handlePublish}
-                            disabled={draftShifts.length === 0}
-                            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-emerald-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                        >
-                            <span className="material-symbols-outlined text-lg sm:text-xl">publish</span>
-                            Publicar
-                        </button>
-                    </div>
-                )}
 
                 {/* Modal */}
                 {isModalOpen && (

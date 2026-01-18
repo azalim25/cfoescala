@@ -9,35 +9,46 @@ if (!apiKey || apiKey === "PLACEHOLDER_API_KEY") {
 
 const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
-export async function optimizeScale(militaryData: any, existingShifts: any) {
+export async function generateAIScale(
+  militaryData: any[],
+  month: number,
+  year: number,
+  customPrompt: string
+) {
   const prompt = `
-    Como especialista em escalas militares, sua tarefa é criar a escala de serviço para o mês de JANEIRO de 2024.
+    Você é um especialista em logística militar do CFO (Corpo de Bombeiros).
+    Sua tarefa é montar a escala de serviço para o mês ${month + 1} de ${year}.
+
+    DADOS DOS MILITARES:
+    ${JSON.stringify(militaryData.map(m => ({ id: m.id, rank: m.rank, name: m.name })))}
+
+    REGRAS BASE:
+    1. Respeite o descanso mínimo de 48h entre serviços.
+    2. Garanta uma distribuição equitativa de plantões.
+    3. Tipos de serviço: "Comandante da Guarda", "Sobreaviso", "Faxina", "Manutenção", "Estágio", "Escala Geral".
     
-    REGRAS CRÍTICAS:
-    1. RESPEITE OS IMPEDIMENTOS: Cada militar possui uma lista de datas (ex: "2024-01-05") em que NÃO pode ser escalado sob hipótese alguma.
-    2. DESCANSO: Mínimo de 48h entre o término de um plantão e o início do próximo.
-    3. EQUIDADE: Distribua os serviços de forma justa entre os militares disponíveis.
-    
-    DADOS:
-    Militares e seus Impedimentos: ${JSON.stringify(militaryData)}
-    
-    FORMATE SUA RESPOSTA:
-    Apresente a escala dia a dia para o mês inteiro, indicando o militar escalado (Nome e Posto) para cada dia.
+    INSTRUÇÕES ADICIONAIS:
+    "${customPrompt || 'Nenhuma.'}"
+
+    SAÍDA:
+    Retorne APENAS um JSON (array de objetos) com: militaryId, date (YYYY-MM-DD), type, startTime, endTime, location, status.
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+    const response = await (ai as any).models.generateContent({
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
-        systemInstruction: "Você é um especialista em logística militar focado em escalas de serviço (plantões). Sua resposta deve ser em Português do Brasil.",
+        systemInstruction: "Você é um especialista em escalas militares. Retorne APENAS o JSON solicitado.",
       }
     });
-    return response.text;
+
+    const text = response.text;
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    throw new Error("JSON não encontrado na resposta");
   } catch (error) {
-    console.error("Erro na otimização com Gemini:", error);
-    return "Desculpe, ocorreu um erro ao processar sua solicitação de otimização.";
+    console.error("Erro na geração:", error);
+    throw error;
   }
 }
-
-
