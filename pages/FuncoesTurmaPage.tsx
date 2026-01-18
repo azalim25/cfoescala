@@ -23,6 +23,7 @@ const FuncoesTurmaPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [editingSemestreId, setEditingSemestreId] = useState<string | null>(null);
 
     // Form state
     const [formSemestreName, setFormSemestreName] = useState('');
@@ -78,8 +79,16 @@ const FuncoesTurmaPage: React.FC = () => {
     }, []);
 
     const handleOpenAddModal = () => {
+        setEditingSemestreId(null);
         setFormSemestreName('');
         setFormAssignments([{ militaryId: '', role: '' }]);
+        setIsModalOpen(true);
+    };
+
+    const handleOpenEditModal = (semestre: Semestre) => {
+        setEditingSemestreId(semestre.id);
+        setFormSemestreName(semestre.name);
+        setFormAssignments(semestre.assignments.length > 0 ? semestre.assignments : [{ militaryId: '', role: '' }]);
         setIsModalOpen(true);
     };
 
@@ -107,28 +116,61 @@ const FuncoesTurmaPage: React.FC = () => {
         try {
             const validAssignments = formAssignments.filter(a => a.militaryId && a.role.trim());
 
-            // Create new semestre
-            const { data: newSem, error: createError } = await supabase
-                .from('funcoes_turma_semestre')
-                .insert({ name: formSemestreName })
-                .select()
-                .single();
+            if (editingSemestreId) {
+                // Update existing semestre
+                const { error: updateError } = await supabase
+                    .from('funcoes_turma_semestre')
+                    .update({ name: formSemestreName })
+                    .eq('id', editingSemestreId);
 
-            if (createError) throw createError;
+                if (updateError) throw updateError;
 
-            // Insert assignments
-            if (validAssignments.length > 0 && newSem) {
-                const { error: insertError } = await supabase
+                // Delete old assignments
+                const { error: deleteError } = await supabase
                     .from('funcoes_turma_assignments')
-                    .insert(
-                        validAssignments.map(a => ({
-                            semestre_id: newSem.id,
-                            military_id: a.militaryId,
-                            role: a.role
-                        }))
-                    );
+                    .delete()
+                    .eq('semestre_id', editingSemestreId);
 
-                if (insertError) throw insertError;
+                if (deleteError) throw deleteError;
+
+                // Insert new assignments
+                if (validAssignments.length > 0) {
+                    const { error: insertError } = await supabase
+                        .from('funcoes_turma_assignments')
+                        .insert(
+                            validAssignments.map(a => ({
+                                semestre_id: editingSemestreId,
+                                military_id: a.militaryId,
+                                role: a.role
+                            }))
+                        );
+
+                    if (insertError) throw insertError;
+                }
+            } else {
+                // Create new semestre
+                const { data: newSem, error: createError } = await supabase
+                    .from('funcoes_turma_semestre')
+                    .insert({ name: formSemestreName })
+                    .select()
+                    .single();
+
+                if (createError) throw createError;
+
+                // Insert assignments
+                if (validAssignments.length > 0 && newSem) {
+                    const { error: insertError } = await supabase
+                        .from('funcoes_turma_assignments')
+                        .insert(
+                            validAssignments.map(a => ({
+                                semestre_id: newSem.id,
+                                military_id: a.militaryId,
+                                role: a.role
+                            }))
+                        );
+
+                    if (insertError) throw insertError;
+                }
             }
 
             setIsModalOpen(false);
@@ -211,13 +253,22 @@ const FuncoesTurmaPage: React.FC = () => {
                                                 <div className="flex items-center justify-between gap-2">
                                                     <span className="flex-1">{sem.name}</span>
                                                     {!isGuest && (
-                                                        <button
-                                                            onClick={() => handleDeleteSemestre(sem.id)}
-                                                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                                                            title="Excluir semestre"
-                                                        >
-                                                            <span className="material-symbols-outlined text-sm">delete</span>
-                                                        </button>
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() => handleOpenEditModal(sem)}
+                                                                className="p-1 text-slate-400 hover:text-primary transition-colors"
+                                                                title="Editar semestre"
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm">edit</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteSemestre(sem.id)}
+                                                                className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                                title="Excluir semestre"
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm">delete</span>
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </th>
@@ -266,8 +317,10 @@ const FuncoesTurmaPage: React.FC = () => {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden max-h-[90vh]">
                         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary">add_circle</span>
-                                Adicionar Funções de Turma
+                                <span className="material-symbols-outlined text-primary">
+                                    {editingSemestreId ? 'edit' : 'add_circle'}
+                                </span>
+                                {editingSemestreId ? 'Editar Funções de Turma' : 'Adicionar Funções de Turma'}
                             </h3>
                             <button
                                 onClick={() => setIsModalOpen(false)}
