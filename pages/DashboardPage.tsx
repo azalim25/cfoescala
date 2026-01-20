@@ -263,16 +263,14 @@ const DashboardPage: React.FC = () => {
         <div className="mt-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
           <h3 className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Legenda de Escalas</h3>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {Object.entries(SHIFT_TYPE_COLORS).map(([type, colors]) => (
-              <div key={type} className="flex items-center gap-2">
-                <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></div>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">{type}</span>
-              </div>
-            ))}
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-              <span className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">Estágio</span>
-            </div>
+            {Object.entries(SHIFT_TYPE_COLORS)
+              .filter(([type]) => type !== 'Escala Geral')
+              .map(([type, colors]) => (
+                <div key={type} className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></div>
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">{type}</span>
+                </div>
+              ))}
           </div>
         </div>
       </MainLayout.Content>
