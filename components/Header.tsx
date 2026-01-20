@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
 interface HeaderProps {
-  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage';
+  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda';
 }
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
@@ -43,6 +43,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     { to: '/estado-maior', label: 'Estado Maior', icon: 'military_tech', id: 'estado-maior' },
     { to: '/funcoes-turma', label: 'Funções de Turma', icon: 'school', id: 'funcoes-turma' },
     { to: '/stage', label: 'Estágio', icon: 'location_city', id: 'stage' },
+    { to: '/comandante-guarda', label: 'Cmd. Guarda', icon: 'military_tech', id: 'comandante-guarda' },
   ];
 
   return (
