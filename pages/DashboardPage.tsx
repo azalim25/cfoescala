@@ -9,7 +9,7 @@ import { Shift, Rank } from '../types';
 const DashboardPage: React.FC = () => {
   const { shifts: allShifts, createShift, updateShift, removeShift } = useShift();
   const { militaries } = useMilitary();
-  const { isGuest } = useAuth();
+  const { isModerator } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
   const [currentYear, setCurrentYear] = useState(2026);
   const [selectedDay, setSelectedDay] = useState(2); // Default
@@ -232,7 +232,7 @@ const DashboardPage: React.FC = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedDay(day);
-                            if (!isGuest) {
+                            if (isModerator) {
                               handleOpenEditModal(s);
                             }
                           }}
@@ -278,7 +278,7 @@ const DashboardPage: React.FC = () => {
               <h2 className="font-bold text-slate-800 dark:text-100 uppercase text-xs sm:text-sm">FICHA DO DIA</h2>
               <p className="text-[10px] sm:text-[11px] text-primary font-bold">{selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}</p>
             </div>
-            {!isGuest && (
+            {isModerator && (
               <button
                 onClick={handleOpenAddModal}
                 className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity"
@@ -333,8 +333,8 @@ const DashboardPage: React.FC = () => {
                 return (
                   <button
                     key={s.id}
-                    onClick={() => !isGuest && handleOpenEditModal(s)}
-                    className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden ${!isGuest ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'} transition-opacity group`}
+                    onClick={() => isModerator && handleOpenEditModal(s)}
+                    className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden ${isModerator ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'} transition-opacity group`}
                   >
                     <div className="flex items-start justify-between relative z-10">
                       <div className="flex gap-2 sm:gap-3">
@@ -355,7 +355,7 @@ const DashboardPage: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      {!isGuest && <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">edit</span>}
+                      {isModerator && <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">edit</span>}
                     </div>
                     <div className={`absolute top-0 right-0 w-1 h-full ${SHIFT_TYPE_COLORS[s.type]?.dot || 'bg-slate-200'}`}></div>
                   </button>

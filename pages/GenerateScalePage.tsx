@@ -12,7 +12,7 @@ const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
     const { militaries } = useMilitary();
     const { addShifts } = useShift();
-    const { isGuest } = useAuth();
+    const { isModerator } = useAuth();
 
     // Time State
     const [currentMonth, setCurrentMonth] = useState(0);
@@ -181,7 +181,7 @@ const GenerateScalePage: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                        {!isGuest && (
+                        {isModerator && (
                             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 w-full sm:w-auto">
                                 <button
                                     onClick={() => setGenerationMode('auto')}
@@ -223,7 +223,7 @@ const GenerateScalePage: React.FC = () => {
                             </select>
                         </div>
 
-                        {!isGuest && draftShifts.length > 0 && (
+                        {isModerator && draftShifts.length > 0 && (
                             <button
                                 onClick={handlePublish}
                                 disabled={isPublishing}
@@ -241,7 +241,7 @@ const GenerateScalePage: React.FC = () => {
                 </div>
 
                 {/* AI Prompt Area */}
-                {generationMode === 'auto' && !isGuest && (
+                {generationMode === 'auto' && isModerator && (
                     <div className="bg-white dark:bg-slate-900 rounded-xl p-1 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
                         <div className="relative">
                             <textarea
@@ -300,14 +300,14 @@ const GenerateScalePage: React.FC = () => {
                             return (
                                 <button
                                     key={day}
-                                    onClick={() => !isGuest && handleDayClick(day)}
-                                    className={`min-h-[100px] sm:min-h-[160px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left flex flex-col ${!isGuest ? 'hover:bg-slate-50 dark:hover:bg-slate-800/40' : 'cursor-default'}`}
+                                    onClick={() => isModerator && handleDayClick(day)}
+                                    className={`min-h-[100px] sm:min-h-[160px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left flex flex-col ${isModerator ? 'hover:bg-slate-50 dark:hover:bg-slate-800/40' : 'cursor-default'}`}
                                 >
                                     <div className="flex justify-between items-start mb-2">
                                         <span className={`text-[10px] sm:text-xs font-black ${isToday ? 'bg-primary text-white w-5 h-5 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20' : 'text-slate-400 dark:text-slate-500'}`}>
                                             {day}
                                         </span>
-                                        {!isGuest && <span className="material-symbols-outlined text-xs text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">add_circle</span>}
+                                        {isModerator && <span className="material-symbols-outlined text-xs text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">add_circle</span>}
                                     </div>
                                     <div className="space-y-1 overflow-y-auto flex-1 custom-scrollbar pr-1">
                                         {shifts.map(s => {

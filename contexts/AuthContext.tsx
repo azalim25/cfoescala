@@ -6,6 +6,8 @@ import { supabase } from '../supabase';
 interface AuthContextType {
     session: Session | null;
     isGuest: boolean;
+    isModerator: boolean;
+    role: string | null;
     loginAsGuest: () => void;
     logout: () => Promise<void>;
     loading: boolean;
@@ -16,7 +18,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [session, setSession] = useState<Session | null>(null);
     const [isGuest, setIsGuest] = useState<boolean>(false);
+    const [role, setRole] = useState<string | null>(null);
+    const [isModerator, setIsModerator] = useState<boolean>(false);
     const [loading, setLoading] = useState(true);
+
+    const fetchUserRole = async (userId: string) => {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .single();
+        
+        if (data && !error) {
+            setRole(data.role);
+            setIsModerator(data.role === 'moderator');
+        } else {
+            setRole('visitor');
+            setIsModerator(false);
+        }
+    };
 
     useEffect(() => {
         // Check for guest identifier in local storage on load
@@ -25,11 +45,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
-            setLoading(false);
+            if (session?.user) {
+                fetchUserRole(session.user.id).then(() => setLoading(false));
+            } else {
+                setLoading(false);
+            }
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
+            if (session?.user) {
+                fetchUserRole(session.user.id);
+            } else {
+                setRole(null);
+                setIsModerator(false);
+            }
             // If we get a real session, we are definitely NOT a guest
             if (session) {
                 setIsGuest(false);
@@ -56,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ session, isGuest, loginAsGuest, logout, loading }}>
+        <AuthContext.Provider value={{ session, isGuest, isModerator, role, loginAsGuest, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

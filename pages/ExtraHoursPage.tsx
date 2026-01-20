@@ -19,7 +19,7 @@ interface ExtraHourRecord {
 
 const ExtraHoursPage: React.FC = () => {
     const { militaries } = useMilitary();
-    const { isGuest } = useAuth();
+    const { isModerator } = useAuth();
     const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
     const [hours, setHours] = useState<number>(0);
     const [minutes, setMinutes] = useState<number>(0);
@@ -148,7 +148,7 @@ const ExtraHoursPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 sm:mb-0">
                     {/* Form Section */}
-                    {!isGuest && (
+                    {isModerator && (
                         <div className="lg:col-span-1">
                             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                                 <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
@@ -250,7 +250,7 @@ const ExtraHoursPage: React.FC = () => {
                     )}
 
                     {/* List Section */}
-                    <div className={!isGuest ? "lg:col-span-2" : "lg:col-span-3"}>
+                    <div className={isModerator ? "lg:col-span-2" : "lg:col-span-3"}>
                         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-auto lg:h-[calc(100vh-270px)]">
                             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center text-center">
                                 <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-tight">
@@ -316,7 +316,7 @@ const ExtraHoursPage: React.FC = () => {
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4 text-right">
-                                                            {!isGuest && (
+                                                            {isModerator && (
                                                                 <div className="flex items-center justify-end gap-1">
                                                                     <button
                                                                         onClick={() => handleEdit(record)}
@@ -368,7 +368,7 @@ const ExtraHoursPage: React.FC = () => {
                                                             {record.description || '-'}
                                                         </p>
                                                     </div>
-                                                    {!isGuest && (
+                                                    {isModerator && (
                                                         <div className="flex items-center justify-end gap-3 pt-1">
                                                             <button
                                                                 onClick={() => handleEdit(record)}

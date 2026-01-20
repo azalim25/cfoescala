@@ -18,7 +18,7 @@ interface Semestre {
 
 const FuncoesTurmaPage: React.FC = () => {
     const { militaries } = useMilitary();
-    const { isGuest } = useAuth();
+    const { isModerator } = useAuth();
     const [semestres, setSemestres] = useState<Semestre[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -222,7 +222,7 @@ const FuncoesTurmaPage: React.FC = () => {
                             <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestão por Semestre</p>
                         </div>
                     </div>
-                    {!isGuest && (
+                    {isModerator && (
                         <button
                             onClick={handleOpenAddModal}
                             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-primary text-white rounded-lg text-xs sm:text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
@@ -259,7 +259,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                                 <th key={sem.id} className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center min-w-[180px]">
                                                     <div className="flex items-center justify-between gap-2">
                                                         <span className="flex-1 text-center">{sem.name}</span>
-                                                        {!isGuest && (
+                                                        {isModerator && (
                                                             <div className="flex gap-1 shrink-0">
                                                                 <button
                                                                     onClick={() => handleOpenEditModal(sem)}
@@ -337,7 +337,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{a.semestre}</p>
                                                             <p className="text-xs font-bold text-primary uppercase">{a.role}</p>
                                                         </div>
-                                                        {!isGuest && (
+                                                        {isModerator && (
                                                             <div className="flex gap-2">
                                                                 <button
                                                                     onClick={() => handleOpenEditModal(a.raw)}

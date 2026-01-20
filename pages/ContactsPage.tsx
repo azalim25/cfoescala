@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const ContactsPage: React.FC = () => {
   const { militaries, addMilitary, updateMilitary, deleteMilitary } = useMilitary();
-  const { isGuest } = useAuth();
+  const { isModerator } = useAuth();
   const [editingMilitary, setEditingMilitary] = useState<Military | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newMilitary, setNewMilitary] = useState<Partial<Military>>({
@@ -84,7 +84,7 @@ const ContactsPage: React.FC = () => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               />
             </div>
-            {!isGuest && (
+            {isModerator && (
               <button
                 onClick={() => setIsAdding(true)}
                 className="flex items-center gap-2 px-4 py-1.5 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
@@ -163,7 +163,7 @@ const ContactsPage: React.FC = () => {
                       </td>
                       <td className="p-4 text-sm text-slate-600 dark:text-slate-400 font-medium">{m.contact}</td>
                       <td className="p-4 text-right space-x-2">
-                        {!isGuest && (
+                        {isModerator && (
                           <>
                             <button
                               onClick={() => setEditingMilitary(m)}
@@ -213,7 +213,7 @@ const ContactsPage: React.FC = () => {
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">{m.rank}</p>
                       </div>
                     </div>
-                    {!isGuest && (
+                    {isModerator && (
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditingMilitary(m)}

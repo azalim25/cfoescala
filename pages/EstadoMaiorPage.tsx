@@ -19,7 +19,7 @@ interface EstadoMaior {
 
 const EstadoMaiorPage: React.FC = () => {
     const { militaries } = useMilitary();
-    const { isGuest } = useAuth();
+    const { isModerator } = useAuth();
     const [estadosMaiores, setEstadosMaiores] = useState<EstadoMaior[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -249,7 +249,7 @@ const EstadoMaiorPage: React.FC = () => {
                                 className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary w-full dark:text-white"
                             />
                         </div>
-                        {!isGuest && (
+                        {isModerator && (
                             <button
                                 onClick={handleOpenAddModal}
                                 className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all w-full sm:w-auto"
@@ -307,7 +307,7 @@ const EstadoMaiorPage: React.FC = () => {
                                                             <h4 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white">{em.name}</h4>
                                                             <p className="text-[10px] sm:text-xs text-slate-500 mt-1">{em.description}</p>
                                                         </div>
-                                                        {!isGuest && (
+                                                        {isModerator && (
                                                             <div className="flex gap-2">
                                                                 <button
                                                                     onClick={() => handleOpenEditModal(em)}

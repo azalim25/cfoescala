@@ -13,7 +13,7 @@ interface StageAssignment {
 
 const StagePage: React.FC = () => {
     const { militaries } = useMilitary();
-    const { isGuest } = useAuth();
+    const { isModerator } = useAuth();
     const [stages, setStages] = useState<StageAssignment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
@@ -145,7 +145,7 @@ const StagePage: React.FC = () => {
                                 <span className="material-symbols-outlined text-lg">chevron_right</span>
                             </button>
                         </div>
-                        {!isGuest && (
+                        {isModerator && (
                             <button
                                 onClick={() => setIsAdding(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
@@ -195,7 +195,7 @@ const StagePage: React.FC = () => {
                                                             {dateFormatted}
                                                         </span>
                                                     </div>
-                                                    {!isGuest && (
+                                                    {isModerator && (
                                                         <button
                                                             onClick={() => handleDeleteStage(s.id)}
                                                             className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-md transition-all sm:opacity-0 group-hover:opacity-100"

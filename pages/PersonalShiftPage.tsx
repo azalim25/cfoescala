@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
 import { Shift } from '../types';
 import { SHIFT_TYPE_COLORS } from '../constants';
@@ -22,14 +23,43 @@ interface ExtraHourRecord {
 const PersonalShiftPage: React.FC = () => {
   const { militaries } = useMilitary();
   const { shifts: allShifts } = useShift();
-  const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>(militaries[0]?.id || '');
+  const { isModerator, session } = useAuth();
+  const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
   const [isLoadingExtra, setIsLoadingExtra] = useState(false);
   const [personalStages, setPersonalStages] = useState<any[]>([]);
   const [isLoadingStages, setIsLoadingStages] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
-  const selectedMilitary = militaries.find(m => m.id === selectedMilitaryId) || militaries[0];
+  // Fetch user profile to get their name
+  useEffect(() => {
+    if (session?.user) {
+      supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data }) => {
+        setUserProfile(data);
+      });
+    }
+  }, [session]);
+
+  // Handle initial selection and name matching
+  useEffect(() => {
+    if (userProfile && militaries.length > 0) {
+      if (isModerator) {
+        if (!selectedMilitaryId) setSelectedMilitaryId(militaries[0].id);
+      } else {
+        // Find military by name matching
+        const userName = userProfile.name.toLowerCase();
+        const found = militaries.find(m =>
+          m.name.toLowerCase().includes(userName) || userName.includes(m.name.toLowerCase())
+        );
+        if (found) {
+          setSelectedMilitaryId(found.id);
+        }
+      }
+    }
+  }, [userProfile, militaries, isModerator]);
+
+  const selectedMilitary = militaries.find(m => m.id === selectedMilitaryId) || (isModerator ? militaries[0] : null);
 
   useEffect(() => {
     if (selectedMilitaryId) {
@@ -192,212 +222,224 @@ const PersonalShiftPage: React.FC = () => {
     <MainLayout activePage="personal">
       <MainLayout.Content>
         {/* Header Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col items-center justify-between gap-6 sm:flex-row">
-          <div className="flex items-center gap-4 w-full sm:w-auto">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border-2 sm:border-4 border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
-              <span className="material-symbols-outlined text-2xl sm:text-3xl">person</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-none truncate max-w-[180px] sm:max-w-none">
-                  {selectedMilitary.rank} {selectedMilitary.name}
-                </h1>
-                <span className="material-symbols-outlined text-primary text-base sm:text-lg">verified</span>
+        {!selectedMilitary ? (
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-12 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 text-center">
+            <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">search_off</span>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Escala não encontrada</h2>
+            <p className="text-slate-500 mt-2">Não foi possível vincular seu perfil a um militar da lista. Entre em contato com o moderador.</p>
+          </div>
+        ) : (
+          <>
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col items-center justify-between gap-6 sm:flex-row">
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border-2 sm:border-4 border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
+                  <span className="material-symbols-outlined text-2xl sm:text-3xl">person</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-none truncate max-w-[180px] sm:max-w-none">
+                      {selectedMilitary.rank} {selectedMilitary.name}
+                    </h1>
+                    <span className="material-symbols-outlined text-primary text-base sm:text-lg">verified</span>
+                  </div>
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">Escala Individual • 2026</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1.5">{selectedMilitary.battalion}</p>
+                </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">Escala Individual • 2026</p>
-              <p className="text-[9px] font-bold text-slate-400 uppercase mt-1.5">{selectedMilitary.battalion}</p>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleExport}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 font-bold text-[10px] sm:text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">download</span> Exportar
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-primary text-white rounded-lg font-bold text-[10px] sm:text-xs hover:opacity-90 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">print</span> Imprimir
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button
-              onClick={handleExport}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 font-bold text-[10px] sm:text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              <span className="material-symbols-outlined text-sm">download</span> Exportar
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-primary text-white rounded-lg font-bold text-[10px] sm:text-xs hover:opacity-90 transition-colors"
-            >
-              <span className="material-symbols-outlined text-sm">print</span> Imprimir
-            </button>
-          </div>
-        </div>
 
-        {/* Section: Próximos Serviços */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
-              <span className="material-symbols-outlined text-primary text-xl">event_upcoming</span>
-              Próximos Serviços
-            </h2>
-          </div>
+            {/* Section: Próximos Serviços */}
+            <section className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
+                  <span className="material-symbols-outlined text-primary text-xl">event_upcoming</span>
+                  Próximos Serviços
+                </h2>
+              </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-            {/* Desktop View */}
-            <div className="hidden sm:block">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
-                  <tr>
-                    <th className="px-6 py-4">Data</th>
-                    <th className="px-6 py-4">Tipo de Serviço</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                {/* Desktop View */}
+                <div className="hidden sm:block">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
+                      <tr>
+                        <th className="px-6 py-4">Data</th>
+                        <th className="px-6 py-4">Tipo de Serviço</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {combinedUpcoming.map((s: any) => (
+                        <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="px-6 py-4">
+                            <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                              {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2.5 py-0.5 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[10px] font-bold uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
+                              {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
                   {combinedUpcoming.map((s: any) => (
-                    <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                    <div key={s.id} className="p-4 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-white">
                           {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
                         </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-0.5 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[10px] font-bold uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
-                          {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
-                        </span>
-                      </td>
-                    </tr>
+                      </div>
+                      <span className={`px-2 py-1 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[9px] font-black uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
+                        {s.type}
+                      </span>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile View */}
-            <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-              {combinedUpcoming.map((s: any) => (
-                <div key={s.id} className="p-4 flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
-                    <span className="text-sm font-black text-slate-800 dark:text-white">
-                      {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
-                    </span>
-                  </div>
-                  <span className={`px-2 py-1 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[9px] font-black uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
-                    {s.type}
-                  </span>
                 </div>
-              ))}
-            </div>
 
-            {combinedUpcoming.length === 0 && (
-              <div className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço ou estágio agendado.</div>
-            )}
-          </div>
-        </section>
+                {combinedUpcoming.length === 0 && (
+                  <div className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço ou estágio agendado.</div>
+                )}
+              </div>
+            </section>
 
-        {/* Section: Carga Horária (Atividades) */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
-              <span className="material-symbols-outlined text-primary text-xl">history</span>
-              Carga Horária
-            </h2>
-          </div>
+            {/* Section: Carga Horária (Atividades) */}
+            <section className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
+                  <span className="material-symbols-outlined text-primary text-xl">history</span>
+                  Carga Horária
+                </h2>
+              </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-            {/* Desktop View */}
-            <div className="hidden sm:block">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
-                  <tr>
-                    <th className="px-6 py-4">Atividade</th>
-                    <th className="px-6 py-4 text-right">Quantidade / Carga Horária</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                {/* Desktop View */}
+                <div className="hidden sm:block">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
+                      <tr>
+                        <th className="px-6 py-4">Atividade</th>
+                        <th className="px-6 py-4 text-right">Quantidade / Carga Horária</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {groupedSummary.map((item, index) => (
+                        <tr key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'}`}></div>
+                              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.type}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${item.totalHours > 0
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                              }`}>
+                              {item.totalHours > 0
+                                ? `${item.totalHours.toFixed(1)}h`
+                                : `${item.totalServices} Serviço${item.totalServices !== 1 ? 's' : ''}`}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
                   {groupedSummary.map((item, index) => (
-                    <tr key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'}`}></div>
-                          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.type}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${item.totalHours > 0
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                          }`}>
-                          {item.totalHours > 0
-                            ? `${item.totalHours.toFixed(1)}h`
-                            : `${item.totalServices} Serviço${item.totalServices !== 1 ? 's' : ''}`}
-                        </span>
-                      </td>
-                    </tr>
+                    <div key={index} className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'} shrink-0`}></div>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">{item.type}</span>
+                      </div>
+                      <span className={`px-2 py-1 rounded text-[10px] font-black ${item.totalHours > 0
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}>
+                        {item.totalHours > 0
+                          ? `${item.totalHours.toFixed(1)}h`
+                          : `${item.totalServices} Un`}
+                      </span>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile View */}
-            <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-              {groupedSummary.map((item, index) => (
-                <div key={index} className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'} shrink-0`}></div>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">{item.type}</span>
-                  </div>
-                  <span className={`px-2 py-1 rounded text-[10px] font-black ${item.totalHours > 0
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}>
-                    {item.totalHours > 0
-                      ? `${item.totalHours.toFixed(1)}h`
-                      : `${item.totalServices} Un`}
-                  </span>
                 </div>
-              ))}
-            </div>
 
-            {groupedSummary.length === 0 && (
-              <div className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</div>
-            )}
-          </div>
-        </section>
+                {groupedSummary.length === 0 && (
+                  <div className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</div>
+                )}
+              </div>
+            </section>
+          </>
+        )}
       </MainLayout.Content>
 
       <MainLayout.Sidebar>
         <div className="space-y-6">
           {/* Search Military Widget */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Localizar Militar</h3>
-            <div className="relative mb-3">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">person_search</span>
-              <input
-                className="w-full h-10 pl-10 pr-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm md:text-xs font-semibold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all outline-none dark:text-white"
-                placeholder="Nome ou graduação..."
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            {searchTerm && (
-              <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
-                {filteredMilitary.length > 0 ? (
-                  filteredMilitary.map(m => (
-                    <button
-                      key={m.id}
-                      onClick={() => {
-                        setSelectedMilitaryId(m.id);
-                        setSearchTerm('');
-                      }}
-                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
-                        <span className="material-symbols-outlined text-sm">person</span>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.name}</p>
-                        <p className="text-[10px] text-slate-500 uppercase">{m.battalion}</p>
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-xs text-slate-400 text-center py-2">Nenhum militar encontrado.</p>
-                )}
+          {isModerator && (
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Localizar Militar</h3>
+              <div className="relative mb-3">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">person_search</span>
+                <input
+                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm md:text-xs font-semibold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all outline-none dark:text-white"
+                  placeholder="Nome ou graduação..."
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-            )}
-          </div>
+              {searchTerm && (
+                <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
+                  {filteredMilitary.length > 0 ? (
+                    filteredMilitary.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setSelectedMilitaryId(m.id);
+                          setSearchTerm('');
+                        }}
+                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                          <span className="material-symbols-outlined text-sm">person</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.name}</p>
+                          <p className="text-[10px] text-slate-500 uppercase">{m.battalion}</p>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-400 text-center py-2">Nenhum militar encontrado.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Grouped Summary Widget */}
           <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
