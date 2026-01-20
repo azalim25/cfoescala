@@ -64,7 +64,7 @@ const ComandanteGuardaPage: React.FC = () => {
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
-                            <thead>
+                            <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                 <tr className="bg-slate-50 dark:bg-slate-800/50">
                                     <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 min-w-[200px]">Militar</th>
                                     {daysOfWeek.map(day => (
