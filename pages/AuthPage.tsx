@@ -9,7 +9,6 @@ const AuthPage: React.FC = () => {
     const { loginAsGuest } = useAuth();
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [isSignUp, setIsSignUp] = useState(false);
     const [fullName, setFullName] = useState('');
     const [firefighterNumber, setFirefighterNumber] = useState('');
@@ -24,7 +23,7 @@ const AuthPage: React.FC = () => {
 
         // Internally we use the firefighter number as a pseudo-email
         const internalEmail = `${firefighterNumber.replace(/\D/g, '')}@guarani.mil`;
-        const internalPassword = password; // Use the actual password from state
+        const internalPassword = 'guarani2026'; // Default internal password for all users
 
         try {
             if (isSignUp) {
@@ -123,18 +122,6 @@ const AuthPage: React.FC = () => {
                                 value={firefighterNumber}
                                 onChange={(e) => setFirefighterNumber(e.target.value)}
                                 placeholder="Ex: 123.456"
-                                className="w-full bg-slate-800/40 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Senha</label>
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="******"
                                 className="w-full bg-slate-800/40 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
                             />
                         </div>
