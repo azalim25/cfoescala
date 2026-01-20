@@ -43,9 +43,9 @@ const PersonalShiftPage: React.FC = () => {
 
   // Handle initial selection and name matching
   useEffect(() => {
-    if (userProfile && militaries.length > 0) {
+    if (userProfile && militaries.length > 0 && !selectedMilitaryId) {
       if (isModerator) {
-        if (!selectedMilitaryId) setSelectedMilitaryId(militaries[0].id);
+        setSelectedMilitaryId(militaries[0].id);
       } else {
         // Find military by name matching
         const userName = userProfile.name.toLowerCase();
@@ -57,7 +57,7 @@ const PersonalShiftPage: React.FC = () => {
         }
       }
     }
-  }, [userProfile, militaries, isModerator]);
+  }, [userProfile, militaries, isModerator, selectedMilitaryId]);
 
   const selectedMilitary = militaries.find(m => m.id === selectedMilitaryId) || (isModerator ? militaries[0] : null);
 
@@ -223,10 +223,51 @@ const PersonalShiftPage: React.FC = () => {
       <MainLayout.Content>
         {/* Header Section */}
         {!selectedMilitary ? (
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-12 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 text-center">
-            <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">search_off</span>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Escala não encontrada</h2>
-            <p className="text-slate-500 mt-2">Não foi possível vincular seu perfil a um militar da lista. Entre em contato com o moderador.</p>
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-8 sm:p-12 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 text-center max-w-2xl mx-auto">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="material-symbols-outlined text-4xl text-primary">person_search</span>
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Consultar Escala Individual</h2>
+            <p className="text-slate-500 mb-8">Utilize a barra de pesquisa ao lado ou abaixo para localizar o militar e visualizar sua escala de serviço e carga horária.</p>
+
+            <div className="relative max-w-md mx-auto">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+              <input
+                className="w-full h-12 pl-12 pr-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-semibold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all outline-none dark:text-white"
+                placeholder="Digite o nome do militar..."
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto custom-scrollbar">
+                  {filteredMilitary.length > 0 ? (
+                    filteredMilitary.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setSelectedMilitaryId(m.id);
+                          setSearchTerm('');
+                        }}
+                        className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left border-b border-slate-100 dark:border-slate-800 last:border-0"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400">
+                          <span className="material-symbols-outlined text-xl">person</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.name}</p>
+                          <p className="text-[10px] text-slate-500 uppercase font-medium">{m.battalion}</p>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center">
+                      <p className="text-sm text-slate-500 font-medium">Nenhum militar encontrado.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <>
@@ -399,47 +440,45 @@ const PersonalShiftPage: React.FC = () => {
       <MainLayout.Sidebar>
         <div className="space-y-6">
           {/* Search Military Widget */}
-          {isModerator && (
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Localizar Militar</h3>
-              <div className="relative mb-3">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">person_search</span>
-                <input
-                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm md:text-xs font-semibold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all outline-none dark:text-white"
-                  placeholder="Nome ou graduação..."
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              {searchTerm && (
-                <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
-                  {filteredMilitary.length > 0 ? (
-                    filteredMilitary.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => {
-                          setSelectedMilitaryId(m.id);
-                          setSearchTerm('');
-                        }}
-                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
-                          <span className="material-symbols-outlined text-sm">person</span>
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.name}</p>
-                          <p className="text-[10px] text-slate-500 uppercase">{m.battalion}</p>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-xs text-slate-400 text-center py-2">Nenhum militar encontrado.</p>
-                  )}
-                </div>
-              )}
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Localizar Militar</h3>
+            <div className="relative mb-3">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">person_search</span>
+              <input
+                className="w-full h-10 pl-10 pr-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm md:text-xs font-semibold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all outline-none dark:text-white"
+                placeholder="Nome ou graduação..."
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          )}
+            {searchTerm && (
+              <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
+                {filteredMilitary.length > 0 ? (
+                  filteredMilitary.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        setSelectedMilitaryId(m.id);
+                        setSearchTerm('');
+                      }}
+                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                        <span className="material-symbols-outlined text-sm">person</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.name}</p>
+                        <p className="text-[10px] text-slate-500 uppercase">{m.battalion}</p>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 text-center py-2">Nenhum militar encontrado.</p>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Grouped Summary Widget */}
           <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
