@@ -68,7 +68,9 @@ const RankingPage: React.FC = () => {
                 const date = parseLocalISO(s.date);
                 const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ...
 
-                if (s.type === 'Comandante da Guarda') {
+                if (s.duration) {
+                    totalHours += s.duration;
+                } else if (s.type === 'Comandante da Guarda') {
                     // Seg-Sex = 11h, Sáb/Dom = 24h
                     if (dayOfWeek >= 1 && dayOfWeek <= 5) totalHours += 11;
                     else totalHours += 24;

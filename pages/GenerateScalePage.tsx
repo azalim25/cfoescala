@@ -30,10 +30,11 @@ const GenerateScalePage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDay, setEditingDay] = useState<number | null>(null);
     const [editingShiftId, setEditingShiftId] = useState<string | null>(null); // If editing specific shift
-    const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string }>({
+    const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string; duration?: number }>({
         militaryId: '',
         type: 'Escala Geral',
-        location: 'QCG'
+        location: 'QCG',
+        duration: undefined
     });
 
     useEffect(() => {
@@ -86,7 +87,7 @@ const GenerateScalePage: React.FC = () => {
     const handleDayClick = (day: number) => {
         setEditingDay(day);
         setEditingShiftId(null); // New shift by default
-        setFormData({ militaryId: '', type: 'Escala Geral', location: 'QCG' });
+        setFormData({ militaryId: '', type: 'Escala Geral', location: 'QCG', duration: undefined });
         setIsModalOpen(true);
     };
 
@@ -97,7 +98,8 @@ const GenerateScalePage: React.FC = () => {
         setFormData({
             militaryId: shift.militaryId,
             type: shift.type,
-            location: shift.location || 'QCG'
+            location: shift.location || 'QCG',
+            duration: shift.duration
         });
         setIsModalOpen(true);
     };
@@ -111,7 +113,7 @@ const GenerateScalePage: React.FC = () => {
             // Update existing
             setDraftShifts(prev => prev.map(s =>
                 s.id === editingShiftId
-                    ? { ...s, militaryId: formData.militaryId, type: formData.type, location: formData.location }
+                    ? { ...s, militaryId: formData.militaryId, type: formData.type, location: formData.location, duration: formData.duration }
                     : s
             ));
         } else {
@@ -124,7 +126,8 @@ const GenerateScalePage: React.FC = () => {
                 startTime: '08:00',
                 endTime: '08:00',
                 location: formData.location,
-                status: 'Confirmado'
+                status: 'Confirmado',
+                duration: formData.duration
             };
             setDraftShifts(prev => [...prev, newShift]);
         }
@@ -365,7 +368,25 @@ const GenerateScalePage: React.FC = () => {
                                     <label className="text-[10px] font-bold text-slate-400 uppercase">Tipo</label>
                                     <select
                                         value={formData.type}
-                                        onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                                        onChange={(e) => {
+                                            const newType = e.target.value as Shift['type'];
+                                            let newDuration = formData.duration;
+
+                                            // Handle default durations when type changes
+                                            if (newType === 'Comandante da Guarda') {
+                                                const date = new Date(currentYear, currentMonth, editingDay || 1);
+                                                const dayOfWeek = date.getDay();
+                                                newDuration = (dayOfWeek >= 1 && dayOfWeek <= 5) ? 11 : 24;
+                                            } else if (newType === 'Estágio') {
+                                                const date = new Date(currentYear, currentMonth, editingDay || 1);
+                                                const dayOfWeek = date.getDay();
+                                                newDuration = (dayOfWeek === 6) ? 24 : 12;
+                                            } else {
+                                                newDuration = undefined;
+                                            }
+
+                                            setFormData({ ...formData, type: newType, duration: newDuration });
+                                        }}
                                         className="w-full h-9 px-2 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none text-xs font-bold"
                                     >
                                         {Object.keys(SHIFT_TYPE_COLORS).map(t => (
@@ -373,6 +394,44 @@ const GenerateScalePage: React.FC = () => {
                                         ))}
                                     </select>
                                 </div>
+
+                                {formData.type === 'Comandante da Guarda' && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Duração (Horas)</label>
+                                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                            {[11, 24].map(h => (
+                                                <button
+                                                    key={h}
+                                                    onClick={() => setFormData({ ...formData, duration: h })}
+                                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                                                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                                                        : 'text-slate-500 hover:text-slate-700'}`}
+                                                >
+                                                    {h} Horas
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {formData.type === 'Estágio' && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Duração (Horas)</label>
+                                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                            {[12, 24].map(h => (
+                                                <button
+                                                    key={h}
+                                                    onClick={() => setFormData({ ...formData, duration: h })}
+                                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                                                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                                                        : 'text-slate-500 hover:text-slate-700'}`}
+                                                >
+                                                    {h} Horas
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-2">
                                 {editingShiftId && (
@@ -397,7 +456,7 @@ const GenerateScalePage: React.FC = () => {
                     </div>
                 )}
             </MainLayout.Content>
-        </MainLayout>
+        </MainLayout >
     );
 };
 

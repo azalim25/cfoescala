@@ -36,7 +36,8 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                     endTime: s.end_time,
                     location: s.location,
                     militaryId: s.military_id,
-                    status: s.status as any
+                    status: s.status as any,
+                    duration: s.duration
                 }));
                 setShifts(formattedShifts);
             }
@@ -71,7 +72,8 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 start_time: s.startTime,
                 end_time: s.endTime,
                 location: s.location,
-                status: s.status
+                status: s.status,
+                duration: s.duration
             }));
 
             // 4. Insert
@@ -98,7 +100,8 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 start_time: shift.startTime,
                 end_time: shift.endTime,
                 location: shift.location,
-                status: shift.status
+                status: shift.status,
+                duration: shift.duration
             };
 
             const { error } = await supabase.from('shifts').insert(dbShift);
@@ -142,6 +145,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
             if (updates.location !== undefined) dbUpdates.location = updates.location;
             if (updates.status !== undefined) dbUpdates.status = updates.status;
+            if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
 
             const { error } = await supabase
                 .from('shifts')

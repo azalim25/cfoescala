@@ -111,6 +111,8 @@ const PersonalShiftPage: React.FC = () => {
 
   // Helper to calculate hours from a shift based on specific rules
   const calculateShiftHours = (shift: Shift) => {
+    if (shift.duration) return shift.duration;
+
     const date = parseLocalISO(shift.date);
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ...
 

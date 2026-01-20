@@ -22,6 +22,7 @@ export interface Shift {
   location?: string;
   militaryId: string;
   status: 'Confirmado' | 'Pendente' | 'Concluído';
+  duration?: number;
 }
 
 export interface Impediment {

@@ -5,6 +5,7 @@ import { useShift } from '../contexts/ShiftContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Shift, Rank } from '../types';
+import { supabase } from '../supabase';
 
 const DashboardPage: React.FC = () => {
   const { shifts: allShifts, createShift, updateShift, removeShift } = useShift();
@@ -19,10 +20,11 @@ const DashboardPage: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
-  const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string }>({
+  const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string; duration?: number }>({
     militaryId: '',
     type: 'Escala Geral',
-    location: 'QCG'
+    location: 'QCG',
+    duration: undefined
   });
 
   // Set default day to today
@@ -91,7 +93,8 @@ const DashboardPage: React.FC = () => {
     setFormData({
       militaryId: '',
       type: 'Escala Geral',
-      location: 'QCG'
+      location: 'QCG',
+      duration: undefined
     });
     setIsModalOpen(true);
   };
@@ -101,7 +104,8 @@ const DashboardPage: React.FC = () => {
     setFormData({
       militaryId: shift.militaryId,
       type: shift.type,
-      location: shift.location || 'QCG'
+      location: shift.location || 'QCG',
+      duration: shift.duration
     });
     setIsModalOpen(true);
   };
@@ -118,7 +122,8 @@ const DashboardPage: React.FC = () => {
       await updateShift(editingShift.id, {
         militaryId: formData.militaryId,
         type: formData.type,
-        location: formData.location
+        location: formData.location,
+        duration: formData.duration
       });
     } else {
       await createShift({
@@ -128,7 +133,8 @@ const DashboardPage: React.FC = () => {
         startTime: '08:00',
         endTime: '08:00',
         location: formData.location,
-        status: 'Confirmado'
+        status: 'Confirmado',
+        duration: formData.duration
       });
     }
     setIsModalOpen(false);
@@ -416,6 +422,43 @@ const DashboardPage: React.FC = () => {
                 </select>
               </div>
 
+              {formData.type === 'Comandante da Guarda' && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
+                  <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                    {[11, 24].map(h => (
+                      <button
+                        key={h}
+                        onClick={() => setFormData(prev => ({ ...prev, duration: h }))}
+                        className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                          ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                          : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        {h} Horas
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {formData.type === 'Estágio' && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
+                  <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                    {[12, 24].map(h => (
+                      <button
+                        key={h}
+                        onClick={() => setFormData(prev => ({ ...prev, duration: h }))}
+                        className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                          ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                          : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        {h} Horas
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-3">
