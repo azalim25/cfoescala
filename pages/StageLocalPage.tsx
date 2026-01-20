@@ -11,7 +11,7 @@ interface StageAssignment {
     location: string;
 }
 
-const StagePage: React.FC = () => {
+const StageLocalPage: React.FC = () => {
     const { militaries } = useMilitary();
     const { isModerator } = useAuth();
     const [stages, setStages] = useState<StageAssignment[]>([]);
@@ -288,4 +288,4 @@ const StagePage: React.FC = () => {
     );
 };
 
-export default StagePage;
+export default StageLocalPage;

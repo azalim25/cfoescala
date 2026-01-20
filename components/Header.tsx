@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
 interface HeaderProps {
-  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda';
+  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity';
 }
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
@@ -42,7 +42,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     { to: '/ranking', label: 'Ranking', icon: 'leaderboard', id: 'ranking' },
     { to: '/estado-maior', label: 'Estado Maior', icon: 'military_tech', id: 'estado-maior' },
     { to: '/funcoes-turma', label: 'Funções de Turma', icon: 'school', id: 'funcoes-turma' },
-    { to: '/stage', label: 'Estágio', icon: 'location_city', id: 'stage' },
+    { to: '/stage', label: 'Estágio - Local', icon: 'location_city', id: 'stage' },
+    { to: '/stage-quantity', label: 'Estágio - Quantidade', icon: 'counts', id: 'stage-quantity' },
     { to: '/comandante-guarda', label: 'Cmd. Guarda', icon: 'military_tech', id: 'comandante-guarda' },
   ];
 

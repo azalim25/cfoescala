@@ -9,7 +9,8 @@ import ExtraHoursPage from './pages/ExtraHoursPage';
 import RankingPage from './pages/RankingPage';
 import EstadoMaiorPage from './pages/EstadoMaiorPage';
 import FuncoesTurmaPage from './pages/FuncoesTurmaPage';
-import StagePage from './pages/StagePage';
+import StageLocalPage from './pages/StageLocalPage';
+import StageQuantityPage from './pages/StageQuantityPage';
 import ComandanteGuardaPage from './pages/ComandanteGuardaPage';
 import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -77,7 +78,13 @@ const App: React.FC = () => {
 
               <Route path="/stage" element={
                 <ProtectedRoute>
-                  <StagePage />
+                  <StageLocalPage />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/stage-quantity" element={
+                <ProtectedRoute>
+                  <StageQuantityPage />
                 </ProtectedRoute>
               } />
 

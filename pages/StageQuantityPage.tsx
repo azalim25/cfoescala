@@ -1,0 +1,418 @@
+import React, { useMemo, useState, useEffect } from 'react';
+import MainLayout from '../components/MainLayout';
+import { useMilitary } from '../contexts/MilitaryContext';
+import { useShift } from '../contexts/ShiftContext';
+import { supabase } from '../supabase';
+import { useAuth } from '../contexts/AuthContext';
+
+interface StageAssignment {
+    id: string;
+    military_id: string;
+    date: string;
+    location: string;
+    duration?: number;
+}
+
+const StageQuantityPage: React.FC = () => {
+    const { militaries } = useMilitary();
+    const { shifts } = useShift();
+    const { isModerator } = useAuth();
+    const [stages, setStages] = useState<StageAssignment[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAdding, setIsAdding] = useState(false);
+
+    // Form state
+    const [formData, setFormData] = useState({
+        militaryId: '',
+        date: new Date().toISOString().split('T')[0],
+        location: '1°BBM - Batalhão Afonso Pena',
+        duration: 12
+    });
+
+    const locations = [
+        '1°BBM - Batalhão Afonso Pena',
+        '2°BBM - Batalhão Contagem',
+        '3°BBM - Batalhão Antônio Carlos'
+    ];
+
+    const fetchStages = async () => {
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('stages')
+            .select('*');
+
+        if (!error && data) {
+            setStages(data);
+        }
+        setIsLoading(false);
+    };
+
+    useEffect(() => {
+        fetchStages();
+    }, []);
+
+    const handleAddStage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.militaryId || !formData.date || !formData.location) {
+            alert('Preencha todos os campos');
+            return;
+        }
+
+        const { error } = await supabase.from('stages').insert({
+            military_id: formData.militaryId,
+            date: formData.date,
+            location: formData.location,
+            duration: formData.duration
+        });
+
+        if (error) {
+            console.error('Error adding stage:', error);
+            // Fallback: try without duration if it fails (in case column doesn't exist)
+            const { error: error2 } = await supabase.from('stages').insert({
+                military_id: formData.militaryId,
+                date: formData.date,
+                location: formData.location
+            });
+
+            if (error2) {
+                alert('Erro ao adicionar estágio');
+            } else {
+                finishAdd();
+            }
+        } else {
+            finishAdd();
+        }
+    };
+
+    const finishAdd = () => {
+        setIsAdding(false);
+        fetchStages();
+        setFormData({
+            ...formData,
+            militaryId: ''
+        });
+    };
+
+    // Helper function to get duration if not provided
+    const getDuration = (dateStr: string, providedDuration?: number) => {
+        if (providedDuration) return providedDuration;
+
+        const d = new Date(dateStr + 'T12:00:00');
+        const day = d.getDay(); // 0 = Sunday, 1 = Monday... 6 = Saturday
+
+        if (day === 6) return 24; // Saturday
+        if (day === 0) return 12; // Sunday
+        return 12; // Default for other days if not specified
+    };
+
+    // Aggregate data
+    const stageStats = useMemo(() => {
+        const stats: Record<string, Record<string, { p12: number; p24: number }>> = {};
+
+        // Initialize
+        militaries.forEach(m => {
+            stats[m.id] = {};
+            locations.forEach(loc => {
+                const baseLoc = loc.split(' - ')[0]; // Use short name for key
+                stats[m.id][baseLoc] = { p12: 0, p24: 0 };
+            });
+        });
+
+        // 1. Process shifts of type 'Estágio'
+        shifts.forEach(s => {
+            if (s.type === 'Estágio' && s.location && stats[s.militaryId]) {
+                const baseLoc = s.location.split(' - ')[0];
+                if (stats[s.militaryId][baseLoc]) {
+                    const duration = getDuration(s.date, s.duration);
+                    if (duration === 24) stats[s.militaryId][baseLoc].p24++;
+                    else stats[s.militaryId][baseLoc].p12++;
+                }
+            }
+        });
+
+        // 2. Process stages from 'stages' table
+        stages.forEach(s => {
+            if (stats[s.military_id]) {
+                const baseLoc = s.location.split(' - ')[0];
+                if (stats[s.military_id][baseLoc]) {
+                    const duration = getDuration(s.date, s.duration);
+                    if (duration === 24) stats[s.military_id][baseLoc].p24++;
+                    else stats[s.military_id][baseLoc].p12++;
+                }
+            }
+        });
+
+        return stats;
+    }, [militaries, shifts, stages]);
+
+    const handleDeleteStage = async (id: string) => {
+        if (!confirm('Deseja excluir este registro?')) return;
+        const { error } = await supabase.from('stages').delete().eq('id', id);
+        if (error) {
+            alert('Erro ao excluir registro');
+        } else {
+            fetchStages();
+        }
+    };
+
+    const sortedMilitaries = useMemo(() => {
+        return [...militaries].sort((a, b) => a.name.localeCompare(b.name));
+    }, [militaries]);
+
+    return (
+        <MainLayout activePage="stage-quantity">
+            <MainLayout.Content>
+                {/* Header Section */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                            <span className="material-symbols-outlined text-2xl">analytics</span>
+                        </div>
+                        <div>
+                            <h2 className="font-bold text-lg text-slate-800 dark:text-slate-100 capitalize">Estágio - Quantidade</h2>
+                            <p className="text-xs text-slate-500 font-medium">Consolidado de horas por batalhão</p>
+                        </div>
+                    </div>
+                    {isModerator && (
+                        <button
+                            onClick={() => setIsAdding(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+                        >
+                            <span className="material-symbols-outlined text-lg">add_location_alt</span>
+                            Adicionar Estágio
+                        </button>
+                    )}
+                </div>
+
+                {/* Shisfts Table */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
+                                <tr className="bg-slate-100 dark:bg-slate-800/80">
+                                    <th rowSpan={2} className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 min-w-[200px]">Militar</th>
+                                    {locations.map(loc => (
+                                        <th key={loc} colSpan={2} className="px-4 py-3 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-l border-slate-200 dark:border-slate-800 text-center bg-slate-50/50 dark:bg-slate-900/50">
+                                            {loc.split(' - ')[0]}
+                                        </th>
+                                    ))}
+                                    <th rowSpan={2} className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-l border-slate-200 dark:border-slate-800 text-center bg-slate-100/50 dark:bg-slate-700/50">Total</th>
+                                </tr>
+                                <tr className="bg-slate-50 dark:bg-slate-900/50">
+                                    {locations.map(loc => (
+                                        <React.Fragment key={loc}>
+                                            <th className="px-2 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-l border-slate-200 dark:border-slate-700 text-center min-w-[60px]">P12</th>
+                                            <th className="px-2 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-l border-slate-200 dark:border-slate-700 text-center min-w-[60px]">P24</th>
+                                        </React.Fragment>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-6 py-12 text-center">
+                                            <div className="flex justify-center flex-col items-center gap-2">
+                                                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                <span className="text-sm text-slate-400 italic">Carregando dados...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : sortedMilitaries.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-6 py-12 text-center text-slate-400 text-sm italic">Nenhum militar encontrado na lista de contatos.</td>
+                                    </tr>
+                                ) : (
+                                    sortedMilitaries.map(mil => {
+                                        const stats = stageStats[mil.id] || {};
+                                        let rowTotal = 0;
+
+                                        return (
+                                            <tr key={mil.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-50 dark:border-slate-800/50">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-slate-700 dark:text-slate-200 text-sm whitespace-nowrap">{mil.rank} {mil.name}</span>
+                                                        <span className="text-[10px] text-slate-500">{mil.firefighterNumber}</span>
+                                                    </div>
+                                                </td>
+                                                {locations.map(loc => {
+                                                    const baseLoc = loc.split(' - ')[0];
+                                                    const locStats = stats[baseLoc] || { p12: 0, p24: 0 };
+                                                    rowTotal += locStats.p12 + locStats.p24;
+
+                                                    return (
+                                                        <React.Fragment key={baseLoc}>
+                                                            <td className="px-2 py-4 border-l border-slate-50 dark:border-slate-800 text-center">
+                                                                {locStats.p12 > 0 ? (
+                                                                    <span className="inline-flex items-center justify-center w-7 h-7 bg-primary/10 text-primary rounded-full text-xs font-bold">
+                                                                        {locStats.p12}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-slate-200 dark:text-slate-800 font-medium text-xs">-</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2 py-4 border-l border-slate-50 dark:border-slate-800 text-center bg-slate-50/10 dark:bg-slate-800/10">
+                                                                {locStats.p24 > 0 ? (
+                                                                    <span className="inline-flex items-center justify-center w-7 h-7 bg-emerald-500/10 text-emerald-600 rounded-full text-xs font-bold">
+                                                                        {locStats.p24}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-slate-200 dark:text-slate-800 font-medium text-xs">-</span>
+                                                                )}
+                                                            </td>
+                                                        </React.Fragment>
+                                                    );
+                                                })}
+                                                <td className="px-6 py-4 border-l border-slate-50 dark:border-slate-800 text-center bg-slate-100/20 dark:bg-slate-800/40">
+                                                    <span className={`inline-flex items-center justify-center px-2 py-1 ${rowTotal > 0 ? 'bg-primary text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'} rounded-md text-xs font-bold min-w-[28px]`}>
+                                                        {rowTotal}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* History Section */}
+                {isModerator && (
+                    <div className="mt-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between">
+                            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary text-xl">history</span>
+                                Registros Recentes (Modo Edição)
+                            </h3>
+                        </div>
+                        <div className="p-4 max-h-[400px] overflow-y-auto custom-scrollbar">
+                            {stages.length === 0 ? (
+                                <p className="text-center text-slate-400 text-sm italic py-8">Nenhum registro manual encontrado.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {[...stages].sort((a, b) => b.date.localeCompare(a.date)).map(s => {
+                                        const m = militaries.find(mil => mil.id === s.military_id);
+                                        const duration = getDuration(s.date, s.duration);
+                                        return (
+                                            <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group hover:ring-1 hover:ring-primary/20 transition-all border border-transparent dark:border-slate-700/50">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-black shrink-0">
+                                                        P{duration}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{m?.rank} {m?.name}</p>
+                                                        <p className="text-[10px] text-slate-500 font-medium">
+                                                            {new Date(s.date + 'T12:00:00').toLocaleDateString('pt-BR')} • {s.location.split(' - ')[0]}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteStage(s.id)}
+                                                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-md transition-all sm:opacity-0 group-hover:opacity-100"
+                                                    title="Excluir"
+                                                >
+                                                    <span className="material-symbols-outlined text-lg">delete</span>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal for adding */}
+                {isAdding && (
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                                <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary">add_location_alt</span>
+                                    Novo Registro de Estágio
+                                </h3>
+                                <button onClick={() => setIsAdding(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-400">
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <form onSubmit={handleAddStage} className="p-6 space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Militar</label>
+                                    <select
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+                                        value={formData.militaryId}
+                                        onChange={e => setFormData({ ...formData, militaryId: e.target.value })}
+                                        required
+                                    >
+                                        <option value="">Selecione um militar...</option>
+                                        {[...militaries]
+                                            .sort((a, b) => a.name.localeCompare(b.name))
+                                            .map(m => (
+                                                <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
+                                            ))
+                                        }
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Data</label>
+                                        <input
+                                            type="date"
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+                                            value={formData.date}
+                                            onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Batalhão</label>
+                                        <select
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-medium"
+                                            value={formData.location}
+                                            onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                            required
+                                        >
+                                            {locations.map(loc => (
+                                                <option key={loc} value={loc}>{loc.split(' - ')[0]}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Duração</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, duration: 12 })}
+                                            className={`py-3 rounded-xl text-sm font-bold transition-all border ${formData.duration === 12 ? 'bg-primary/10 border-primary text-primary' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500'}`}
+                                        >
+                                            12 Horas (P12)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, duration: 24 })}
+                                            className={`py-3 rounded-xl text-sm font-bold transition-all border ${formData.duration === 24 ? 'bg-primary/10 border-primary text-primary' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500'}`}
+                                        >
+                                            24 Horas (P24)
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="pt-4">
+                                    <button
+                                        type="submit"
+                                        className="w-full bg-primary py-3.5 rounded-xl text-white font-bold shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <span className="material-symbols-outlined">check_circle</span>
+                                        Confirmar Registro
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </MainLayout.Content>
+        </MainLayout>
+    );
+};
+
+export default StageQuantityPage;
