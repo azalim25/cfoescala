@@ -56,12 +56,30 @@ const AuthPage: React.FC = () => {
                     setIsSignUp(false);
                 }
             } else {
+                // Try the new standard password first
                 const { error: signInError } = await supabase.auth.signInWithPassword({
                     email: internalEmail,
                     password: internalPassword,
                 });
 
-                if (signInError) throw signInError;
+                if (signInError) {
+                    // Fallback to legacy password (the number itself)
+                    const legacyPassword = firefighterNumber.replace(/\D/g, '');
+                    const { error: legacyError } = await supabase.auth.signInWithPassword({
+                        email: internalEmail,
+                        password: legacyPassword,
+                    });
+
+                    if (legacyError) {
+                        // If both fail, try one last common legacy password
+                        const { error: commonError } = await supabase.auth.signInWithPassword({
+                            email: internalEmail,
+                            password: 'guarani',
+                        });
+
+                        if (commonError) throw signInError;
+                    }
+                }
                 navigate('/');
             }
         } catch (err: any) {
