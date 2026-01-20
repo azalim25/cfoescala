@@ -21,9 +21,11 @@ const AuthPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // Internally we use the firefighter number as a pseudo-email
-        const internalEmail = `${firefighterNumber.replace(/\D/g, '')}@guarani.mil`;
-        const internalPassword = 'guarani2026'; // Default internal password for all users
+        // Normalize inputs: trim spaces and remove non-digits from firefighter number for the email
+        const cleanName = fullName.trim();
+        const cleanNumber = firefighterNumber.trim();
+        const internalEmail = `${cleanNumber.replace(/\D/g, '')}@guarani.mil`;
+        const internalPassword = 'guarani2026'; // Standard internal password for all users
 
         try {
             if (isSignUp) {
@@ -32,7 +34,7 @@ const AuthPage: React.FC = () => {
                     password: internalPassword,
                     options: {
                         data: {
-                            full_name: fullName,
+                            full_name: cleanName,
                         }
                     }
                 });
@@ -45,8 +47,8 @@ const AuthPage: React.FC = () => {
                         .insert([
                             {
                                 id: data.user.id,
-                                name: fullName,
-                                firefighter_number: firefighterNumber
+                                name: cleanName,
+                                firefighter_number: cleanNumber
                             }
                         ]);
 
@@ -56,30 +58,14 @@ const AuthPage: React.FC = () => {
                     setIsSignUp(false);
                 }
             } else {
-                // Try the new standard password first
+                // Simplified login: all users now use the universal internal password
                 const { error: signInError } = await supabase.auth.signInWithPassword({
                     email: internalEmail,
                     password: internalPassword,
                 });
 
-                if (signInError) {
-                    // Fallback to legacy password (the number itself)
-                    const legacyPassword = firefighterNumber.replace(/\D/g, '');
-                    const { error: legacyError } = await supabase.auth.signInWithPassword({
-                        email: internalEmail,
-                        password: legacyPassword,
-                    });
+                if (signInError) throw signInError;
 
-                    if (legacyError) {
-                        // If both fail, try one last common legacy password
-                        const { error: commonError } = await supabase.auth.signInWithPassword({
-                            email: internalEmail,
-                            password: 'guarani',
-                        });
-
-                        if (commonError) throw signInError;
-                    }
-                }
                 navigate('/');
             }
         } catch (err: any) {
