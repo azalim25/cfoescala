@@ -61,12 +61,20 @@ const StageQuantityPage: React.FC = () => {
 
     const fetchStages = async () => {
         setIsLoading(true);
-        const { data, error } = await supabase
+        const { data: stagesData, error: stagesError } = await supabase
             .from('stages')
             .select('*');
 
-        if (!error && data) {
-            setStages(data);
+        const { data: extraData, error: extraError } = await supabase
+            .from('extra_hours')
+            .select('id, military_id, category, hours')
+            .filter('category', 'like', 'CFO I - Estágio - %');
+
+        if (!stagesError && stagesData) {
+            setStages(stagesData);
+        }
+        if (!extraError && extraData) {
+            setExtraRecords(extraData as ExtraRecord[]);
         }
         setIsLoading(false);
     };
@@ -303,7 +311,7 @@ const StageQuantityPage: React.FC = () => {
                         <table className="w-full text-left border-collapse">
                             <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                 <tr className="bg-slate-100 dark:bg-slate-800/80">
-                                    <th rowSpan={2} className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 min-w-[200px]">Militar</th>
+                                    <th rowSpan={2} className="px-6 py-4 text-[12px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 min-w-[200px]">Militar</th>
                                     {locations.map(loc => (
                                         <th key={loc} colSpan={2} className="px-4 py-3 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-l border-slate-200 dark:border-slate-800 text-center bg-slate-50/50 dark:bg-slate-900/50">
                                             {loc.split(' - ')[0]}
@@ -343,7 +351,7 @@ const StageQuantityPage: React.FC = () => {
                                             <tr key={mil.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-50 dark:border-slate-800/50">
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-slate-700 dark:text-slate-200 text-sm whitespace-nowrap">{mil.rank} {mil.name}</span>
+                                                        <span className="font-bold text-slate-700 dark:text-slate-200 text-base whitespace-nowrap">{mil.rank} {mil.name}</span>
                                                         <span className="text-[10px] text-slate-500">{mil.firefighterNumber}</span>
                                                     </div>
                                                 </td>
@@ -359,18 +367,18 @@ const StageQuantityPage: React.FC = () => {
                                                         <button
                                                             onClick={() => handleEditCFO1(mil.id, baseLoc, duration)}
                                                             disabled={!isModerator}
-                                                            className={`flex items-center gap-1.5 justify-center w-full min-h-[40px] px-1 transition-all ${isModerator ? 'hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg cursor-pointer' : 'cursor-default'}`}
+                                                            className={`flex items-center gap-1.5 justify-center w-full min-h-[48px] px-1 transition-all ${isModerator ? 'hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg cursor-pointer' : 'cursor-default'}`}
                                                         >
                                                             <div className="flex flex-col items-center">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className={`text-[11px] font-black ${stat.cfo1 > 0 ? 'text-emerald-500' : 'text-slate-200 dark:text-slate-800'}`}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`text-xs sm:text-sm font-black ${stat.cfo1 > 0 ? 'text-emerald-500' : 'text-slate-200 dark:text-slate-800'}`}>
                                                                         {stat.cfo1}
                                                                     </span>
-                                                                    <span className={`text-[11px] font-black ${stat.cfo2 > 0 ? 'text-blue-500' : 'text-slate-200 dark:text-slate-800'}`}>
+                                                                    <span className={`text-xs sm:text-sm font-black ${stat.cfo2 > 0 ? 'text-blue-500' : 'text-slate-200 dark:text-slate-800'}`}>
                                                                         {stat.cfo2}
                                                                     </span>
                                                                 </div>
-                                                                <span className={`text-[12px] font-black mt-0.5 ${stat.total > 0 ? 'text-slate-900 dark:text-slate-100' : 'text-slate-200 dark:text-slate-800'}`}>
+                                                                <span className={`text-sm sm:text-base font-black mt-0.5 ${stat.total > 0 ? 'text-slate-900 dark:text-slate-100' : 'text-slate-200 dark:text-slate-800'}`}>
                                                                     {stat.total}
                                                                 </span>
                                                             </div>
