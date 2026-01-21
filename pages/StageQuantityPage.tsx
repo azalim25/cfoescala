@@ -13,13 +13,37 @@ interface StageAssignment {
     duration?: number;
 }
 
+interface ExtraRecord {
+    id: string;
+    military_id: string;
+    category: string;
+    hours: number;
+}
+
+interface DetailedStat {
+    cfo1: number;
+    cfo2: number;
+    total: number;
+}
+
 const StageQuantityPage: React.FC = () => {
     const { militaries } = useMilitary();
     const { shifts } = useShift();
     const { isModerator } = useAuth();
     const [stages, setStages] = useState<StageAssignment[]>([]);
+    const [extraRecords, setExtraRecords] = useState<ExtraRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
+
+    // Edit Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingData, setEditingData] = useState<{
+        militaryId: string;
+        location: string;
+        duration: number;
+        quantity: number;
+    } | null>(null);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -107,43 +131,110 @@ const StageQuantityPage: React.FC = () => {
 
     // Aggregate data
     const stageStats = useMemo(() => {
-        const stats: Record<string, Record<string, { p12: number; p24: number }>> = {};
+        const stats: Record<string, Record<string, { p12: DetailedStat; p24: DetailedStat }>> = {};
+
+        const emptyStat = () => ({ cfo1: 0, cfo2: 0, total: 0 });
 
         // Initialize
         militaries.forEach(m => {
             stats[m.id] = {};
             locations.forEach(loc => {
-                const baseLoc = loc.split(' - ')[0]; // Use short name for key
-                stats[m.id][baseLoc] = { p12: 0, p24: 0 };
+                const baseLoc = loc.split(' - ')[0];
+                stats[m.id][baseLoc] = { p12: emptyStat(), p24: emptyStat() };
             });
         });
 
-        // 1. Process shifts of type 'Estágio'
+        // 1. Process shifts of type 'Estágio' (CFO II)
         shifts.forEach(s => {
             if (s.type === 'Estágio' && s.location && stats[s.militaryId]) {
                 const baseLoc = s.location.split(' - ')[0];
                 if (stats[s.militaryId][baseLoc]) {
                     const duration = getDuration(s.date, s.duration);
-                    if (duration === 24) stats[s.militaryId][baseLoc].p24++;
-                    else stats[s.militaryId][baseLoc].p12++;
+                    if (duration === 24) stats[s.militaryId][baseLoc].p24.cfo2++;
+                    else stats[s.militaryId][baseLoc].p12.cfo2++;
                 }
             }
         });
 
-        // 2. Process stages from 'stages' table
+        // 2. Process stages from 'stages' table (CFO II)
         stages.forEach(s => {
             if (stats[s.military_id]) {
                 const baseLoc = s.location.split(' - ')[0];
                 if (stats[s.military_id][baseLoc]) {
                     const duration = getDuration(s.date, s.duration);
-                    if (duration === 24) stats[s.military_id][baseLoc].p24++;
-                    else stats[s.military_id][baseLoc].p12++;
+                    if (duration === 24) stats[s.military_id][baseLoc].p24.cfo2++;
+                    else stats[s.military_id][baseLoc].p12.cfo2++;
                 }
             }
         });
 
+        // 3. Process extra_hours manual records (CFO I)
+        extraRecords.forEach(r => {
+            if (stats[r.military_id]) {
+                // CFO I - Estágio - 1°BBM - 12h
+                const parts = r.category.split(' - ');
+                if (parts.length >= 4) {
+                    const baseLoc = parts[2];
+                    const dur = parseInt(parts[3]) || 12;
+                    if (stats[r.military_id][baseLoc]) {
+                        if (dur === 24) stats[r.military_id][baseLoc].p24.cfo1 += r.hours;
+                        else stats[r.military_id][baseLoc].p12.cfo1 += r.hours;
+                    }
+                }
+            }
+        });
+
+        // Calculate Totals
+        Object.values(stats).forEach(milStats => {
+            Object.values(milStats).forEach(locStats => {
+                locStats.p12.total = locStats.p12.cfo1 + locStats.p12.cfo2;
+                locStats.p24.total = locStats.p24.cfo1 + locStats.p24.cfo2;
+            });
+        });
+
         return stats;
-    }, [militaries, shifts, stages]);
+    }, [militaries, shifts, stages, extraRecords]);
+
+    const handleEditCFO1 = (militaryId: string, baseLoc: string, duration: number) => {
+        if (!isModerator) return;
+        const stats = stageStats[militaryId]?.[baseLoc];
+        const currentQty = duration === 24 ? stats?.p24.cfo1 : stats?.p12.cfo1;
+        setEditingData({ militaryId, location: baseLoc, duration, quantity: currentQty || 0 });
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveCFO1 = async () => {
+        if (!editingData) return;
+        setIsSaving(true);
+        const category = `CFO I - Estágio - ${editingData.location} - ${editingData.duration}h`;
+        const existing = extraRecords.find(r => r.military_id === editingData.militaryId && r.category === category);
+
+        try {
+            if (existing) {
+                if (editingData.quantity === 0) {
+                    await supabase.from('extra_hours').delete().eq('id', existing.id);
+                } else {
+                    await supabase.from('extra_hours').update({ hours: editingData.quantity }).eq('id', existing.id);
+                }
+            } else if (editingData.quantity > 0) {
+                await supabase.from('extra_hours').insert({
+                    military_id: editingData.militaryId,
+                    category: category,
+                    hours: editingData.quantity,
+                    minutes: 0,
+                    description: 'Qtde manual Estágio',
+                    date: new Date().toISOString().split('T')[0]
+                });
+            }
+            fetchStages();
+            setIsEditModalOpen(false);
+        } catch (error) {
+            console.error('Error saving CFO I:', error);
+            alert('Erro ao salvar quantidade.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const handleDeleteStage = async (id: string) => {
         if (!confirm('Deseja excluir este registro?')) return;
@@ -187,6 +278,23 @@ const StageQuantityPage: React.FC = () => {
                             Adicionar Estágio
                         </button>
                     )}
+                </div>
+
+                {/* Legend Section */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-wrap items-center gap-6">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Legenda:</h3>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">CFO I (Manual)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">CFO II (Automático)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-slate-900 dark:bg-white"></div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Total</span>
+                    </div>
                 </div>
 
                 {/* Shisfts Table */}
@@ -241,28 +349,41 @@ const StageQuantityPage: React.FC = () => {
                                                 </td>
                                                 {locations.map(loc => {
                                                     const baseLoc = loc.split(' - ')[0];
-                                                    const locStats = stats[baseLoc] || { p12: 0, p24: 0 };
-                                                    rowTotal += locStats.p12 + locStats.p24;
+                                                    const locStats = stats[baseLoc] || {
+                                                        p12: { cfo1: 0, cfo2: 0, total: 0 },
+                                                        p24: { cfo1: 0, cfo2: 0, total: 0 }
+                                                    };
+                                                    rowTotal += locStats.p12.total + locStats.p24.total;
+
+                                                    const renderCellContent = (stat: DetailedStat, duration: number) => (
+                                                        <button
+                                                            onClick={() => handleEditCFO1(mil.id, baseLoc, duration)}
+                                                            disabled={!isModerator}
+                                                            className={`flex items-center gap-1.5 justify-center w-full min-h-[40px] px-1 transition-all ${isModerator ? 'hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg cursor-pointer' : 'cursor-default'}`}
+                                                        >
+                                                            <div className="flex flex-col items-center">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className={`text-[11px] font-black ${stat.cfo1 > 0 ? 'text-emerald-500' : 'text-slate-200 dark:text-slate-800'}`}>
+                                                                        {stat.cfo1}
+                                                                    </span>
+                                                                    <span className={`text-[11px] font-black ${stat.cfo2 > 0 ? 'text-blue-500' : 'text-slate-200 dark:text-slate-800'}`}>
+                                                                        {stat.cfo2}
+                                                                    </span>
+                                                                </div>
+                                                                <span className={`text-[12px] font-black mt-0.5 ${stat.total > 0 ? 'text-slate-900 dark:text-slate-100' : 'text-slate-200 dark:text-slate-800'}`}>
+                                                                    {stat.total}
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    );
 
                                                     return (
                                                         <React.Fragment key={baseLoc}>
-                                                            <td className="px-2 py-4 border-l border-slate-50 dark:border-slate-800 text-center">
-                                                                {locStats.p12 > 0 ? (
-                                                                    <span className="inline-flex items-center justify-center w-7 h-7 bg-primary/10 text-primary rounded-full text-xs font-bold">
-                                                                        {locStats.p12}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-slate-200 dark:text-slate-800 font-medium text-xs">-</span>
-                                                                )}
+                                                            <td className="px-1 py-2 border-l border-slate-50 dark:border-slate-800 text-center">
+                                                                {renderCellContent(locStats.p12, 12)}
                                                             </td>
-                                                            <td className="px-2 py-4 border-l border-slate-50 dark:border-slate-800 text-center bg-slate-50/10 dark:bg-slate-800/10">
-                                                                {locStats.p24 > 0 ? (
-                                                                    <span className="inline-flex items-center justify-center w-7 h-7 bg-emerald-500/10 text-emerald-600 rounded-full text-xs font-bold">
-                                                                        {locStats.p24}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-slate-200 dark:text-slate-800 font-medium text-xs">-</span>
-                                                                )}
+                                                            <td className="px-1 py-2 border-l border-slate-50 dark:border-slate-800 text-center bg-slate-50/10 dark:bg-slate-800/10">
+                                                                {renderCellContent(locStats.p24, 24)}
                                                             </td>
                                                         </React.Fragment>
                                                     );
@@ -411,6 +532,73 @@ const StageQuantityPage: React.FC = () => {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Edit CFO I Modal */}
+                {isEditModalOpen && editingData && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm">
+                                    <span className="material-symbols-outlined text-primary">edit</span>
+                                    Editar CFO I (Manual)
+                                </h3>
+                                <button onClick={() => setIsEditModalOpen(false)} className="w-8 h-8 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors">
+                                    <span className="material-symbols-outlined text-slate-400">close</span>
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="text-center space-y-1">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Militar</p>
+                                    <p className="text-sm font-black text-slate-800 dark:text-white uppercase">
+                                        {militaries.find(m => m.id === editingData.militaryId)?.name}
+                                    </p>
+                                    <p className="text-[10px] font-bold text-primary uppercase">
+                                        {editingData.location} • P{editingData.duration}
+                                    </p>
+                                </div>
+                                <div className="space-y-4">
+                                    <label className="block text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantidade Manual</label>
+                                    <div className="flex items-center justify-center gap-4">
+                                        <button
+                                            onClick={() => setEditingData(prev => prev ? ({ ...prev, quantity: Math.max(0, prev.quantity - 1) }) : null)}
+                                            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-all font-bold text-xl"
+                                        >
+                                            -
+                                        </button>
+                                        <input
+                                            type="number"
+                                            value={editingData.quantity}
+                                            onChange={(e) => setEditingData(prev => prev ? ({ ...prev, quantity: parseInt(e.target.value) || 0 }) : null)}
+                                            className="w-20 h-12 text-center text-xl font-bold bg-slate-50 dark:bg-slate-800 border-2 border-primary/20 rounded-xl focus:border-primary outline-none dark:text-white"
+                                        />
+                                        <button
+                                            onClick={() => setEditingData(prev => prev ? ({ ...prev, quantity: prev.quantity + 1 }) : null)}
+                                            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-all font-bold text-xl"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 space-y-2">
+                                    <button
+                                        onClick={handleSaveCFO1}
+                                        disabled={isSaving}
+                                        className="w-full h-11 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
+                                    >
+                                        {isSaving ? 'Salvando...' : 'Salvar Alteração'}
+                                    </button>
+                                    <button
+                                        onClick={() => setIsEditModalOpen(false)}
+                                        className="w-full h-10 text-slate-500 text-xs font-bold uppercase transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
