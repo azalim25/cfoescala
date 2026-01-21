@@ -293,11 +293,11 @@ const StageQuantityPage: React.FC = () => {
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Legenda:</h3>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">CFO I (Manual)</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">CFO I</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">CFO II (Automático)</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">CFO II</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-slate-900 dark:bg-white"></div>
