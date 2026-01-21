@@ -387,9 +387,14 @@ const PersonalShiftPage: React.FC = () => {
                       {combinedUpcoming.map((s: any) => (
                         <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                           <td className="px-6 py-4">
-                            <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                              {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                                {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
+                                {parseLocalISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-2.5 py-0.5 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[10px] font-bold uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
@@ -410,6 +415,9 @@ const PersonalShiftPage: React.FC = () => {
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
                         <span className="text-sm font-black text-slate-800 dark:text-white">
                           {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
+                        </span>
+                        <span className="text-[10px] text-primary font-bold uppercase tracking-tighter">
+                          {parseLocalISO(s.date).toLocaleDateString('pt-BR', { weekday: 'short' })}
                         </span>
                       </div>
                       <span className={`px-2 py-1 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[9px] font-black uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
