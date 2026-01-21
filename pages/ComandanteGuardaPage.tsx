@@ -41,7 +41,12 @@ const ComandanteGuardaPage: React.FC = () => {
 
     // Sort military by rank/name for the table
     const sortedMilitaries = useMemo(() => {
-        return [...militaries].sort((a, b) => a.name.localeCompare(b.name));
+        return [...militaries].sort((a, b) => {
+            const aAnt = a.antiguidade || 999999;
+            const bAnt = b.antiguidade || 999999;
+            if (aAnt !== bAnt) return aAnt - bAnt;
+            return a.name.localeCompare(b.name);
+        });
     }, [militaries]);
 
     return (

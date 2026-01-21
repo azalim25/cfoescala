@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -202,6 +202,15 @@ const FuncoesTurmaPage: React.FC = () => {
     };
 
     // Build table data
+    const sortedMilitaries = useMemo(() => {
+        return [...militaries].sort((a, b) => {
+            const aAnt = a.antiguidade || 999999;
+            const bAnt = b.antiguidade || 999999;
+            if (aAnt !== bAnt) return aAnt - bAnt;
+            return a.name.localeCompare(b.name);
+        });
+    }, [militaries]);
+
     const getMilitaryRole = (militaryId: string, semestreId: string): string => {
         const semestre = semestres.find(s => s.id === semestreId);
         const assignment = semestre?.assignments.find(a => a.militaryId === militaryId);
@@ -283,7 +292,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {militaries.map(military => (
+                                        {sortedMilitaries.map(military => (
                                             <tr key={military.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                                 <td className="p-4 sticky left-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
                                                     <div className="flex items-center gap-3">
@@ -313,7 +322,7 @@ const FuncoesTurmaPage: React.FC = () => {
 
                             {/* Mobile/Tablet Card View */}
                             <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                                {militaries.map(military => {
+                                {sortedMilitaries.map(military => {
                                     const assignments = semestres
                                         .map(sem => ({ semestre: sem.name, role: getMilitaryRole(military.id, sem.id), id: sem.id, raw: sem }))
                                         .filter(a => a.role !== '-');
@@ -354,7 +363,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                     );
                                 })}
 
-                                {militaries.every(military =>
+                                {sortedMilitaries.every(military =>
                                     semestres.every(sem => getMilitaryRole(military.id, sem.id) === '-')
                                 ) && (
                                         <div className="py-12 text-center text-slate-400">
@@ -423,7 +432,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                                     className="w-full h-10 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                                                 >
                                                     <option value="">Selecione um militar...</option>
-                                                    {militaries.map(m => (
+                                                    {sortedMilitaries.map(m => (
                                                         <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
                                                     ))}
                                                 </select>

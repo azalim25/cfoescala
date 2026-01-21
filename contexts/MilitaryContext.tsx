@@ -24,6 +24,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
         const { data, error } = await supabase
             .from('militaries')
             .select('*')
+            .order('antiguidade', { ascending: true, nullsFirst: false })
             .order('name', { ascending: true });
 
         if (error) {
