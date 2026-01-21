@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
 interface HeaderProps {
-  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity';
+  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control';
 }
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
@@ -43,8 +43,9 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     { to: '/estado-maior', label: 'Estado Maior', icon: 'military_tech', id: 'estado-maior' },
     { to: '/funcoes-turma', label: 'Funções de Turma', icon: 'school', id: 'funcoes-turma' },
     { to: '/stage', label: 'Estágio - Local', icon: 'location_city', id: 'stage' },
-    { to: '/stage-quantity', label: 'Estágio - Quantidade', icon: 'analytics', id: 'stage-quantity' },
+    { to: '/stage-quantity', label: 'Estágio - Qtde', icon: 'analytics', id: 'stage-quantity' },
     { to: '/comandante-guarda', label: 'Cmd. Guarda', icon: 'military_tech', id: 'comandante-guarda' },
+    { to: '/hours-control', label: 'Controle de Horas', icon: 'query_stats', id: 'hours-control' },
   ];
 
   return (
