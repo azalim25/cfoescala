@@ -241,6 +241,47 @@ const PersonalShiftPage: React.FC = () => {
   return (
     <MainLayout activePage="personal">
       <MainLayout.Content>
+        {/* Mobile Search - Top of Page */}
+        <div className="lg:hidden mb-6 bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Localizar Militar</h3>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">person_search</span>
+            <input
+              className="w-full h-10 pl-10 pr-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-semibold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 transition-all outline-none dark:text-white"
+              placeholder="Pesquisar militar..."
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          {searchTerm && (
+            <div className="mt-2 max-h-60 overflow-y-auto custom-scrollbar space-y-1">
+              {filteredMilitary.length > 0 ? (
+                filteredMilitary.map(m => (
+                  <button
+                    key={`${m.id}-mobile`}
+                    onClick={() => {
+                      setSelectedMilitaryId(m.id);
+                      setSearchTerm('');
+                    }}
+                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                      <span className="material-symbols-outlined text-sm">person</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.name}</p>
+                      <p className="text-[10px] text-slate-500 uppercase">{m.battalion}</p>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400 text-center py-2">Nenhum militar encontrado.</p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Header Section */}
         {!selectedMilitary ? (
           <div className="bg-white dark:bg-slate-900 rounded-xl p-8 sm:p-12 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 text-center max-w-2xl mx-auto">
@@ -547,8 +588,8 @@ const PersonalShiftPage: React.FC = () => {
 
       <MainLayout.Sidebar>
         <div className="space-y-6">
-          {/* Search Military Widget */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
+          {/* Search Military Widget - Desktop */}
+          <div className="hidden lg:block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Localizar Militar</h3>
             <div className="relative mb-3">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">person_search</span>
