@@ -8,7 +8,7 @@ import { Shift, Rank } from '../types';
 import { supabase } from '../supabase';
 
 const DashboardPage: React.FC = () => {
-  const { shifts: allShifts, createShift, updateShift, removeShift } = useShift();
+  const { shifts: allShifts, createShift, updateShift, removeShift, preferences } = useShift();
   const { militaries } = useMilitary();
   const { isModerator } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
@@ -401,9 +401,25 @@ const DashboardPage: React.FC = () => {
                   className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
                 >
                   <option value="">Selecione um militar...</option>
-                  {militaries.map(m => (
-                    <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
-                  ))}
+                  {militaries
+                    .filter(m => {
+                      const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+                      const hasRestriction = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'restriction');
+                      return !hasRestriction;
+                    })
+                    .map(m => {
+                      const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+                      const hasPriority = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'priority');
+                      return (
+                        <option
+                          key={m.id}
+                          value={m.id}
+                          className={hasPriority ? "bg-amber-100 font-bold" : ""}
+                        >
+                          {m.rank} {m.name} {hasPriority ? '★' : ''}
+                        </option>
+                      );
+                    })}
                 </select>
               </div>
 

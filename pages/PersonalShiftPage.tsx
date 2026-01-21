@@ -6,7 +6,7 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
-import { Shift } from '../types';
+import { Shift, MilitaryPreference } from '../types';
 import { SHIFT_TYPE_COLORS } from '../constants';
 
 interface ExtraHourRecord {
@@ -22,7 +22,7 @@ interface ExtraHourRecord {
 
 const PersonalShiftPage: React.FC = () => {
   const { militaries } = useMilitary();
-  const { shifts: allShifts } = useShift();
+  const { shifts: allShifts, preferences, addPreference, removePreference } = useShift();
   const { isModerator, session } = useAuth();
   const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +31,11 @@ const PersonalShiftPage: React.FC = () => {
   const [personalStages, setPersonalStages] = useState<any[]>([]);
   const [isLoadingStages, setIsLoadingStages] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Pref State
+  const [prefDate, setPrefDate] = useState(new Date().toISOString().split('T')[0]);
+  const [prefType, setPrefType] = useState<'restriction' | 'priority'>('restriction');
+  const [isSavingPref, setIsSavingPref] = useState(false);
 
   // Fetch user profile to get their name
   useEffect(() => {
@@ -219,6 +224,19 @@ const PersonalShiftPage: React.FC = () => {
     link.click();
     document.body.removeChild(link);
   };
+
+  const handleAddPref = async () => {
+    if (!selectedMilitaryId) return;
+    setIsSavingPref(true);
+    await addPreference({
+      militaryId: selectedMilitaryId,
+      date: prefDate,
+      type: prefType
+    });
+    setIsSavingPref(false);
+  };
+
+  const militaryPrefs = preferences.filter(p => p.militaryId === selectedMilitaryId);
 
   return (
     <MainLayout activePage="personal">
@@ -433,6 +451,94 @@ const PersonalShiftPage: React.FC = () => {
                 {groupedSummary.length === 0 && (
                   <div className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</div>
                 )}
+              </div>
+            </section>
+
+            {/* Section: Restrições e Prioridades */}
+            <section className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
+                  <span className="material-symbols-outlined text-primary text-xl">event_busy</span>
+                  Restrições e Prioridades
+                </h2>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Add Pref Form */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">Adicionar Preferência</h3>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Data</label>
+                        <input
+                          type="date"
+                          value={prefDate}
+                          onChange={(e) => setPrefDate(e.target.value)}
+                          className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20 transition-all dark:text-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Tipo</label>
+                        <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                          <button
+                            onClick={() => setPrefType('restriction')}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${prefType === 'restriction' ? 'bg-white dark:bg-slate-700 text-red-600 shadow-sm border border-slate-200 dark:border-slate-600' : 'text-slate-500'}`}
+                          >
+                            <span className="material-symbols-outlined text-sm">block</span> Restrição
+                          </button>
+                          <button
+                            onClick={() => setPrefType('priority')}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${prefType === 'priority' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm border border-slate-200 dark:border-slate-600' : 'text-slate-500'}`}
+                          >
+                            <span className="material-symbols-outlined text-sm">star</span> Prioridade
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleAddPref}
+                        disabled={isSavingPref}
+                        className="w-full h-11 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 text-xs sm:text-sm uppercase tracking-widest mt-2"
+                      >
+                        {isSavingPref ? 'Salvando...' : 'Registrar Preferência'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pref List */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">Meus Registros</h3>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                      {militaryPrefs.length === 0 ? (
+                        <div className="py-10 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                          <p className="text-xs text-slate-400 font-medium italic">Nenhuma restrição ou prioridade registrada.</p>
+                        </div>
+                      ) : (
+                        militaryPrefs.sort((a, b) => b.date.localeCompare(a.date)).map(p => (
+                          <div key={p.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/50 group">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${p.type === 'restriction' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-500'}`}>
+                                <span className="material-symbols-outlined text-lg">{p.type === 'restriction' ? 'block' : 'star'}</span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-slate-800 dark:text-white">{parseLocalISO(p.date).toLocaleDateString('pt-BR')}</p>
+                                <p className={`text-[9px] font-black uppercase tracking-tight ${p.type === 'restriction' ? 'text-red-500' : 'text-amber-500'}`}>
+                                  {p.type === 'restriction' ? 'Restrição de Serviço' : 'Prioridade de Serviço'}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => removePreference(p.id)}
+                              className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
           </>

@@ -31,3 +31,10 @@ export interface Impediment {
   reason: string;
   date: string;
 }
+
+export interface MilitaryPreference {
+  id: string;
+  militaryId: string;
+  date: string;
+  type: 'restriction' | 'priority';
+}

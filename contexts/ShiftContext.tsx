@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Shift } from '../types';
+import { Shift, MilitaryPreference } from '../types';
 import { supabase } from '../supabase';
 
 interface ShiftContextType {
     shifts: Shift[];
+    preferences: MilitaryPreference[];
     addShifts: (newShifts: Shift[]) => Promise<void>;
     createShift: (shift: Omit<Shift, 'id'>) => Promise<void>;
     updateShift: (id: string, updates: Partial<Shift>) => Promise<void>;
     removeShift: (id: string) => Promise<void>;
     clearShifts: () => void;
+    addPreference: (pref: Omit<MilitaryPreference, 'id'>) => Promise<void>;
+    removePreference: (id: string) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -16,6 +19,7 @@ const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 
 export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [shifts, setShifts] = useState<Shift[]>([]);
+    const [preferences, setPreferences] = useState<MilitaryPreference[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchShifts = async () => {
@@ -48,8 +52,31 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     };
 
+    const fetchPreferences = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('military_preferences')
+                .select('*');
+
+            if (error) throw error;
+
+            if (data) {
+                const formatted: MilitaryPreference[] = data.map(p => ({
+                    id: p.id,
+                    militaryId: p.military_id,
+                    date: p.date,
+                    type: p.type as any
+                }));
+                setPreferences(formatted);
+            }
+        } catch (error) {
+            console.error('Error fetching preferences:', error);
+        }
+    };
+
     useEffect(() => {
         fetchShifts();
+        fetchPreferences();
     }, []);
 
     const addShifts = async (newShifts: Shift[]) => {
@@ -180,8 +207,52 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setShifts([]);
     };
 
+    const addPreference = async (pref: Omit<MilitaryPreference, 'id'>) => {
+        try {
+            const { error } = await supabase
+                .from('military_preferences')
+                .insert([{
+                    military_id: pref.militaryId,
+                    date: pref.date,
+                    type: pref.type
+                }]);
+
+            if (error) throw error;
+            await fetchPreferences();
+        } catch (error) {
+            console.error('Error adding preference:', error);
+            alert('Erro ao salvar preferência.');
+        }
+    };
+
+    const removePreference = async (id: string) => {
+        try {
+            const { error } = await supabase
+                .from('military_preferences')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            await fetchPreferences();
+        } catch (error) {
+            console.error('Error removing preference:', error);
+            alert('Erro ao remover preferência.');
+        }
+    };
+
     return (
-        <ShiftContext.Provider value={{ shifts, addShifts, clearShifts, isLoading, updateShift, removeShift, createShift }}>
+        <ShiftContext.Provider value={{
+            shifts,
+            preferences,
+            addShifts,
+            clearShifts,
+            isLoading,
+            updateShift,
+            removeShift,
+            createShift,
+            addPreference,
+            removePreference
+        }}>
             {children}
         </ShiftContext.Provider>
     );
