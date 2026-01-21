@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     { to: '/stage', label: 'Estágio - Local', icon: 'location_city', id: 'stage' },
     { to: '/stage-quantity', label: 'Estágio - Qtde', icon: 'analytics', id: 'stage-quantity' },
     { to: '/comandante-guarda', label: 'Cmd. Guarda', icon: 'military_tech', id: 'comandante-guarda' },
-    { to: '/hours-control', label: 'Controle de Horas', icon: 'query_stats', id: 'hours-control' },
+    { to: '/hours-control', label: 'Controle de Serviços', icon: 'query_stats', id: 'hours-control' },
   ];
 
   return (
@@ -57,7 +57,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               <span className="material-symbols-outlined text-xl lg:text-2xl">shield</span>
             </div>
             <div className="truncate">
-              <h1 className="font-bold text-sm lg:text-lg leading-tight tracking-tight text-slate-900 dark:text-white truncate">CFO • GUARANI ESCALAS</h1>
+              <h1 className="font-bold text-sm lg:text-lg leading-tight tracking-tight text-slate-900 dark:text-white truncate">CFO • GUARANI</h1>
               <p className="text-[8px] lg:text-[10px] text-slate-500 font-medium tracking-widest uppercase">Sistema de Gestão</p>
             </div>
           </Link>
@@ -137,7 +137,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               <div className="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
                 <span className="material-symbols-outlined text-lg">shield</span>
               </div>
-              <span className="font-bold text-sm dark:text-white">GUARANI ESCALAS</span>
+              <span className="font-bold text-sm dark:text-white">GUARANI</span>
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}

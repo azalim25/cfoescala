@@ -186,7 +186,7 @@ const HoursControlPage: React.FC = () => {
                             <span className="material-symbols-outlined text-2xl">query_stats</span>
                         </div>
                         <div>
-                            <h2 className="font-bold text-lg text-slate-800 dark:text-slate-100 uppercase">Controle de Horas</h2>
+                            <h2 className="font-bold text-lg text-slate-800 dark:text-slate-100 uppercase">Controle de Serviços</h2>
                             <p className="text-xs text-slate-500 font-medium">Consolidado de serviços por militar</p>
                         </div>
                     </div>
