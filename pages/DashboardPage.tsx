@@ -219,34 +219,51 @@ const DashboardPage: React.FC = () => {
                     {(shifts.length > 0 || dayStages.length > 0) && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary font-black uppercase text-[8px] text-primary"></span>}
                   </div>
                   <div className="space-y-0.5 sm:space-y-1">
-                    {dayStages
-                      .filter(st => !shifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'))
-                      .map(s => (
-                        <div
-                          key={s.id}
-                          className="text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
-                        >
-                          📌 {militaries.find(m => m.id === s.military_id)?.name}
-                        </div>
-                      ))}
-                    {shifts.map(s => {
-                      const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
-                      return (
-                        <div
-                          key={s.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedDay(day);
-                            if (isModerator) {
-                              handleOpenEditModal(s);
-                            }
-                          }}
-                          className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
-                        >
-                          {militaries.find(m => m.id === s.militaryId)?.name}
-                        </div>
-                      );
-                    })}
+                    {(() => {
+                      const priority: Record<string, number> = {
+                        'Comandante da Guarda': 1,
+                        'Manutenção': 2,
+                        'Faxina': 3,
+                        'Estágio': 4,
+                        'Sobreaviso': 5
+                      };
+
+                      const combined = [
+                        ...dayStages
+                          .filter(st => !shifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'))
+                          .map(s => ({ ...s, isStage: true, type: 'Estágio', militaryId: s.military_id })),
+                        ...shifts.map(s => ({ ...s, isStage: false }))
+                      ].sort((a, b) => (priority[a.type] || 99) - (priority[b.type] || 99));
+
+                      return combined.map(s => {
+                        if (s.isStage) {
+                          return (
+                            <div
+                              key={s.id}
+                              className="text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
+                            >
+                              📌 {militaries.find(m => m.id === s.militaryId)?.name}
+                            </div>
+                          );
+                        }
+                        const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDay(day);
+                              if (isModerator) {
+                                handleOpenEditModal(s as Shift);
+                              }
+                            }}
+                            className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
+                          >
+                            {militaries.find(m => m.id === s.militaryId)?.name}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </button>
               );
