@@ -307,11 +307,6 @@ const DashboardPage: React.FC = () => {
                             className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
                           >
                             {militaries.find(m => m.id === s.militaryId)?.name}
-                            {s.type === 'Escala Diversa' && (
-                              <span className="ml-1 opacity-80 font-normal">
-                                {s.location && <i className="not-italic">({s.location})</i>} {s.startTime}-{s.endTime}
-                              </span>
-                            )}
                           </div>
                         );
                       });
