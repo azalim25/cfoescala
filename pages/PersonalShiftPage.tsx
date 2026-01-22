@@ -195,8 +195,7 @@ const PersonalShiftPage: React.FC = () => {
     ['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type) && !isExcludedActivity(s.type)
   ).length;
 
-  // Grouped Summary Data
-  const getGroupedSummary = () => {
+  const groupedSummary = (() => {
     const summary: Record<string, { totalHours: number, totalServices: number, type: string }> = {};
 
     // Process regular shifts
@@ -226,9 +225,7 @@ const PersonalShiftPage: React.FC = () => {
     });
 
     return Object.values(summary).sort((a, b) => b.totalHours - a.totalHours || b.totalServices - a.totalServices);
-  };
-
-  const groupedSummary = getGroupedSummary();
+  })();
 
   const handleExport = () => {
     const headers = ['Data', 'Tipo', 'Início', 'Fim', 'Local', 'Status'].join(',');
@@ -655,28 +652,6 @@ const PersonalShiftPage: React.FC = () => {
             )}
           </div>
 
-          {/* Grouped Summary Widget */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm">analytics</span> Resumo por Atividade
-            </h3>
-            <div className="space-y-2">
-              {groupedSummary.map(item => (
-                <div key={item.type} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'}`}></div>
-                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">{item.type}</span>
-                  </div>
-                  <span className="text-[10px] font-black text-primary">
-                    {item.totalHours > 0 ? `${item.totalHours.toFixed(1)}h` : `${item.totalServices} Un`}
-                  </span>
-                </div>
-              ))}
-              {groupedSummary.length === 0 && (
-                <p className="text-[10px] text-slate-400 italic text-center py-2">Sem registros para resumir.</p>
-              )}
-            </div>
-          </div>
 
           {/* Hours Widget */}
           <div className="bg-primary rounded-xl p-6 shadow-xl shadow-primary/20 relative overflow-hidden group">
