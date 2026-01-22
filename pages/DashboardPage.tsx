@@ -116,7 +116,10 @@ const DashboardPage: React.FC = () => {
       militaryId: shift.militaryId,
       type: shift.type,
       location: shift.location || 'QCG',
-      duration: shift.duration
+      duration: shift.duration,
+      description: shift.type === 'Escala Diversa' ? shift.location : '',
+      startTime: shift.type === 'Escala Diversa' ? shift.startTime : '08:00',
+      endTime: shift.type === 'Escala Diversa' ? shift.endTime : '12:00'
     });
     setIsModalOpen(true);
   };
@@ -304,6 +307,9 @@ const DashboardPage: React.FC = () => {
                             className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
                           >
                             {militaries.find(m => m.id === s.militaryId)?.name}
+                            {s.type === 'Escala Diversa' && s.location && (
+                              <span className="ml-1 opacity-80 font-normal italic">({s.location})</span>
+                            )}
                           </div>
                         );
                       });
