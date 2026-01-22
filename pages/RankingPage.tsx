@@ -23,7 +23,9 @@ const RankingPage: React.FC = () => {
     const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
     const [selectedExtraHighCategories, setSelectedExtraCategories] = useState<string[]>([]);
 
-    const allShiftTypes = useMemo(() => Object.keys(SHIFT_TYPE_COLORS), []);
+    const allShiftTypes = useMemo(() =>
+        Object.keys(SHIFT_TYPE_COLORS).filter(type => !['Escala Geral', 'Escala Diversa'].includes(type)),
+        []);
     const allExtraCategories = [
         'CFO I - Sentinela',
         'CFO I - Acumulado',
