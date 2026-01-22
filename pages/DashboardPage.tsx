@@ -307,8 +307,10 @@ const DashboardPage: React.FC = () => {
                             className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
                           >
                             {militaries.find(m => m.id === s.militaryId)?.name}
-                            {s.type === 'Escala Diversa' && s.location && (
-                              <span className="ml-1 opacity-80 font-normal italic">({s.location})</span>
+                            {s.type === 'Escala Diversa' && (
+                              <span className="ml-1 opacity-80 font-normal">
+                                {s.location && <i className="not-italic">({s.location})</i>} {s.startTime}-{s.endTime}
+                              </span>
                             )}
                           </div>
                         );
@@ -414,10 +416,12 @@ const DashboardPage: React.FC = () => {
                               {s.type}
                             </span>
                           </div>
-                          <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase">
+                          <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
                             {s.type === 'Estágio'
                               ? (stages.find(st => st.date === s.date && st.military_id === s.militaryId)?.location.split(' - ')[0] || s.location)
-                              : `BM: ${m?.firefighterNumber}`}
+                              : s.type === 'Escala Diversa'
+                                ? `${s.location} • ${s.startTime} às ${s.endTime}`
+                                : `BM: ${m?.firefighterNumber}`}
                           </p>
                         </div>
                       </div>
