@@ -56,7 +56,8 @@ const StageQuantityPage: React.FC = () => {
     const locations = [
         '1°BBM - Batalhão Afonso Pena',
         '2°BBM - Batalhão Contagem',
-        '3°BBM - Batalhão Antônio Carlos'
+        '3°BBM - Batalhão Antônio Carlos',
+        'Pelotão ABM'
     ];
 
     const fetchStages = async () => {
