@@ -229,7 +229,7 @@ const DashboardPage: React.FC = () => {
                           📌 {militaries.find(m => m.id === s.military_id)?.name}
                         </div>
                       ))}
-                    {shifts.slice(0, 3).map(s => {
+                    {shifts.map(s => {
                       const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
                       return (
                         <div
@@ -247,9 +247,6 @@ const DashboardPage: React.FC = () => {
                         </div>
                       );
                     })}
-                    {shifts.length > 3 && (
-                      <div className="text-[6px] sm:text-[8px] text-slate-400 font-bold text-center">+{shifts.length - 3}</div>
-                    )}
                   </div>
                 </button>
               );
