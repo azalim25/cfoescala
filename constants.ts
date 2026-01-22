@@ -69,5 +69,11 @@ export const SHIFT_TYPE_COLORS: Record<string, { bg: string; text: string; borde
     text: 'text-slate-700 dark:text-slate-300',
     border: 'border-slate-100 dark:border-slate-800',
     dot: 'bg-slate-500'
+  },
+  'Escala Diversa': {
+    bg: 'bg-gray-100 dark:bg-gray-800/50',
+    text: 'text-gray-600 dark:text-gray-400',
+    border: 'border-gray-200 dark:border-gray-700',
+    dot: 'bg-gray-400'
   }
 };

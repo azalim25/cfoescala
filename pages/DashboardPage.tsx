@@ -20,11 +20,22 @@ const DashboardPage: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
-  const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string; duration?: number }>({
+  const [formData, setFormData] = useState<{
+    militaryId: string;
+    type: Shift['type'];
+    location: string;
+    duration?: number;
+    description?: string;
+    startTime?: string;
+    endTime?: string;
+  }>({
     militaryId: '',
     type: 'Escala Geral',
     location: 'QCG',
-    duration: undefined
+    duration: undefined,
+    description: '',
+    startTime: '08:00',
+    endTime: '12:00'
   });
 
   // Set default day to today
@@ -118,26 +129,58 @@ const DashboardPage: React.FC = () => {
 
     const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
 
-    if (editingShift) {
-      await updateShift(editingShift.id, {
-        militaryId: formData.militaryId,
-        type: formData.type,
-        location: formData.location,
-        duration: formData.duration
-      });
-    } else {
-      await createShift({
-        militaryId: formData.militaryId,
-        date: dateStr,
-        type: formData.type,
-        startTime: '08:00',
-        endTime: '08:00',
-        location: formData.location,
-        status: 'Confirmado',
-        duration: formData.duration
-      });
+    try {
+      if (editingShift) {
+        await updateShift(editingShift.id, {
+          militaryId: formData.militaryId,
+          type: formData.type,
+          location: formData.location || (formData.type === 'Escala Diversa' ? formData.description : undefined),
+          duration: formData.duration,
+          startTime: formData.type === 'Escala Diversa' ? formData.startTime : '08:00',
+          endTime: formData.type === 'Escala Diversa' ? formData.endTime : '08:00',
+        });
+      } else {
+        await createShift({
+          militaryId: formData.militaryId,
+          date: dateStr,
+          type: formData.type,
+          startTime: formData.type === 'Escala Diversa' ? (formData.startTime || '08:00') : '08:00',
+          endTime: formData.type === 'Escala Diversa' ? (formData.endTime || '12:00') : '08:00',
+          location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
+          status: 'Confirmado',
+          duration: formData.duration
+        });
+      }
+
+      // Sync with extra_hours if it's Escala Diversa
+      if (formData.type === 'Escala Diversa') {
+        const start = formData.startTime || '08:00';
+        const end = formData.endTime || '12:00';
+
+        const [h1, m1] = start.split(':').map(Number);
+        const [h2, m2] = end.split(':').map(Number);
+
+        let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (totalMinutes < 0) totalMinutes += 24 * 60; // Handle overnight
+
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        await supabase.from('extra_hours').insert({
+          military_id: formData.militaryId,
+          category: 'CFO II - Registro de Horas',
+          hours: hours,
+          minutes: minutes,
+          description: `Escala Diversa: ${formData.description || 'Sem descrição'}`,
+          date: dateStr
+        });
+      }
+
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error saving shift/extra hours:', error);
+      alert('Erro ao salvar os dados.');
     }
-    setIsModalOpen(false);
   };
 
   const handleDeleteShift = async () => {
@@ -225,7 +268,8 @@ const DashboardPage: React.FC = () => {
                         'Manutenção': 2,
                         'Faxina': 3,
                         'Estágio': 4,
-                        'Sobreaviso': 5
+                        'Sobreaviso': 5,
+                        'Escala Diversa': 6
                       };
 
                       const combined = [
@@ -482,6 +526,41 @@ const DashboardPage: React.FC = () => {
                         {h} Horas
                       </button>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {formData.type === 'Escala Diversa' && (
+                <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Descrição da Atividade</label>
+                    <input
+                      type="text"
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Ex: Reunião, Patrulhamento, etc."
+                      className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
+                      <input
+                        type="time"
+                        value={formData.startTime}
+                        onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                        className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Término</label>
+                      <input
+                        type="time"
+                        value={formData.endTime}
+                        onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                        className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
