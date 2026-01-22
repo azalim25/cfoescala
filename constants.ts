@@ -40,11 +40,11 @@ export const SHIFT_TYPE_COLORS: Record<string, { bg: string; text: string; borde
     border: 'border-rose-100 dark:border-rose-800',
     dot: 'bg-rose-500'
   },
-  'Sobreaviso': {
-    bg: 'bg-amber-50 dark:bg-amber-900/30',
-    text: 'text-amber-700 dark:text-amber-300',
-    border: 'border-amber-100 dark:border-amber-800',
-    dot: 'bg-amber-500'
+  'Manutenção': {
+    bg: 'bg-emerald-50 dark:bg-emerald-900/30',
+    text: 'text-emerald-700 dark:text-emerald-300',
+    border: 'border-emerald-100 dark:border-emerald-800',
+    dot: 'bg-emerald-500'
   },
   'Faxina': {
     bg: 'bg-cyan-50 dark:bg-cyan-900/30',
@@ -52,17 +52,17 @@ export const SHIFT_TYPE_COLORS: Record<string, { bg: string; text: string; borde
     border: 'border-cyan-100 dark:border-cyan-800',
     dot: 'bg-cyan-500'
   },
-  'Manutenção': {
-    bg: 'bg-emerald-50 dark:bg-emerald-900/30',
-    text: 'text-emerald-700 dark:text-emerald-300',
-    border: 'border-emerald-100 dark:border-emerald-800',
-    dot: 'bg-emerald-500'
-  },
   'Estágio': {
     bg: 'bg-indigo-50 dark:bg-indigo-900/30',
     text: 'text-indigo-700 dark:text-indigo-300',
     border: 'border-indigo-100 dark:border-indigo-800',
     dot: 'bg-indigo-500'
+  },
+  'Sobreaviso': {
+    bg: 'bg-amber-50 dark:bg-amber-900/30',
+    text: 'text-amber-700 dark:text-amber-300',
+    border: 'border-amber-100 dark:border-amber-800',
+    dot: 'bg-amber-500'
   },
   'Escala Geral': {
     bg: 'bg-slate-50 dark:bg-slate-900/30',
