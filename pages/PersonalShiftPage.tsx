@@ -172,13 +172,27 @@ const PersonalShiftPage: React.FC = () => {
       }))
   ].filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
 
+  // Filters for excluded activities in "Carga Horária" summary
+  const isExcludedActivity = (type: string) => {
+    const excludedExact = ['CFO I - Faxina', 'CFO I - Manutenção', 'CFO I - Sobreaviso'];
+    if (excludedExact.includes(type)) return true;
+    if (type.startsWith('CFO I - Estágio')) return true;
+    return false;
+  };
+
   // Combined workloads
-  const totalShiftHours = personalShifts.reduce((acc, s) => acc + calculateShiftHours(s), 0);
-  const totalExtraHours = extraHours.reduce((acc, e) => acc + (e.hours + e.minutes / 60), 0);
+  const totalShiftHours = personalShifts
+    .filter(s => !isExcludedActivity(s.type))
+    .reduce((acc, s) => acc + calculateShiftHours(s), 0);
+
+  const totalExtraHours = extraHours
+    .filter(e => !isExcludedActivity(e.category))
+    .reduce((acc, e) => acc + (e.hours + e.minutes / 60), 0);
+
   const totalWorkload = totalShiftHours + totalExtraHours;
 
   const totalOtherServices = personalShifts.filter(s =>
-    ['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)
+    ['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type) && !isExcludedActivity(s.type)
   ).length;
 
   // Grouped Summary Data
@@ -187,6 +201,8 @@ const PersonalShiftPage: React.FC = () => {
 
     // Process regular shifts
     personalShifts.forEach(s => {
+      if (isExcludedActivity(s.type)) return;
+
       const hours = calculateShiftHours(s);
       if (!summary[s.type]) {
         summary[s.type] = { totalHours: 0, totalServices: 0, type: s.type };
@@ -201,6 +217,8 @@ const PersonalShiftPage: React.FC = () => {
     // Process extra hours (Registry of Hours)
     extraHours.forEach(e => {
       const type = e.category || 'Registro de Horas';
+      if (isExcludedActivity(type)) return;
+
       if (!summary[type]) {
         summary[type] = { totalHours: 0, totalServices: 0, type };
       }
