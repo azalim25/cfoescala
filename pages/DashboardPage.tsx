@@ -226,8 +226,7 @@ const DashboardPage: React.FC = () => {
                           key={s.id}
                           className="text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
                         >
-                          <span className="hidden sm:inline">📌 {militaries.find(m => m.id === s.military_id)?.name.split(' ')[0]}</span>
-                          <span className="inline sm:hidden">📌 {militaries.find(m => m.id === s.military_id)?.name.charAt(0)}</span>
+                          📌 {militaries.find(m => m.id === s.military_id)?.name}
                         </div>
                       ))}
                     {shifts.slice(0, 3).map(s => {
@@ -244,8 +243,7 @@ const DashboardPage: React.FC = () => {
                           }}
                           className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
                         >
-                          <span className="hidden sm:inline">{militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}</span>
-                          <span className="inline sm:hidden">{militaries.find(m => m.id === s.militaryId)?.name.charAt(0)}</span>
+                          {militaries.find(m => m.id === s.militaryId)?.name}
                         </div>
                       );
                     })}
