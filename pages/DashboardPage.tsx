@@ -421,104 +421,150 @@ const DashboardPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 sm:space-y-6">
             <section className="space-y-3 pb-4 lg:pb-0">
               <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === selectedDateStr).length + extraHours.filter(eh => eh.date === selectedDateStr).length})
+                <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === selectedDateStr).length + extraHours.filter(eh => eh.date === selectedDateStr).length + stages.filter(st => st.date === selectedDateStr && !allShifts.some(sh => sh.date === st.date && sh.militaryId === st.military_id && sh.type === 'Estágio')).length})
               </div>
 
-              {extraHours.filter(eh => eh.date === selectedDateStr).map(eh => {
-                const m = militaries.find(mil => mil.id === eh.military_id);
-                return (
-                  <div
-                    key={eh.id}
-                    className="w-full text-left bg-white dark:bg-slate-800 rounded-xl border border-blue-200 dark:border-slate-700 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden group"
-                  >
-                    <div className="flex items-start justify-between relative z-10">
-                      <div className="flex gap-2 sm:gap-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
-                          <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
-                            <span className="text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
-                              ESCALA DIVERSA
-                            </span>
-                          </div>
-                          <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
-                            {eh.description.replace('Escala Diversa: ', '')}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="absolute top-0 right-0 w-1 h-full bg-blue-500"></div>
-                  </div>
-                );
-              })}
+              {(() => {
+                const priority: Record<string, number> = {
+                  'Comandante da Guarda': 1,
+                  'Manutenção': 2,
+                  'Faxina': 3,
+                  'Estágio': 4,
+                  'Sobreaviso': 5,
+                  'Escala Diversa': 6
+                };
 
-              {stages.filter(st => st.date === selectedDateStr && !allShifts.some(sh => sh.date === st.date && sh.militaryId === st.military_id && sh.type === 'Estágio')).map(s => {
-                const m = militaries.find(mil => mil.id === s.military_id);
-                return (
-                  <div
-                    key={s.id}
-                    className="w-full text-left bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden"
-                  >
-                    <div className="flex items-start justify-between relative z-10">
-                      <div className="flex gap-2 sm:gap-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center text-amber-500 border border-amber-200 dark:border-amber-700 shrink-0">
-                          <span className="material-symbols-outlined text-lg sm:text-xl">location_city</span>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <h3 className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-100 leading-none truncate">{m?.rank} {m?.name}</h3>
-                            <span className="text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500 text-white border border-amber-600">
-                              ESTÁGIO
-                            </span>
-                          </div>
-                          <p className="text-[9px] sm:text-[11px] text-amber-600 mt-1 uppercase font-bold">{s.location.split(' - ')[0]}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                const dayShifts = allShifts.filter(s => s.date === selectedDateStr);
+                const dayStages = stages.filter(st => st.date === selectedDateStr && !dayShifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'));
+                const dayExtraHours = extraHours.filter(eh => eh.date === selectedDateStr);
 
-              {allShifts.filter(s => s.date === selectedDateStr).map(s => {
-                const m = militaries.find(mil => mil.id === s.militaryId);
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => isModerator && handleOpenEditModal(s)}
-                    className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'} dark:border-slate-700 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden ${isModerator ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'} transition-opacity group`}
-                  >
-                    <div className="flex items-start justify-between relative z-10">
-                      <div className="flex gap-2 sm:gap-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
-                          <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
-                            <span className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${SHIFT_TYPE_COLORS[s.type]?.bg || 'bg-slate-100'} ${SHIFT_TYPE_COLORS[s.type]?.text || 'text-slate-600'} border ${SHIFT_TYPE_COLORS[s.type]?.border || 'border-slate-200'}`}>
-                              {s.type}
-                            </span>
+                const unifiedList = [
+                  ...dayShifts.map(s => ({ ...s, isStage: false, isExtra: false })),
+                  ...dayStages.map(s => ({ ...s, militaryId: s.military_id, type: 'Estágio' as const, isStage: true, isExtra: false })),
+                  ...dayExtraHours.map(eh => ({
+                    id: eh.id,
+                    militaryId: eh.military_id,
+                    type: 'Escala Diversa' as const,
+                    location: eh.description.replace('Escala Diversa: ', ''),
+                    startTime: '08:00',
+                    endTime: '12:00',
+                    isStage: false,
+                    isExtra: true,
+                    date: eh.date
+                  }))
+                ].sort((a, b) => {
+                  const prioA = priority[a.type] || 99;
+                  const prioB = priority[b.type] || 99;
+                  if (prioA !== prioB) return prioA - prioB;
+
+                  const milA = militaries.find(m => m.id === a.militaryId);
+                  const milB = militaries.find(m => m.id === b.militaryId);
+
+                  const antA = milA?.antiguidade ?? 999;
+                  const antB = milB?.antiguidade ?? 999;
+                  if (antA !== antB) return antA - antB;
+
+                  return (milA?.name || '').localeCompare(milB?.name || '');
+                });
+
+                if (unifiedList.length === 0) {
+                  return <p className="text-xs text-slate-400 italic text-center py-6 sm:py-10">Nenhum serviço escalado para este dia.</p>;
+                }
+
+                return unifiedList.map((s: any) => {
+                  const m = militaries.find(mil => mil.id === s.militaryId);
+
+                  if (s.isExtra) {
+                    return (
+                      <div
+                        key={s.id}
+                        className="w-full text-left bg-white dark:bg-slate-800 rounded-xl border border-blue-200 dark:border-slate-700 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden group"
+                      >
+                        <div className="flex items-start justify-between relative z-10">
+                          <div className="flex gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
+                              <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
+                                <span className="text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
+                                  ESCALA DIVERSA
+                                </span>
+                              </div>
+                              <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
+                                {s.location}
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
-                            {s.type === 'Estágio'
-                              ? (stages.find(st => st.date === s.date && st.military_id === s.militaryId)?.location.split(' - ')[0] || s.location)
-                              : s.type === 'Escala Diversa'
-                                ? `${s.location} • ${s.startTime} às ${s.endTime}`
-                                : `BM: ${m?.firefighterNumber}`}
-                          </p>
+                        </div>
+                        <div className="absolute top-0 right-0 w-1 h-full bg-blue-500"></div>
+                      </div>
+                    );
+                  }
+
+                  if (s.isStage) {
+                    return (
+                      <div
+                        key={s.id}
+                        className="w-full text-left bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden"
+                      >
+                        <div className="flex items-start justify-between relative z-10">
+                          <div className="flex gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center text-amber-500 border border-amber-200 dark:border-amber-700 shrink-0">
+                              <span className="material-symbols-outlined text-lg sm:text-xl">location_city</span>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <h3 className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-100 leading-none truncate">{m?.rank} {m?.name}</h3>
+                                <span className="text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500 text-white border border-amber-600">
+                                  ESTÁGIO
+                                </span>
+                              </div>
+                              <p className="text-[9px] sm:text-[11px] text-amber-600 mt-1 uppercase font-bold">{s.location.split(' - ')[0]}</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      {isModerator && <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">edit</span>}
-                    </div>
-                    <div className={`absolute top-0 right-0 w-1 h-full ${SHIFT_TYPE_COLORS[s.type]?.dot || 'bg-slate-200'}`}></div>
-                  </button>
-                )
-              })}
-              {allShifts.filter(s => s.date === selectedDateStr).length === 0 && extraHours.filter(eh => eh.date === selectedDateStr).length === 0 && stages.filter(st => st.date === selectedDateStr).length === 0 && (
-                <p className="text-xs text-slate-400 italic text-center py-6 sm:py-10">Nenhum serviço escalado para este dia.</p>
-              )}
+                    );
+                  }
+
+                  const colors = SHIFT_TYPE_COLORS[s.type] || { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', dot: 'bg-slate-200' };
+
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => isModerator && handleOpenEditModal(s)}
+                      className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${colors.border} dark:border-slate-700 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden ${isModerator ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'} transition-opacity group`}
+                    >
+                      <div className="flex items-start justify-between relative z-10">
+                        <div className="flex gap-2 sm:gap-3">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
+                            <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
+                              <span className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} border ${colors.border}`}>
+                                {s.type}
+                              </span>
+                            </div>
+                            <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
+                              {s.type === 'Estágio'
+                                ? (stages.find(st => st.date === s.date && st.military_id === s.militaryId)?.location.split(' - ')[0] || s.location)
+                                : s.type === 'Escala Diversa'
+                                  ? `${s.location} • ${s.startTime} às ${s.endTime}`
+                                  : `BM: ${m?.firefighterNumber}`}
+                            </p>
+                          </div>
+                        </div>
+                        {isModerator && <span className="material-symbols-outlined text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">edit</span>}
+                      </div>
+                      <div className={`absolute top-0 right-0 w-1 h-full ${colors.dot}`}></div>
+                    </button>
+                  );
+                });
+              })()}
             </section>
           </div>
         </div>
