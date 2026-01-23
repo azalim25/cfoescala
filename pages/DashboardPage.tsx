@@ -333,7 +333,20 @@ const DashboardPage: React.FC = () => {
                           isStage: false,
                           isExtra: true
                         }))
-                      ].sort((a, b) => (priority[a.type] || 99) - (priority[b.type] || 99));
+                      ].sort((a, b) => {
+                        const prioA = priority[a.type] || 99;
+                        const prioB = priority[b.type] || 99;
+                        if (prioA !== prioB) return prioA - prioB;
+
+                        const milA = militaries.find(m => m.id === a.militaryId || m.id === (a as any).military_id);
+                        const milB = militaries.find(m => m.id === b.militaryId || m.id === (b as any).military_id);
+
+                        const antA = milA?.antiguidade ?? 999;
+                        const antB = milB?.antiguidade ?? 999;
+                        if (antA !== antB) return antA - antB;
+
+                        return (milA?.name || '').localeCompare(milB?.name || '');
+                      });
 
                       return combined.map(s => {
                         if (s.isStage) {
