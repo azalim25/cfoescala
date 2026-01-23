@@ -52,10 +52,15 @@ const PersonalShiftPage: React.FC = () => {
       if (isModerator) {
         setSelectedMilitaryId(militaries[0].id);
       } else {
-        const userName = userProfile.name.toLowerCase();
-        const found = militaries.find(m =>
-          m.name.toLowerCase().includes(userName) || userName.includes(m.name.toLowerCase())
-        );
+        // Find military by smart name matching
+        const userNameParts = userProfile.name.toLowerCase().split(/\s+/).filter((part: string) => part.length >= 3);
+
+        const found = militaries.find(m => {
+          const milNameLower = m.name.toLowerCase();
+          // Check if any part of the username exists in the military name
+          return userNameParts.some(part => milNameLower.includes(part));
+        });
+
         if (found) setSelectedMilitaryId(found.id);
       }
     }
