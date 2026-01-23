@@ -192,7 +192,7 @@ const StageLocalPage: React.FC = () => {
                                                         </span>
                                                         <span className="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1 mt-1 font-medium">
                                                             <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                                                            {dateFormatted}
+                                                            {dateFormatted} ({dateObj.toLocaleDateString('pt-BR', { weekday: 'short' })})
                                                         </span>
                                                     </div>
                                                     {isModerator && (

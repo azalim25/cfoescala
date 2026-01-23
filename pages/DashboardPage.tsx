@@ -15,6 +15,7 @@ const DashboardPage: React.FC = () => {
   const [currentYear, setCurrentYear] = useState(2026);
   const [selectedDay, setSelectedDay] = useState(2); // Default
   const [stages, setStages] = useState<any[]>([]);
+  const [extraHours, setExtraHours] = useState<any[]>([]);
   const [isLoadingStages, setIsLoadingStages] = useState(false);
 
   // Modal State
@@ -45,7 +46,16 @@ const DashboardPage: React.FC = () => {
     setCurrentMonth(today.getMonth());
     setCurrentYear(today.getFullYear());
     fetchStages();
+    fetchExtraHours();
   }, []);
+
+  const fetchExtraHours = async () => {
+    const { data, error } = await supabase
+      .from('extra_hours')
+      .select('*')
+      .eq('category', 'CFO II - Registro de Horas');
+    if (!error && data) setExtraHours(data);
+  };
 
   const fetchStages = async () => {
     setIsLoadingStages(true);
@@ -250,6 +260,7 @@ const DashboardPage: React.FC = () => {
               const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
               const shifts = allShifts.filter(s => s.date === dateStr);
               const dayStages = stages.filter(s => s.date === dateStr);
+              const dayExtraHours = extraHours.filter(eh => eh.date === dateStr);
               const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
 
               return (
@@ -278,8 +289,18 @@ const DashboardPage: React.FC = () => {
                       const combined = [
                         ...dayStages
                           .filter(st => !shifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'))
-                          .map(s => ({ ...s, isStage: true, type: 'Estágio', militaryId: s.military_id })),
-                        ...shifts.map(s => ({ ...s, isStage: false }))
+                          .map(s => ({ ...s, isStage: true, type: 'Estágio' as const, militaryId: s.military_id })),
+                        ...shifts.map(s => ({ ...s, isStage: false })),
+                        ...dayExtraHours.map(eh => ({
+                          id: eh.id,
+                          militaryId: eh.military_id,
+                          type: 'Escala Diversa' as const,
+                          location: eh.description.replace('Escala Diversa: ', ''),
+                          startTime: '08:00', // Default if not found in description
+                          endTime: '12:00',   // Default if not found in description
+                          isStage: false,
+                          isExtra: true
+                        }))
                       ].sort((a, b) => (priority[a.type] || 99) - (priority[b.type] || 99));
 
                       return combined.map(s => {
@@ -339,7 +360,9 @@ const DashboardPage: React.FC = () => {
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-slate-800 dark:text-100 uppercase text-xs sm:text-sm">FICHA DO DIA</h2>
-              <p className="text-[10px] sm:text-[11px] text-primary font-bold">{selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}</p>
+              <p className="text-[10px] sm:text-[11px] text-primary font-bold">
+                {new Date(currentYear, currentMonth, selectedDay).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}, {selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}
+              </p>
             </div>
             {isModerator && (
               <button
@@ -352,17 +375,42 @@ const DashboardPage: React.FC = () => {
             )}
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 sm:space-y-6">
-            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex justify-between items-center border border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-lg">groups</span>
-                <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Efetivo</span>
-              </div>
-              <span className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">{militaries.length}</span>
-            </div>
+
             <section className="space-y-3 pb-4 lg:pb-0">
               <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === selectedDateStr).length})
+                <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === selectedDateStr).length + extraHours.filter(eh => eh.date === selectedDateStr).length})
               </div>
+
+              {extraHours.filter(eh => eh.date === selectedDateStr).map(eh => {
+                const m = militaries.find(mil => mil.id === eh.military_id);
+                // Try to extract times from description if format matches "HH:MM às HH:MM"
+                return (
+                  <div
+                    key={eh.id}
+                    className="w-full text-left bg-white dark:bg-slate-800 rounded-xl border border-blue-200 dark:border-slate-700 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden group"
+                  >
+                    <div className="flex items-start justify-between relative z-10">
+                      <div className="flex gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
+                          <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
+                            <span className="text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
+                              ESCALA DIVERSA
+                            </span>
+                          </div>
+                          <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
+                            {eh.description.replace('Escala Diversa: ', '')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="absolute top-0 right-0 w-1 h-full bg-blue-500"></div>
+                  </div>
+                );
+              })}
 
               {stages.filter(st => st.date === selectedDateStr && !allShifts.some(sh => sh.date === st.date && sh.militaryId === st.military_id && sh.type === 'Estágio')).map(s => {
                 const m = militaries.find(mil => mil.id === s.military_id);

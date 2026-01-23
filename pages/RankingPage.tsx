@@ -165,14 +165,7 @@ const RankingPage: React.FC = () => {
                 </div>
 
                 {/* Mobile Ranking Summary (visible only on mobile) */}
-                <div className="lg:hidden grid grid-cols-2 gap-3 mb-6">
-                    <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <span className="text-[10px] text-slate-500 uppercase font-black block mb-1">Total de Horas</span>
-                        <span className="text-xl font-black text-slate-800 dark:text-white">
-                            {rankingData.reduce((acc, curr) => acc + curr.totalHours, 0).toFixed(0)}h
-                        </span>
-                    </div>
-                    <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm">
+
                         <span className="text-[10px] text-slate-500 uppercase font-black block mb-1">Média p/ Mil</span>
                         <span className="text-xl font-black text-slate-800 dark:text-white">
                             {(rankingData.length > 0 ? rankingData.reduce((acc, curr) => acc + curr.totalHours, 0) / rankingData.length : 0).toFixed(1)}h
@@ -191,7 +184,7 @@ const RankingPage: React.FC = () => {
                                     <th className="px-4 py-4 text-center">Sobreaviso</th>
                                     <th className="px-4 py-4 text-center">Faxina</th>
                                     <th className="px-4 py-4 text-center">Manutenção</th>
-                                    <th className="px-6 py-4 text-right">Total de Horas</th>
+                                    <th className="px-6 py-4 text-right">Média p/ Militar</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -241,9 +234,6 @@ const RankingPage: React.FC = () => {
                                         <td className="px-6 py-4 text-right">
                                             <div className="inline-flex flex-col items-end">
                                                 <span className="text-lg font-black text-primary font-mono tabular-nums">
-                                                    {Math.floor(mil.totalHours)}h {(mil.totalHours % 1 * 60).toFixed(0).padStart(2, '0')}m
-                                                </span>
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                     {mil.totalHours.toFixed(1)}h
                                                 </span>
                                             </div>
@@ -288,9 +278,6 @@ const RankingPage: React.FC = () => {
                                 </div>
                                 <div className="text-right">
                                     <span className="block text-base font-black text-primary font-mono leading-none">
-                                        {Math.floor(mil.totalHours)}h {(mil.totalHours % 1 * 60).toFixed(0).padStart(2, '0')}m
-                                    </span>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                                         {mil.totalHours.toFixed(1)}h
                                     </span>
                                 </div>
@@ -299,27 +286,22 @@ const RankingPage: React.FC = () => {
                     </div>
                 </div>
 
-            </MainLayout.Content>
-            <MainLayout.Sidebar>
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 sticky top-20">
-                    <h2 className="font-bold text-slate-800 dark:text-slate-100 uppercase text-sm mb-4">Resumo</h2>
-                    <div className="space-y-4">
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                            <span className="text-xs text-slate-500 uppercase font-bold block mb-1">Total Geral de Horas</span>
-                            <span className="text-2xl font-black text-slate-800 dark:text-white">
-                                {rankingData.reduce((acc, curr) => acc + curr.totalHours, 0).toFixed(0)}h
-                            </span>
-                        </div>
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                            <span className="text-xs text-slate-500 uppercase font-bold block mb-1">Média por Militar</span>
-                            <span className="text-2xl font-black text-slate-800 dark:text-white">
-                                {(rankingData.length > 0 ? rankingData.reduce((acc, curr) => acc + curr.totalHours, 0) / rankingData.length : 0).toFixed(1)}h
-                            </span>
-                        </div>
-                    </div>
+            </MainLayout.Content >
+    <MainLayout.Sidebar>
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 sticky top-20">
+            <h2 className="font-bold text-slate-800 dark:text-slate-100 uppercase text-sm mb-4">Resumo</h2>
+            <div className="space-y-4">
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
+                    <span className="text-xs text-slate-500 uppercase font-bold block mb-1">Média por Militar</span>
+                    <span className="text-2xl font-black text-slate-800 dark:text-white">
+                        {(rankingData.length > 0 ? rankingData.reduce((acc, curr) => acc + curr.totalHours, 0) / rankingData.length : 0).toFixed(1)}h
+                    </span>
                 </div>
-            </MainLayout.Sidebar>
-        </MainLayout>
+            </div>
+        </div>
+    </MainLayout.Sidebar>
+        </MainLayout >
     );
 };
 

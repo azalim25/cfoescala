@@ -169,6 +169,20 @@ const PersonalShiftPage: React.FC = () => {
         startTime: '08:00',
         endTime: '08:00',
         status: 'Confirmado'
+      })),
+    // Adiciona "CFO II - Registro de Horas" como Escala Diversa
+    ...extraHours
+      .filter(eh => eh.category === 'CFO II - Registro de Horas' && eh.date >= today)
+      .map(eh => ({
+        id: eh.id,
+        date: eh.date,
+        type: 'Escala Diversa',
+        location: eh.description.replace('Escala Diversa: ', ''),
+        isStage: false,
+        isExtra: true,
+        startTime: '08:00', // Default if not found in description
+        endTime: '12:00',   // Default if not found in description
+        status: 'Confirmado'
       }))
   ].filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -414,6 +428,7 @@ const PersonalShiftPage: React.FC = () => {
                           <td className="px-6 py-4">
                             <span className={`px-2.5 py-0.5 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[10px] font-bold uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
                               {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
+                              {s.type === 'Escala Diversa' && ` - ${s.location} (${s.startTime} às ${s.endTime})`}
                             </span>
                           </td>
                         </tr>
@@ -437,6 +452,7 @@ const PersonalShiftPage: React.FC = () => {
                       </div>
                       <span className={`px-2 py-1 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[9px] font-black uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
                         {s.type}
+                        {s.type === 'Escala Diversa' && ` - ${s.location} (${s.startTime} às ${s.endTime})`}
                       </span>
                     </div>
                   ))}
@@ -682,20 +698,14 @@ const PersonalShiftPage: React.FC = () => {
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Legenda</h3>
             <div className="grid grid-cols-2 gap-2">
-              {Object.entries(SHIFT_TYPE_COLORS).map(([type, colors]) => (
-                <div key={type} className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${colors.dot}`}></div>
-                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate">{type}</span>
-                </div>
-              ))}
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">Estágio</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary"></div>
-                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">Atividade Extra</span>
-              </div>
+              {Object.entries(SHIFT_TYPE_COLORS)
+                .filter(([type]) => type !== 'Escala Geral')
+                .map(([type, colors]) => (
+                  <div key={type} className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${colors.dot}`}></div>
+                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate">{type}</span>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
