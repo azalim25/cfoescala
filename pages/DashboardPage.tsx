@@ -213,7 +213,27 @@ const DashboardPage: React.FC = () => {
 
   const handleDeleteShift = async () => {
     if (editingShift && confirm('Tem certeza que deseja remover este serviço?')) {
+      const dateStr = editingShift.date;
+      const militaryId = editingShift.militaryId;
+      const shiftType = editingShift.type;
+
+      // Delete the shift
       await removeShift(editingShift.id);
+
+      // If it's Escala Diversa, sync with extra_hours
+      if (shiftType === 'Escala Diversa') {
+        try {
+          await supabase
+            .from('extra_hours')
+            .delete()
+            .eq('military_id', militaryId)
+            .eq('date', dateStr)
+            .ilike('description', 'Escala Diversa:%');
+        } catch (error) {
+          console.error('Error syncing deletion with extra_hours:', error);
+        }
+      }
+
       setIsModalOpen(false);
     }
   };
