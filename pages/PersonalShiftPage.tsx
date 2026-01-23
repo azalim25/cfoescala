@@ -49,19 +49,19 @@ const PersonalShiftPage: React.FC = () => {
   // Initial selection
   useEffect(() => {
     if (userProfile && militaries.length > 0 && !selectedMilitaryId) {
-      if (isModerator) {
+      // Find military by smart name matching first (for everyone)
+      const userNameParts = userProfile.name.toLowerCase().split(/\s+/).filter((part: string) => part.length >= 3);
+
+      const matchedMilitary = militaries.find(m => {
+        const milNameLower = m.name.toLowerCase();
+        return userNameParts.some(part => milNameLower.includes(part));
+      });
+
+      if (matchedMilitary) {
+        setSelectedMilitaryId(matchedMilitary.id);
+      } else if (isModerator) {
+        // Fallback to first military ONLY if no match found and user is moderator
         setSelectedMilitaryId(militaries[0].id);
-      } else {
-        // Find military by smart name matching
-        const userNameParts = userProfile.name.toLowerCase().split(/\s+/).filter((part: string) => part.length >= 3);
-
-        const found = militaries.find(m => {
-          const milNameLower = m.name.toLowerCase();
-          // Check if any part of the username exists in the military name
-          return userNameParts.some(part => milNameLower.includes(part));
-        });
-
-        if (found) setSelectedMilitaryId(found.id);
       }
     }
   }, [userProfile, militaries, isModerator, selectedMilitaryId]);
