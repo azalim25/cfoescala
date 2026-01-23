@@ -165,7 +165,8 @@ const RankingPage: React.FC = () => {
                 </div>
 
                 {/* Mobile Ranking Summary (visible only on mobile) */}
-
+                <div className="lg:hidden grid grid-cols-1 mb-6 text-center">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm">
                         <span className="text-[10px] text-slate-500 uppercase font-black block mb-1">Média p/ Mil</span>
                         <span className="text-xl font-black text-slate-800 dark:text-white">
                             {(rankingData.length > 0 ? rankingData.reduce((acc, curr) => acc + curr.totalHours, 0) / rankingData.length : 0).toFixed(1)}h
@@ -285,23 +286,21 @@ const RankingPage: React.FC = () => {
                         ))}
                     </div>
                 </div>
-
-            </MainLayout.Content >
-    <MainLayout.Sidebar>
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 sticky top-20">
-            <h2 className="font-bold text-slate-800 dark:text-slate-100 uppercase text-sm mb-4">Resumo</h2>
-            <div className="space-y-4">
-
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                    <span className="text-xs text-slate-500 uppercase font-bold block mb-1">Média por Militar</span>
-                    <span className="text-2xl font-black text-slate-800 dark:text-white">
-                        {(rankingData.length > 0 ? rankingData.reduce((acc, curr) => acc + curr.totalHours, 0) / rankingData.length : 0).toFixed(1)}h
-                    </span>
+            </MainLayout.Content>
+            <MainLayout.Sidebar>
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 sticky top-20">
+                    <h2 className="font-bold text-slate-800 dark:text-slate-100 uppercase text-sm mb-4">Resumo</h2>
+                    <div className="space-y-4">
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
+                            <span className="text-xs text-slate-500 uppercase font-bold block mb-1">Média por Militar</span>
+                            <span className="text-2xl font-black text-slate-800 dark:text-white">
+                                {(rankingData.length > 0 ? rankingData.reduce((acc, curr) => acc + curr.totalHours, 0) / rankingData.length : 0).toFixed(1)}h
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </MainLayout.Sidebar>
-        </MainLayout >
+            </MainLayout.Sidebar>
+        </MainLayout>
     );
 };
 
