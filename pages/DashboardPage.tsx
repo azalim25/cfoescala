@@ -148,8 +148,8 @@ const DashboardPage: React.FC = () => {
           type: formData.type,
           location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
           duration: formData.duration,
-          startTime: formData.type === 'Escala Diversa' ? formData.startTime : '08:00',
-          endTime: formData.type === 'Escala Diversa' ? formData.endTime : '08:00',
+          startTime: formData.type === 'Escala Diversa' ? (formData.startTime || '08:00') : '08:00',
+          endTime: formData.type === 'Escala Diversa' ? (formData.endTime || '12:00') : '08:00',
         });
       } else {
         await createShift({

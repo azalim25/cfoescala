@@ -158,7 +158,11 @@ const PersonalShiftPage: React.FC = () => {
         status: 'Confirmado'
       })),
     ...extraHours
-      .filter(eh => eh.category === 'CFO II - Registro de Horas' && eh.date >= today)
+      .filter(eh =>
+        eh.category === 'CFO II - Registro de Horas' &&
+        eh.date >= today &&
+        !personalShifts.some(s => s.date === eh.date && s.type === 'Escala Diversa')
+      )
       .map(eh => ({
         id: eh.id,
         date: eh.date,
