@@ -174,14 +174,34 @@ const DashboardPage: React.FC = () => {
         const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;
 
-        await supabase.from('extra_hours').insert({
+        const extraData = {
           military_id: formData.militaryId,
           category: 'CFO II - Registro de Horas',
           hours: hours,
           minutes: minutes,
           description: `Escala Diversa: ${formData.description || 'Sem descrição'}`,
           date: dateStr
-        });
+        };
+
+        if (editingShift) {
+          // Try to find matching extra_hour record to update if it exists for this date/militar
+          const { data: existingEH } = await supabase
+            .from('extra_hours')
+            .select('id')
+            .eq('military_id', formData.militaryId)
+            .eq('date', dateStr)
+            .ilike('description', 'Escala Diversa:%')
+            .limit(1)
+            .single();
+
+          if (existingEH) {
+            await supabase.from('extra_hours').update(extraData).eq('id', existingEH.id);
+          } else {
+            await supabase.from('extra_hours').insert(extraData);
+          }
+        } else {
+          await supabase.from('extra_hours').insert(extraData);
+        }
       }
 
       setIsModalOpen(false);

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
@@ -37,7 +37,7 @@ const PersonalShiftPage: React.FC = () => {
   const [prefType, setPrefType] = useState<'restriction' | 'priority'>('restriction');
   const [isSavingPref, setIsSavingPref] = useState(false);
 
-  // Fetch user profile to get their name
+  // Fetch user profile
   useEffect(() => {
     if (session?.user) {
       supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data }) => {
@@ -46,25 +46,24 @@ const PersonalShiftPage: React.FC = () => {
     }
   }, [session]);
 
-  // Handle initial selection and name matching
+  // Initial selection
   useEffect(() => {
     if (userProfile && militaries.length > 0 && !selectedMilitaryId) {
       if (isModerator) {
         setSelectedMilitaryId(militaries[0].id);
       } else {
-        // Find military by name matching
         const userName = userProfile.name.toLowerCase();
         const found = militaries.find(m =>
           m.name.toLowerCase().includes(userName) || userName.includes(m.name.toLowerCase())
         );
-        if (found) {
-          setSelectedMilitaryId(found.id);
-        }
+        if (found) setSelectedMilitaryId(found.id);
       }
     }
   }, [userProfile, militaries, isModerator, selectedMilitaryId]);
 
-  const selectedMilitary = militaries.find(m => m.id === selectedMilitaryId) || (isModerator ? militaries[0] : null);
+  const selectedMilitary = useMemo(() =>
+    militaries.find(m => m.id === selectedMilitaryId) || (isModerator ? militaries[0] : null)
+    , [militaries, selectedMilitaryId, isModerator]);
 
   useEffect(() => {
     if (selectedMilitaryId) {
@@ -80,10 +79,7 @@ const PersonalShiftPage: React.FC = () => {
       .select('*')
       .eq('military_id', selectedMilitaryId)
       .order('date', { ascending: false });
-
-    if (!error && data) {
-      setPersonalStages(data);
-    }
+    if (!error && data) setPersonalStages(data);
     setIsLoadingStages(false);
   };
 
@@ -94,138 +90,133 @@ const PersonalShiftPage: React.FC = () => {
       .select('*')
       .eq('military_id', selectedMilitaryId)
       .order('date', { ascending: false });
-
-    if (!error && data) {
-      setExtraHours(data);
-    }
+    if (!error && data) setExtraHours(data);
     setIsLoadingExtra(false);
   };
 
-  const filteredMilitary = militaries.filter(m =>
-    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.rank.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMilitary = useMemo(() =>
+    militaries.filter(m =>
+      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.rank.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    , [militaries, searchTerm]);
 
-  const personalShifts = allShifts.filter(s => s.militaryId === selectedMilitaryId);
+  const personalShifts = useMemo(() =>
+    allShifts.filter(s => s.militaryId === selectedMilitaryId)
+    , [allShifts, selectedMilitaryId]);
 
-  // Helper to calculate hours from a shift based on specific rules
   const calculateShiftHours = (shift: Shift) => {
     if (shift.duration) return shift.duration;
-
     const date = safeParseISO(shift.date);
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ...
-
+    const dayOfWeek = date.getDay();
     if (shift.type === 'Comandante da Guarda') {
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) return 11;
-      return 24;
+      return (dayOfWeek >= 1 && dayOfWeek <= 5) ? 11 : 24;
     }
-
     if (shift.type === 'Estágio') {
       if (dayOfWeek === 6) return 24;
       if (dayOfWeek === 0) return 12;
       return 0;
     }
-
     return 0;
   };
 
-  // Sections
-  const today = new Date().toISOString().split('T')[0];
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
-  // Combine shifts and stages for upcoming view
-  const combinedUpcoming = [
-    ...personalShifts.map(s => {
-      if (s.type === 'Estágio') {
-        const stageMatch = personalStages.find(ps => ps.date === s.date);
-        return {
-          ...s,
-          location: stageMatch ? stageMatch.location : s.location,
-          isStage: false
-        };
-      }
-      return { ...s, isStage: false };
-    }),
-    ...personalStages
-      .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
-      .map(s => ({
-        id: s.id,
-        date: s.date,
-        type: 'Estágio',
-        location: s.location,
-        isStage: true,
-        startTime: '08:00',
-        endTime: '08:00',
-        status: 'Confirmado'
-      })),
-    ...extraHours
-      .filter(eh =>
-        eh.category === 'CFO II - Registro de Horas' &&
-        eh.date >= today &&
-        !personalShifts.some(s => s.date === eh.date && s.type === 'Escala Diversa')
-      )
-      .map(eh => ({
-        id: eh.id,
-        date: eh.date,
-        type: 'Escala Diversa',
-        location: eh.description.replace('Escala Diversa: ', ''),
-        isStage: false,
-        isExtra: true,
-        startTime: '08:00',
-        endTime: '12:00',
-        status: 'Confirmado'
-      }))
-  ].filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+  // Robust Duplication Filter
+  const combinedUpcoming = useMemo(() => {
+    const list = [
+      ...personalShifts.map(s => {
+        if (s.type === 'Estágio') {
+          const stageMatch = personalStages.find(ps => ps.date === s.date);
+          return { ...s, location: stageMatch ? stageMatch.location : s.location, isStage: false };
+        }
+        return { ...s, isStage: false };
+      }),
+      ...personalStages
+        .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
+        .map(s => ({
+          id: s.id,
+          date: s.date,
+          type: 'Estágio',
+          location: s.location,
+          isStage: true,
+          startTime: '08:00',
+          endTime: '08:00',
+          status: 'Confirmado'
+        })),
+      ...extraHours
+        .filter(eh => {
+          if (eh.category !== 'CFO II - Registro de Horas' || eh.date < today) return false;
+
+          // DEDUPLICATION LOGIC:
+          // Skip if there's already a shift on the same day with type 'Escala Diversa'
+          // We normalize dates to YYYY-MM-DD for comparison
+          const ehDate = eh.date.split('T')[0];
+          const hasExistingShift = personalShifts.some(s => {
+            const shiftDate = s.date.split('T')[0];
+            return shiftDate === ehDate && s.type === 'Escala Diversa';
+          });
+
+          return !hasExistingShift;
+        })
+        .map(eh => ({
+          id: eh.id,
+          date: eh.date,
+          type: 'Escala Diversa',
+          location: eh.description.replace('Escala Diversa: ', ''),
+          isStage: false,
+          isExtra: true,
+          startTime: '08:00',
+          endTime: '12:00',
+          status: 'Confirmado'
+        }))
+    ];
+    return list.filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+  }, [personalShifts, personalStages, extraHours, today]);
 
   const isExcludedActivity = (type: string) => {
     const excludedExact = ['CFO I - Faxina', 'CFO I - Manutenção', 'CFO I - Sobreaviso'];
     if (excludedExact.includes(type)) return true;
-    if (type.startsWith('CFO I - Estágio')) return true;
-    return false;
+    return type.startsWith('CFO I - Estágio');
   };
 
-  const totalShiftHours = personalShifts
-    .filter(s => !isExcludedActivity(s.type))
-    .reduce((acc, s) => acc + calculateShiftHours(s), 0);
+  const totalShiftHours = useMemo(() =>
+    personalShifts
+      .filter(s => !isExcludedActivity(s.type))
+      .reduce((acc, s) => acc + calculateShiftHours(s), 0)
+    , [personalShifts]);
 
-  const totalExtraHours = extraHours
-    .filter(e => !isExcludedActivity(e.category))
-    .reduce((acc, e) => acc + (e.hours + e.minutes / 60), 0);
+  const totalExtraHours = useMemo(() =>
+    extraHours
+      .filter(e => !isExcludedActivity(e.category))
+      .reduce((acc, e) => acc + (e.hours + e.minutes / 60), 0)
+    , [extraHours]);
 
   const totalWorkload = totalShiftHours + totalExtraHours;
 
-  const totalOtherServices = personalShifts.filter(s =>
-    ['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type) && !isExcludedActivity(s.type)
-  ).length;
+  const totalOtherServices = useMemo(() =>
+    personalShifts.filter(s =>
+      ['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type) && !isExcludedActivity(s.type)
+    ).length
+    , [personalShifts]);
 
-  const groupedSummary = (() => {
+  const groupedSummary = useMemo(() => {
     const summary: Record<string, { totalHours: number, totalServices: number, type: string }> = {};
-
     personalShifts.forEach(s => {
       if (isExcludedActivity(s.type)) return;
-
       const hours = calculateShiftHours(s);
-      if (!summary[s.type]) {
-        summary[s.type] = { totalHours: 0, totalServices: 0, type: s.type };
-      }
-      if (hours > 0) {
-        summary[s.type].totalHours += hours;
-      } else {
-        summary[s.type].totalServices += 1;
-      }
+      if (!summary[s.type]) summary[s.type] = { totalHours: 0, totalServices: 0, type: s.type };
+      if (hours > 0) summary[s.type].totalHours += hours;
+      else summary[s.type].totalServices += 1;
     });
-
     extraHours.forEach(e => {
       const type = e.category || 'Registro de Horas';
       if (isExcludedActivity(type)) return;
-
-      if (!summary[type]) {
-        summary[type] = { totalHours: 0, totalServices: 0, type };
-      }
+      if (!summary[type]) summary[type] = { totalHours: 0, totalServices: 0, type };
       summary[type].totalHours += (e.hours + e.minutes / 60);
     });
-
     return Object.values(summary).sort((a, b) => b.totalHours - a.totalHours || b.totalServices - a.totalServices);
-  })();
+  }, [personalShifts, extraHours]);
 
   const handleExport = () => {
     const headers = ['Data', 'Tipo', 'Início', 'Fim', 'Local', 'Status'].join(',');
@@ -243,15 +234,13 @@ const PersonalShiftPage: React.FC = () => {
   const handleAddPref = async () => {
     if (!selectedMilitaryId) return;
     setIsSavingPref(true);
-    await addPreference({
-      militaryId: selectedMilitaryId,
-      date: prefDate,
-      type: prefType
-    });
+    await addPreference({ militaryId: selectedMilitaryId, date: prefDate, type: prefType });
     setIsSavingPref(false);
   };
 
-  const militaryPrefs = preferences.filter(p => p.militaryId === selectedMilitaryId);
+  const militaryPrefs = useMemo(() =>
+    preferences.filter(p => p.militaryId === selectedMilitaryId)
+    , [preferences, selectedMilitaryId]);
 
   return (
     <MainLayout activePage="personal">
@@ -274,10 +263,7 @@ const PersonalShiftPage: React.FC = () => {
                 filteredMilitary.map(m => (
                   <button
                     key={`${m.id}-mobile`}
-                    onClick={() => {
-                      setSelectedMilitaryId(m.id);
-                      setSearchTerm('');
-                    }}
+                    onClick={() => { setSelectedMilitaryId(m.id); setSearchTerm(''); }}
                     className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
                   >
                     <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
@@ -319,10 +305,7 @@ const PersonalShiftPage: React.FC = () => {
                     filteredMilitary.map(m => (
                       <button
                         key={m.id}
-                        onClick={() => {
-                          setSelectedMilitaryId(m.id);
-                          setSearchTerm('');
-                        }}
+                        onClick={() => { setSelectedMilitaryId(m.id); setSearchTerm(''); }}
                         className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left border-b border-slate-100 dark:border-slate-800 last:border-0"
                       >
                         <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400">
@@ -395,8 +378,8 @@ const PersonalShiftPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {combinedUpcoming.map((s: any) => (
-                        <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                      {combinedUpcoming.map((s: any, idx: number) => (
+                        <tr key={s.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex flex-col">
                               <span className="text-sm font-extrabold text-slate-900 dark:text-white">
@@ -420,8 +403,8 @@ const PersonalShiftPage: React.FC = () => {
                 </div>
 
                 <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                  {combinedUpcoming.map((s: any) => (
-                    <div key={s.id} className="p-4 flex items-center justify-between">
+                  {combinedUpcoming.map((s: any, idx: number) => (
+                    <div key={s.id || idx} className="p-4 flex items-center justify-between">
                       <div className="flex flex-col">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
                         <span className="text-sm font-black text-slate-800 dark:text-white">
@@ -472,13 +455,8 @@ const PersonalShiftPage: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${item.totalHours > 0
-                              ? 'bg-primary/10 text-primary'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                              }`}>
-                              {item.totalHours > 0
-                                ? `${item.totalHours.toFixed(1)}h`
-                                : `${item.totalServices} Serviço${item.totalServices !== 1 ? 's' : ''}`}
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${item.totalHours > 0 ? 'bg-primary/10 text-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
+                              {item.totalHours > 0 ? `${item.totalHours.toFixed(1)}h` : `${item.totalServices} Serviço${item.totalServices !== 1 ? 's' : ''}`}
                             </span>
                           </td>
                         </tr>
@@ -494,21 +472,12 @@ const PersonalShiftPage: React.FC = () => {
                         <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'} shrink-0`}></div>
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">{item.type}</span>
                       </div>
-                      <span className={`px-2 py-1 rounded text-[10px] font-black ${item.totalHours > 0
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                        }`}>
-                        {item.totalHours > 0
-                          ? `${item.totalHours.toFixed(1)}h`
-                          : `${item.totalServices} Un`}
+                      <span className={`px-2 py-1 rounded text-[10px] font-black ${item.totalHours > 0 ? 'bg-primary/10 text-primary' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                        {item.totalHours > 0 ? `${item.totalHours.toFixed(1)}h` : `${item.totalServices} Un`}
                       </span>
                     </div>
                   ))}
                 </div>
-
-                {groupedSummary.length === 0 && (
-                  <div className="p-10 text-center text-slate-400 italic text-sm">Nenhuma atividade registrada.</div>
-                )}
               </div>
             </section>
 
@@ -620,10 +589,7 @@ const PersonalShiftPage: React.FC = () => {
                   filteredMilitary.map(m => (
                     <button
                       key={m.id}
-                      onClick={() => {
-                        setSelectedMilitaryId(m.id);
-                        setSearchTerm('');
-                      }}
+                      onClick={() => { setSelectedMilitaryId(m.id); setSearchTerm(''); }}
                       className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
                     >
                       <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
@@ -665,20 +631,6 @@ const PersonalShiftPage: React.FC = () => {
               </div>
             </div>
             <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl text-white/10 rotate-12 pointer-events-none">history</span>
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Legenda</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(SHIFT_TYPE_COLORS)
-                .filter(([type]) => type !== 'Escala Geral')
-                .map(([type, colors]) => (
-                  <div key={type} className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${colors.dot}`}></div>
-                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate">{type}</span>
-                  </div>
-                ))}
-            </div>
           </div>
         </div>
       </MainLayout.Sidebar>
