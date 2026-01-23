@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
@@ -8,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
 import { Shift, MilitaryPreference } from '../types';
 import { SHIFT_TYPE_COLORS } from '../constants';
+import { safeParseISO } from '../utils/dateUtils';
 
 interface ExtraHourRecord {
   id: string;
@@ -108,35 +108,24 @@ const PersonalShiftPage: React.FC = () => {
 
   const personalShifts = allShifts.filter(s => s.militaryId === selectedMilitaryId);
 
-  // Helper to parse YYYY-MM-DD as local date to avoid timezone shifts
-  const parseLocalISO = (isoString: string) => {
-    const [year, month, day] = isoString.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  };
-
   // Helper to calculate hours from a shift based on specific rules
   const calculateShiftHours = (shift: Shift) => {
     if (shift.duration) return shift.duration;
 
-    const date = parseLocalISO(shift.date);
+    const date = safeParseISO(shift.date);
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ...
 
     if (shift.type === 'Comandante da Guarda') {
-      // Comandante da guarda de segunda a sexta conta como 11 horas de serviço
-      // Comandante da guarda sábado e domingo conta como 24 horas de serviço
       if (dayOfWeek >= 1 && dayOfWeek <= 5) return 11;
       return 24;
     }
 
     if (shift.type === 'Estágio') {
-      // Estágio no sábado conta como 24 horas de serviço
-      // Estágio no domingo conta como 12 horas de serviço
       if (dayOfWeek === 6) return 24;
       if (dayOfWeek === 0) return 12;
-      return 0; // Estágio theoretically only happens on weekends per requirement
+      return 0;
     }
 
-    // Sobreaviso, faxina e manutenção quantifique a quantidade de serviços prestados e não em horas.
     return 0;
   };
 
@@ -146,7 +135,6 @@ const PersonalShiftPage: React.FC = () => {
   // Combine shifts and stages for upcoming view
   const combinedUpcoming = [
     ...personalShifts.map(s => {
-      // Se for escala de estágio, tenta pegar o batalhão específico da tabela de stages
       if (s.type === 'Estágio') {
         const stageMatch = personalStages.find(ps => ps.date === s.date);
         return {
@@ -157,7 +145,6 @@ const PersonalShiftPage: React.FC = () => {
       }
       return { ...s, isStage: false };
     }),
-    // Adiciona apenas os stages que não possuem uma escala de shift correspondente
     ...personalStages
       .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
       .map(s => ({
@@ -170,7 +157,6 @@ const PersonalShiftPage: React.FC = () => {
         endTime: '08:00',
         status: 'Confirmado'
       })),
-    // Adiciona "CFO II - Registro de Horas" como Escala Diversa
     ...extraHours
       .filter(eh => eh.category === 'CFO II - Registro de Horas' && eh.date >= today)
       .map(eh => ({
@@ -180,13 +166,12 @@ const PersonalShiftPage: React.FC = () => {
         location: eh.description.replace('Escala Diversa: ', ''),
         isStage: false,
         isExtra: true,
-        startTime: '08:00', // Default if not found in description
-        endTime: '12:00',   // Default if not found in description
+        startTime: '08:00',
+        endTime: '12:00',
         status: 'Confirmado'
       }))
   ].filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
 
-  // Filters for excluded activities in "Carga Horária" summary
   const isExcludedActivity = (type: string) => {
     const excludedExact = ['CFO I - Faxina', 'CFO I - Manutenção', 'CFO I - Sobreaviso'];
     if (excludedExact.includes(type)) return true;
@@ -194,7 +179,6 @@ const PersonalShiftPage: React.FC = () => {
     return false;
   };
 
-  // Combined workloads
   const totalShiftHours = personalShifts
     .filter(s => !isExcludedActivity(s.type))
     .reduce((acc, s) => acc + calculateShiftHours(s), 0);
@@ -212,7 +196,6 @@ const PersonalShiftPage: React.FC = () => {
   const groupedSummary = (() => {
     const summary: Record<string, { totalHours: number, totalServices: number, type: string }> = {};
 
-    // Process regular shifts
     personalShifts.forEach(s => {
       if (isExcludedActivity(s.type)) return;
 
@@ -227,7 +210,6 @@ const PersonalShiftPage: React.FC = () => {
       }
     });
 
-    // Process extra hours (Registry of Hours)
     extraHours.forEach(e => {
       const type = e.category || 'Registro de Horas';
       if (isExcludedActivity(type)) return;
@@ -248,7 +230,7 @@ const PersonalShiftPage: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `escala_${selectedMilitary.name.replace(/\s+/g, '_')}.csv`);
+    link.setAttribute("download", `escala_${selectedMilitary?.name.replace(/\s+/g, '_')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -270,7 +252,6 @@ const PersonalShiftPage: React.FC = () => {
   return (
     <MainLayout activePage="personal">
       <MainLayout.Content>
-        {/* Mobile Search - Top of Page */}
         <div className="lg:hidden mb-6 bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Localizar Militar</h3>
           <div className="relative">
@@ -311,7 +292,6 @@ const PersonalShiftPage: React.FC = () => {
           )}
         </div>
 
-        {/* Header Section */}
         {!selectedMilitary ? (
           <div className="bg-white dark:bg-slate-900 rounded-xl p-8 sm:p-12 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 text-center max-w-2xl mx-auto">
             <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -393,7 +373,6 @@ const PersonalShiftPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Section: Próximos Serviços */}
             <section className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
@@ -403,7 +382,6 @@ const PersonalShiftPage: React.FC = () => {
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                {/* Desktop View */}
                 <div className="hidden sm:block">
                   <table className="w-full text-left">
                     <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
@@ -418,10 +396,10 @@ const PersonalShiftPage: React.FC = () => {
                           <td className="px-6 py-4">
                             <div className="flex flex-col">
                               <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                                {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
+                                {safeParseISO(s.date).toLocaleDateString('pt-BR')}
                               </span>
                               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
-                                {parseLocalISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
+                                {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
                               </span>
                             </div>
                           </td>
@@ -437,17 +415,16 @@ const PersonalShiftPage: React.FC = () => {
                   </table>
                 </div>
 
-                {/* Mobile View */}
                 <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
                   {combinedUpcoming.map((s: any) => (
                     <div key={s.id} className="p-4 flex items-center justify-between">
                       <div className="flex flex-col">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
                         <span className="text-sm font-black text-slate-800 dark:text-white">
-                          {parseLocalISO(s.date).toLocaleDateString('pt-BR')}
+                          {safeParseISO(s.date).toLocaleDateString('pt-BR')}
                         </span>
                         <span className="text-[10px] text-primary font-bold uppercase tracking-tighter">
-                          {parseLocalISO(s.date).toLocaleDateString('pt-BR', { weekday: 'short' })}
+                          {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'short' })}
                         </span>
                       </div>
                       <span className={`px-2 py-1 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[9px] font-black uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
@@ -464,7 +441,6 @@ const PersonalShiftPage: React.FC = () => {
               </div>
             </section>
 
-            {/* Section: Carga Horária (Atividades) */}
             <section className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
@@ -474,7 +450,6 @@ const PersonalShiftPage: React.FC = () => {
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                {/* Desktop View */}
                 <div className="hidden sm:block">
                   <table className="w-full text-left">
                     <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
@@ -508,7 +483,6 @@ const PersonalShiftPage: React.FC = () => {
                   </table>
                 </div>
 
-                {/* Mobile View */}
                 <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
                   {groupedSummary.map((item, index) => (
                     <div key={index} className="p-4 flex items-center justify-between">
@@ -534,7 +508,6 @@ const PersonalShiftPage: React.FC = () => {
               </div>
             </section>
 
-            {/* Section: Restrições e Prioridades */}
             <section className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
@@ -545,7 +518,6 @@ const PersonalShiftPage: React.FC = () => {
 
               <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Add Pref Form */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">Adicionar Preferência</h3>
                     <div className="space-y-3">
@@ -585,7 +557,6 @@ const PersonalShiftPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Pref List */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">Meus Registros</h3>
                     <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
@@ -601,7 +572,7 @@ const PersonalShiftPage: React.FC = () => {
                                 <span className="material-symbols-outlined text-lg">{p.type === 'restriction' ? 'block' : 'star'}</span>
                               </div>
                               <div>
-                                <p className="text-sm font-bold text-slate-800 dark:text-white">{parseLocalISO(p.date).toLocaleDateString('pt-BR')}</p>
+                                <p className="text-sm font-bold text-slate-800 dark:text-white">{safeParseISO(p.date).toLocaleDateString('pt-BR')}</p>
                                 <p className={`text-[9px] font-black uppercase tracking-tight ${p.type === 'restriction' ? 'text-red-500' : 'text-amber-500'}`}>
                                   {p.type === 'restriction' ? 'Restrição de Serviço' : 'Prioridade de Serviço'}
                                 </p>
@@ -627,7 +598,6 @@ const PersonalShiftPage: React.FC = () => {
 
       <MainLayout.Sidebar>
         <div className="space-y-6">
-          {/* Search Military Widget - Desktop */}
           <div className="hidden lg:block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Localizar Militar</h3>
             <div className="relative mb-3">
@@ -668,8 +638,6 @@ const PersonalShiftPage: React.FC = () => {
             )}
           </div>
 
-
-          {/* Hours Widget */}
           <div className="bg-primary rounded-xl p-6 shadow-xl shadow-primary/20 relative overflow-hidden group">
             <div className="relative z-10">
               <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Carga Horária Total</p>
@@ -715,5 +683,3 @@ const PersonalShiftPage: React.FC = () => {
 };
 
 export default PersonalShiftPage;
-
-

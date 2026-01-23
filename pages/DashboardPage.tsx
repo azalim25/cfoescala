@@ -6,14 +6,15 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Shift, Rank } from '../types';
 import { supabase } from '../supabase';
+import { safeParseISO } from '../utils/dateUtils';
 
 const DashboardPage: React.FC = () => {
   const { shifts: allShifts, createShift, updateShift, removeShift, preferences } = useShift();
   const { militaries } = useMilitary();
   const { isModerator } = useAuth();
-  const [currentMonth, setCurrentMonth] = useState(0); // Janeiro
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [selectedDay, setSelectedDay] = useState(2); // Default
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [stages, setStages] = useState<any[]>([]);
   const [extraHours, setExtraHours] = useState<any[]>([]);
   const [isLoadingStages, setIsLoadingStages] = useState(false);
@@ -39,12 +40,7 @@ const DashboardPage: React.FC = () => {
     endTime: '12:00'
   });
 
-  // Set default day to today
   useEffect(() => {
-    const today = new Date();
-    setSelectedDay(today.getDate());
-    setCurrentMonth(today.getMonth());
-    setCurrentYear(today.getFullYear());
     fetchStages();
     fetchExtraHours();
   }, []);
@@ -115,7 +111,10 @@ const DashboardPage: React.FC = () => {
       militaryId: '',
       type: 'Escala Geral',
       location: 'QCG',
-      duration: undefined
+      duration: undefined,
+      description: '',
+      startTime: '08:00',
+      endTime: '12:00'
     });
     setIsModalOpen(true);
   };
@@ -147,7 +146,7 @@ const DashboardPage: React.FC = () => {
         await updateShift(editingShift.id, {
           militaryId: formData.militaryId,
           type: formData.type,
-          location: formData.location || (formData.type === 'Escala Diversa' ? formData.description : undefined),
+          location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
           duration: formData.duration,
           startTime: formData.type === 'Escala Diversa' ? formData.startTime : '08:00',
           endTime: formData.type === 'Escala Diversa' ? formData.endTime : '08:00',
@@ -165,17 +164,13 @@ const DashboardPage: React.FC = () => {
         });
       }
 
-      // Sync with extra_hours if it's Escala Diversa
       if (formData.type === 'Escala Diversa') {
         const start = formData.startTime || '08:00';
         const end = formData.endTime || '12:00';
-
         const [h1, m1] = start.split(':').map(Number);
         const [h2, m2] = end.split(':').map(Number);
-
         let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (totalMinutes < 0) totalMinutes += 24 * 60; // Handle overnight
-
+        if (totalMinutes < 0) totalMinutes += 24 * 60;
         const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;
 
@@ -204,12 +199,10 @@ const DashboardPage: React.FC = () => {
   };
 
   const selectedDateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
-  const dayShifts = allShifts.filter(s => s.date === selectedDateStr);
 
   return (
     <MainLayout activePage="dashboard" className="pb-20">
       <MainLayout.Content>
-        {/* Header Controls */}
         <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
@@ -244,7 +237,6 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Calendar Grid */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
           <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
@@ -273,7 +265,7 @@ const DashboardPage: React.FC = () => {
                     <span className={`text-[10px] sm:text-xs font-bold ${isToday ? 'bg-primary text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
                       {day}
                     </span>
-                    {(shifts.length > 0 || dayStages.length > 0) && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary font-black uppercase text-[8px] text-primary"></span>}
+                    {(shifts.length > 0 || dayStages.length > 0) && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary"></span>}
                   </div>
                   <div className="space-y-0.5 sm:space-y-1">
                     {(() => {
@@ -296,8 +288,8 @@ const DashboardPage: React.FC = () => {
                           militaryId: eh.military_id,
                           type: 'Escala Diversa' as const,
                           location: eh.description.replace('Escala Diversa: ', ''),
-                          startTime: '08:00', // Default if not found in description
-                          endTime: '12:00',   // Default if not found in description
+                          startTime: '08:00',
+                          endTime: '12:00',
                           isStage: false,
                           isExtra: true
                         }))
@@ -310,7 +302,7 @@ const DashboardPage: React.FC = () => {
                               key={s.id}
                               className="text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
                             >
-                              📌 {militaries.find(m => m.id === s.militaryId)?.name}
+                              📌 {militaries.find(m => m.id === s.military_id)?.name}
                             </div>
                           );
                         }
@@ -327,7 +319,7 @@ const DashboardPage: React.FC = () => {
                             }}
                             className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
                           >
-                            {militaries.find(m => m.id === s.militaryId)?.name}
+                            {militaries.find(m => m.id === s.militaryId || m.id === (s as any).military_id)?.name}
                           </div>
                         );
                       });
@@ -339,7 +331,6 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Calendar Legend */}
         <div className="mt-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
           <h3 className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Legenda de Escalas</h3>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
@@ -361,7 +352,7 @@ const DashboardPage: React.FC = () => {
             <div>
               <h2 className="font-bold text-slate-800 dark:text-100 uppercase text-xs sm:text-sm">FICHA DO DIA</h2>
               <p className="text-[10px] sm:text-[11px] text-primary font-bold">
-                {new Date(currentYear, currentMonth, selectedDay).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}, {selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}
+                {safeParseISO(selectedDateStr).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}, {selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}
               </p>
             </div>
             {isModerator && (
@@ -375,7 +366,6 @@ const DashboardPage: React.FC = () => {
             )}
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 sm:space-y-6">
-
             <section className="space-y-3 pb-4 lg:pb-0">
               <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({allShifts.filter(s => s.date === selectedDateStr).length + extraHours.filter(eh => eh.date === selectedDateStr).length})
@@ -383,7 +373,6 @@ const DashboardPage: React.FC = () => {
 
               {extraHours.filter(eh => eh.date === selectedDateStr).map(eh => {
                 const m = militaries.find(mil => mil.id === eh.military_id);
-                // Try to extract times from description if format matches "HH:MM às HH:MM"
                 return (
                   <div
                     key={eh.id}
@@ -474,7 +463,7 @@ const DashboardPage: React.FC = () => {
                   </button>
                 )
               })}
-              {allShifts.filter(s => s.date === `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`).length === 0 && (
+              {allShifts.filter(s => s.date === selectedDateStr).length === 0 && extraHours.filter(eh => eh.date === selectedDateStr).length === 0 && stages.filter(st => st.date === selectedDateStr).length === 0 && (
                 <p className="text-xs text-slate-400 italic text-center py-6 sm:py-10">Nenhum serviço escalado para este dia.</p>
               )}
             </section>
@@ -545,7 +534,7 @@ const DashboardPage: React.FC = () => {
                 </select>
               </div>
 
-              {formData.type === 'Comandante da Guarda' && (
+              {(formData.type === 'Comandante da Guarda') && (
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
                   <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -639,7 +628,6 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
       )}
-
     </MainLayout>
   );
 };

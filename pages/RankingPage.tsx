@@ -4,6 +4,7 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { supabase } from '../supabase';
 import { SHIFT_TYPE_COLORS } from '../constants';
+import { safeParseISO } from '../utils/dateUtils';
 
 interface ExtraHourRecord {
     id: string;
@@ -19,9 +20,8 @@ const RankingPage: React.FC = () => {
     const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Filters
     const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
-    const [selectedExtraHighCategories, setSelectedExtraCategories] = useState<string[]>([]);
+    const [selectedExtraCategories, setSelectedExtraCategories] = useState<string[]>([]);
 
     const allShiftTypes = useMemo(() =>
         Object.keys(SHIFT_TYPE_COLORS).filter(type => !['Escala Geral', 'Escala Diversa'].includes(type)),
@@ -33,7 +33,6 @@ const RankingPage: React.FC = () => {
     ];
 
     useEffect(() => {
-        // Initialize filters with all selected
         setSelectedShiftTypes(allShiftTypes);
         setSelectedExtraCategories(allExtraCategories);
     }, [allShiftTypes]);
@@ -48,11 +47,6 @@ const RankingPage: React.FC = () => {
         fetchExtraHours();
     }, []);
 
-    const parseLocalISO = (isoString: string) => {
-        const [year, month, day] = isoString.split('-').map(Number);
-        return new Date(year, month - 1, day);
-    };
-
     const rankingData = useMemo(() => {
         return militaries.map(mil => {
             let totalHours = 0;
@@ -62,22 +56,19 @@ const RankingPage: React.FC = () => {
                 'Manutenção': 0
             };
 
-            // 1. Calculate Shift Hours & Counts
             const milShifts = shifts.filter(s => s.militaryId === mil.id);
             milShifts.forEach(s => {
                 if (!selectedShiftTypes.includes(s.type)) return;
 
-                const date = parseLocalISO(s.date);
-                const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ...
+                const date = safeParseISO(s.date);
+                const dayOfWeek = date.getDay();
 
                 if (s.duration) {
                     totalHours += s.duration;
                 } else if (s.type === 'Comandante da Guarda') {
-                    // Seg-Sex = 11h, Sáb/Dom = 24h
                     if (dayOfWeek >= 1 && dayOfWeek <= 5) totalHours += 11;
                     else totalHours += 24;
                 } else if (s.type === 'Estágio') {
-                    // Sáb = 24h, Dom = 12h
                     if (dayOfWeek === 6) totalHours += 24;
                     else if (dayOfWeek === 0) totalHours += 12;
                 } else if (['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)) {
@@ -85,10 +76,9 @@ const RankingPage: React.FC = () => {
                 }
             });
 
-            // 2. Calculate Extra Hours
             const milExtra = extraHours.filter(e => e.military_id === mil.id);
             milExtra.forEach(e => {
-                if (selectedExtraHighCategories.includes(e.category)) {
+                if (selectedExtraCategories.includes(e.category)) {
                     totalHours += e.hours + (e.minutes / 60);
                 }
             });
@@ -99,7 +89,7 @@ const RankingPage: React.FC = () => {
                 separateCounts
             };
         }).sort((a, b) => b.totalHours - a.totalHours);
-    }, [militaries, shifts, extraHours, selectedShiftTypes, selectedExtraHighCategories]);
+    }, [militaries, shifts, extraHours, selectedShiftTypes, selectedExtraCategories]);
 
     const toggleShiftType = (type: string) => {
         setSelectedShiftTypes(prev =>
@@ -121,7 +111,6 @@ const RankingPage: React.FC = () => {
                     <p className="text-xs sm:text-sm text-slate-500">Classificação do efetivo por horas trabalhadas e acumuladas.</p>
 
                     <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                        {/* Filter: Shift Types */}
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipos de Escala</label>
                             <div className="flex flex-wrap gap-2">
@@ -143,7 +132,6 @@ const RankingPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Filter: Extra Hours */}
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Horas Extras</label>
                             <div className="flex flex-wrap gap-2">
@@ -151,7 +139,7 @@ const RankingPage: React.FC = () => {
                                     <button
                                         key={cat}
                                         onClick={() => toggleExtraCategory(cat)}
-                                        className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all border ${selectedExtraHighCategories.includes(cat)
+                                        className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all border ${selectedExtraCategories.includes(cat)
                                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-offset-1 ring-emerald-500/20'
                                             : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 opacity-60'}`}
                                     >
@@ -164,7 +152,6 @@ const RankingPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Mobile Ranking Summary (visible only on mobile) */}
                 <div className="lg:hidden grid grid-cols-1 mb-6 text-center">
                     <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm">
                         <span className="text-[10px] text-slate-500 uppercase font-black block mb-1">Média p/ Mil</span>
@@ -175,7 +162,6 @@ const RankingPage: React.FC = () => {
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                    {/* Desktop View */}
                     <div className="hidden lg:block overflow-x-auto">
                         <table className="w-full text-left min-w-[800px]">
                             <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
@@ -245,7 +231,6 @@ const RankingPage: React.FC = () => {
                         </table>
                     </div>
 
-                    {/* Mobile View */}
                     <div className="block lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
                         {rankingData.map((mil, index) => (
                             <div key={mil.id} className="p-4 flex items-center justify-between gap-4">

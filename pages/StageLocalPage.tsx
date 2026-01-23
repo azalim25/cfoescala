@@ -3,6 +3,7 @@ import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { safeParseISO } from '../utils/dateUtils';
 
 interface StageAssignment {
     id: string;
@@ -21,7 +22,6 @@ const StageLocalPage: React.FC = () => {
     const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
-    // Form state
     const [formData, setFormData] = useState({
         militaryId: '',
         date: new Date().toISOString().split('T')[0],
@@ -94,7 +94,6 @@ const StageLocalPage: React.FC = () => {
         } else {
             setIsAdding(false);
             fetchStages();
-            // Reset form
             setFormData({
                 ...formData,
                 militaryId: ''
@@ -102,9 +101,8 @@ const StageLocalPage: React.FC = () => {
         }
     };
 
-    // Filter stages for the selected month/year
     const filteredStages = stages.filter(s => {
-        const d = new Date(s.date + 'T12:00:00'); // Use T12:00:00 to avoid timezone issues
+        const d = safeParseISO(s.date);
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
 
@@ -120,12 +118,9 @@ const StageLocalPage: React.FC = () => {
         }
     };
 
-    const currentMonthName = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date());
-
     return (
         <MainLayout activePage="stage">
             <MainLayout.Content>
-                {/* Header Section */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
@@ -157,7 +152,6 @@ const StageLocalPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Locations Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {locations.map(loc => {
                         const locStages = filteredStages.filter(s => s.location === loc);
@@ -179,11 +173,7 @@ const StageLocalPage: React.FC = () => {
                                     ) : (
                                         locStages.map(s => {
                                             const military = militaries.find(m => m.id === s.military_id);
-                                            // Handle date without timezone shift
-                                            const dateParts = s.date.split('-');
-                                            const dateObj = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
-                                            const dateFormatted = dateObj.toLocaleDateString('pt-BR');
-
+                                            const dateObj = safeParseISO(s.date);
                                             return (
                                                 <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group hover:ring-1 hover:ring-primary/30 transition-all border border-transparent dark:border-slate-700/50">
                                                     <div className="flex flex-col">
@@ -192,7 +182,7 @@ const StageLocalPage: React.FC = () => {
                                                         </span>
                                                         <span className="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1 mt-1 font-medium">
                                                             <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                                                            {dateFormatted} ({dateObj.toLocaleDateString('pt-BR', { weekday: 'short' })})
+                                                            {dateObj.toLocaleDateString('pt-BR')} ({dateObj.toLocaleDateString('pt-BR', { weekday: 'short' })})
                                                         </span>
                                                     </div>
                                                     {isModerator && (
@@ -214,7 +204,6 @@ const StageLocalPage: React.FC = () => {
                     })}
                 </div>
 
-                {/* Modal for adding */}
                 {isAdding && (
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                         <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">

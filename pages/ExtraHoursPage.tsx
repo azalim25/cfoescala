@@ -4,6 +4,7 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
 import { Military } from '../types';
+import { safeParseISO } from '../utils/dateUtils';
 
 interface ExtraHourRecord {
     id: string;
@@ -36,15 +37,6 @@ const ExtraHoursPage: React.FC = () => {
         'CFO II - Registro de Horas'
     ];
 
-    // Helper to parse YYYY-MM-DD as local date
-    const parseLocalISO = (isoString: string) => {
-        if (!isoString) return new Date();
-        const parts = isoString.split('T')[0].split('-');
-        if (parts.length < 3) return new Date(isoString);
-        const [year, month, day] = parts.map(Number);
-        return new Date(year, month - 1, day);
-    };
-
     const fetchRecords = async () => {
         setIsLoading(true);
         const { data, error } = await supabase
@@ -75,7 +67,8 @@ const ExtraHoursPage: React.FC = () => {
             hours,
             minutes,
             category,
-            description
+            description,
+            date: new Date().toISOString().split('T')[0]
         };
 
         const { error } = editingRecordId
@@ -104,7 +97,6 @@ const ExtraHoursPage: React.FC = () => {
         setMinutes(record.minutes);
         setCategory(record.category || 'CFO I - Sentinela');
         setDescription(record.description || '');
-        // Scroll to form
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -119,12 +111,10 @@ const ExtraHoursPage: React.FC = () => {
 
     const handleDelete = async (id: string) => {
         if (!confirm('Tem certeza que deseja excluir este registro?')) return;
-
         const { error } = await supabase
             .from('extra_hours')
             .delete()
             .eq('id', id);
-
         if (!error) {
             fetchRecords();
         }
@@ -133,7 +123,6 @@ const ExtraHoursPage: React.FC = () => {
     return (
         <MainLayout activePage="extra-hours">
             <MainLayout.Content>
-                {/* Header Section */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -147,7 +136,6 @@ const ExtraHoursPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 sm:mb-0">
-                    {/* Form Section */}
                     {isModerator && (
                         <div className="lg:col-span-1">
                             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -249,7 +237,6 @@ const ExtraHoursPage: React.FC = () => {
                         </div>
                     )}
 
-                    {/* List Section */}
                     <div className={isModerator ? "lg:col-span-2" : "lg:col-span-3"}>
                         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-auto lg:h-[calc(100vh-270px)]">
                             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center text-center">
@@ -262,7 +249,7 @@ const ExtraHoursPage: React.FC = () => {
                                 </span>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar text-center">
                                 {isLoading ? (
                                     <div className="p-12 flex items-center justify-center text-slate-400">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -274,7 +261,6 @@ const ExtraHoursPage: React.FC = () => {
                                     </div>
                                 ) : (
                                     <>
-                                        {/* Desktop View */}
                                         <table className="hidden sm:table w-full text-left">
                                             <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 z-10">
                                                 <tr>
@@ -284,7 +270,7 @@ const ExtraHoursPage: React.FC = () => {
                                                     <th className="px-6 py-4 text-right">Ações</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-center sm:text-left">
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                                 {records.map((record) => (
                                                     <tr key={record.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                                         <td className="px-6 py-4">
@@ -297,7 +283,7 @@ const ExtraHoursPage: React.FC = () => {
                                                                         {record.militaries?.rank} {record.militaries?.name}
                                                                     </p>
                                                                     <p className="text-[10px] text-slate-400 uppercase font-black">
-                                                                        {parseLocalISO(record.date || record.created_at).toLocaleDateString('pt-BR')}
+                                                                        {safeParseISO(record.date || record.created_at).toLocaleDateString('pt-BR')}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -339,8 +325,6 @@ const ExtraHoursPage: React.FC = () => {
                                                 ))}
                                             </tbody>
                                         </table>
-
-                                        {/* Mobile View */}
                                         <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
                                             {records.map((record) => (
                                                 <div key={record.id} className="p-4 space-y-3">
@@ -354,7 +338,7 @@ const ExtraHoursPage: React.FC = () => {
                                                                     {record.militaries?.rank} {record.militaries?.name}
                                                                 </p>
                                                                 <p className="text-[10px] text-slate-400 uppercase font-black">
-                                                                    {parseLocalISO(record.date || record.created_at).toLocaleDateString('pt-BR')}
+                                                                    {safeParseISO(record.date || record.created_at).toLocaleDateString('pt-BR')}
                                                                 </p>
                                                             </div>
                                                         </div>
