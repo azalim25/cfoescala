@@ -5,27 +5,60 @@ import { useAuth } from '../contexts/AuthContext';
 import { Discipline, AcademicSchedule } from '../types';
 
 const QdchPage: React.FC = () => {
-    const { disciplines, schedule, isLoading, addDiscipline } = useAcademic();
+    const { disciplines, schedule, isLoading, addDiscipline, updateDiscipline, removeDiscipline } = useAcademic();
     const { isModerator } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [newDisc, setNewDisc] = useState({ name: '', totalHours: 0, category: 'Geral' });
+    const [editingDisc, setEditingDisc] = useState<Discipline | null>(null);
+    const [formData, setFormData] = useState({ name: '', totalHours: 0, category: 'Geral' });
     const [isSaving, setIsSaving] = useState(false);
 
-    const handleAddDiscipline = async () => {
-        if (!newDisc.name || newDisc.totalHours <= 0) {
+    const handleOpenAddModal = () => {
+        setEditingDisc(null);
+        setFormData({ name: '', totalHours: 0, category: 'Geral' });
+        setIsModalOpen(true);
+    };
+
+    const handleOpenEditModal = (disc: Discipline) => {
+        setEditingDisc(disc);
+        setFormData({
+            name: disc.name,
+            totalHours: disc.totalHours,
+            category: disc.category || 'Geral'
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleSaveDiscipline = async () => {
+        if (!formData.name || formData.totalHours <= 0) {
             alert('Preencha os campos corretamente.');
             return;
         }
         setIsSaving(true);
         try {
-            await addDiscipline(newDisc);
+            if (editingDisc) {
+                await updateDiscipline(editingDisc.id, formData);
+            } else {
+                await addDiscipline(formData);
+            }
             setIsModalOpen(false);
-            setNewDisc({ name: '', totalHours: 0, category: 'Geral' });
+            setFormData({ name: '', totalHours: 0, category: 'Geral' });
+            setEditingDisc(null);
         } catch (error) {
-            console.error('Error adding discipline:', error);
-            alert('Erro ao cadastrar disciplina.');
+            console.error('Error saving discipline:', error);
+            alert('Erro ao salvar disciplina.');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleDeleteDiscipline = async (id: string, name: string) => {
+        if (confirm(`Deseja realmente excluir a disciplina "${name}"? Todas as aulas vinculadas a ela perderão o vínculo.`)) {
+            try {
+                await removeDiscipline(id);
+            } catch (error) {
+                console.error('Error deleting discipline:', error);
+                alert('Erro ao excluir disciplina.');
+            }
         }
     };
 
@@ -72,7 +105,7 @@ const QdchPage: React.FC = () => {
 
                     {isModerator && (
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={handleOpenAddModal}
                             className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm shadow-sm hover:opacity-90 transition-all border border-primary/20"
                         >
                             <span className="material-symbols-outlined text-sm">add</span> Adicionar Disciplina
@@ -80,23 +113,22 @@ const QdchPage: React.FC = () => {
                     )}
                 </div>
 
-                {/* Grid de Stats Médios */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">C.H. Total Prevista</p>
                         <h3 className="text-2xl font-black text-slate-800 dark:text-white">{totalPrevista}h</h3>
                         <div className="mt-4 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                             <div className="h-full bg-slate-400 rounded-full" style={{ width: '100%' }}></div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">C.H. Total Cumprida</p>
                         <h3 className="text-2xl font-black text-primary">{totalCumprida.toFixed(1)}h</h3>
                         <div className="mt-4 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                             <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${totalPercentage}%` }}></div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Progresso Geral</p>
                         <h3 className="text-2xl font-black text-slate-800 dark:text-white">{totalPercentage.toFixed(1)}%</h3>
                         <div className="mt-4 flex items-center gap-1">
@@ -107,7 +139,6 @@ const QdchPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Tabela de Disciplinas */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-8">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -118,33 +149,34 @@ const QdchPage: React.FC = () => {
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 text-center">Cumprida</th>
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 text-center">Restante</th>
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">Progresso</th>
+                                    {isModerator && <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 text-right">Ações</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {stats.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold italic">
+                                        <td colSpan={isModerator ? 6 : 5} className="px-6 py-12 text-center text-slate-400 font-bold italic">
                                             Nenhuma disciplina cadastrada.
                                         </td>
                                     </tr>
                                 ) : stats.map(s => (
-                                    <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{s.name}</span>
-                                                <span className="text-[10px] text-slate-400 uppercase font-bold">{s.category || 'Geral'}</span>
+                                                <span className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">{s.category || 'Geral'}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{s.totalHours}h</span>
+                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{s.totalHours}h</span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="text-sm font-black text-primary">{s.completedHours.toFixed(1)}h</span>
+                                            <span className="text-xs font-black text-primary">{s.completedHours.toFixed(1)}h</span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="text-sm font-bold text-slate-500">{s.remainingHours.toFixed(1)}h</span>
+                                            <span className="text-xs font-bold text-slate-500">{s.remainingHours.toFixed(1)}h</span>
                                         </td>
-                                        <td className="px-6 py-4 min-w-[200px]">
+                                        <td className="px-6 py-4 min-w-[180px]">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                     <div
@@ -152,9 +184,29 @@ const QdchPage: React.FC = () => {
                                                         style={{ width: `${Math.min(100, s.percentage)}%` }}
                                                     ></div>
                                                 </div>
-                                                <span className="text-[10px] font-black text-slate-400 w-10 text-right">{s.percentage.toFixed(0)}%</span>
+                                                <span className="text-[10px] font-black text-slate-400 w-8 text-right">{s.percentage.toFixed(0)}%</span>
                                             </div>
                                         </td>
+                                        {isModerator && (
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => handleOpenEditModal(s)}
+                                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition-all"
+                                                        title="Editar"
+                                                    >
+                                                        <span className="material-symbols-outlined text-lg">edit</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteDiscipline(s.id, s.name)}
+                                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                                                        title="Excluir"
+                                                    >
+                                                        <span className="material-symbols-outlined text-lg">delete</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
@@ -162,14 +214,14 @@ const QdchPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Modal Adicionar Disciplina */}
+                {/* Modal Adicionar/Editar Disciplina */}
                 {isModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                         <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
                             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                                 <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary">add_circle</span>
-                                    Nova Disciplina
+                                    <span className="material-symbols-outlined text-primary">{editingDisc ? 'edit' : 'add_circle'}</span>
+                                    {editingDisc ? 'Editar Disciplina' : 'Nova Disciplina'}
                                 </h3>
                                 <button onClick={() => setIsModalOpen(false)} className="w-9 h-9 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors">
                                     <span className="material-symbols-outlined text-slate-400">close</span>
@@ -180,8 +232,8 @@ const QdchPage: React.FC = () => {
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Disciplina</label>
                                     <input
                                         type="text"
-                                        value={newDisc.name}
-                                        onChange={(e) => setNewDisc({ ...newDisc, name: e.target.value })}
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all"
                                         placeholder="Ex: Legislação Militar"
                                     />
@@ -191,8 +243,8 @@ const QdchPage: React.FC = () => {
                                     <div className="relative">
                                         <input
                                             type="number"
-                                            value={newDisc.totalHours}
-                                            onChange={(e) => setNewDisc({ ...newDisc, totalHours: parseInt(e.target.value) || 0 })}
+                                            value={formData.totalHours}
+                                            onChange={(e) => setFormData({ ...formData, totalHours: parseInt(e.target.value) || 0 })}
                                             className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all"
                                             placeholder="0"
                                         />
@@ -202,8 +254,8 @@ const QdchPage: React.FC = () => {
                                 <div className="space-y-1.5">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
                                     <select
-                                        value={newDisc.category}
-                                        onChange={(e) => setNewDisc({ ...newDisc, category: e.target.value })}
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                         className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all"
                                     >
                                         <option value="Geral">Geral</option>
@@ -222,11 +274,11 @@ const QdchPage: React.FC = () => {
                                         Cancelar
                                     </button>
                                     <button
-                                        onClick={handleAddDiscipline}
+                                        onClick={handleSaveDiscipline}
                                         disabled={isSaving}
                                         className="flex-[2] h-12 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50"
                                     >
-                                        {isSaving ? 'Salvando...' : 'Cadastrar'}
+                                        {isSaving ? 'Salvando...' : (editingDisc ? 'Salvar Alterações' : 'Cadastrar')}
                                     </button>
                                 </div>
                             </div>
