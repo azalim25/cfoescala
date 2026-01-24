@@ -263,6 +263,24 @@ const QtmPage: React.FC = () => {
         });
     }, [timeSlots, selectedDayActivities]);
 
+    const firstClassIds = useMemo(() => {
+        const firstClasses: Record<string, string> = {};
+        const sortedClasses = [...schedule]
+            .filter(s => s.disciplineId)
+            .sort((a, b) => {
+                const dateCompare = a.date.localeCompare(b.date);
+                if (dateCompare !== 0) return dateCompare;
+                return a.startTime.localeCompare(b.startTime);
+            });
+
+        for (const cls of sortedClasses) {
+            if (cls.disciplineId && !firstClasses[cls.disciplineId]) {
+                firstClasses[cls.disciplineId] = cls.id;
+            }
+        }
+        return firstClasses;
+    }, [schedule]);
+
     const selectedDayHasNoClass = selectedDayActivities.some(act => act.description === 'Sem Aula');
 
     return (
@@ -363,6 +381,7 @@ const QtmPage: React.FC = () => {
                                             }
 
                                             const colors = activityColors[type] || activityColors['Aula'];
+                                            const isFirstClass = act.disciplineId && firstClassIds[act.disciplineId] === act.id;
 
                                             return (
                                                 <div
@@ -370,7 +389,8 @@ const QtmPage: React.FC = () => {
                                                     className={`w-full text-left p-1 rounded border overflow-hidden ${colors.bg} ${colors.border}`}
                                                 >
                                                     <div className="h-1 w-full bg-current opacity-20 mb-0.5"></div>
-                                                    <div className={`text-[7px] font-bold truncate px-0.5 ${colors.text}`}>
+                                                    <div className={`text-[7px] font-bold truncate px-0.5 ${colors.text} flex items-center gap-0.5`}>
+                                                        {isFirstClass && <span className="text-[8px]">★</span>}
                                                         {discipline?.name || act.description}
                                                     </div>
                                                 </div>
@@ -441,6 +461,7 @@ const QtmPage: React.FC = () => {
                                         type = 'Prova';
                                     }
                                     const colors = activityColors[type] || activityColors['Aula'];
+                                    const isFirstClass = act.disciplineId && firstClassIds[act.disciplineId] === act.id;
 
                                     return (
                                         <button
@@ -451,7 +472,10 @@ const QtmPage: React.FC = () => {
                                             <div className={`absolute top-0 left-0 bottom-0 w-1 ${colors.dot}`}></div>
                                             <div className="flex justify-between items-start mb-1">
                                                 <span className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>{act.startTime.slice(0, 5)} - {act.endTime.slice(0, 5)}</span>
-                                                {isModerator && <span className="material-symbols-outlined text-xs text-slate-300 group-hover:text-slate-500 transition-colors">edit</span>}
+                                                <div className="flex items-center gap-2">
+                                                    {isFirstClass && <span className="text-yellow-500 text-sm">★</span>}
+                                                    {isModerator && <span className="material-symbols-outlined text-xs text-slate-300 group-hover:text-slate-500 transition-colors">edit</span>}
+                                                </div>
                                             </div>
                                             <p className={`text-xs font-bold leading-tight ${type === 'Liberação' ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
                                                 {type === 'Prova' && <span className="text-pink-600 dark:text-pink-400 mr-1 uppercase font-black">[PROVA]</span>}
