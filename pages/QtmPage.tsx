@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useAcademic } from '../contexts/AcademicContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -142,6 +142,17 @@ const QtmPage: React.FC = () => {
         }
     };
 
+    const availableDisciplines = useMemo(() => {
+        return disciplines.filter(disc => {
+            const completedHours = schedule
+                .filter(s => s.disciplineId === disc.id)
+                .length * 2;
+
+            // Show if not finished OR if it's the one currently being edited
+            return completedHours < disc.totalHours || (editingEntry && editingEntry.disciplineId === disc.id);
+        });
+    }, [disciplines, schedule, editingEntry]);
+
     const selectedDayActivities = schedule
         .filter(s => s.date === selectedDate)
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -177,7 +188,7 @@ const QtmPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col xl:flex-row gap-6 mt-6">
+                <div className="flex flex-col-reverse xl:flex-row gap-6 mt-6">
                     {/* Calendar Grid */}
                     <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                         <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800">
@@ -371,7 +382,7 @@ const QtmPage: React.FC = () => {
                                         className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
                                     >
                                         <option value="">Selecione a disciplina...</option>
-                                        {disciplines.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                        {availableDisciplines.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                     </select>
 
                                     <label className="flex items-center gap-2 px-1 cursor-pointer group pt-1">
