@@ -160,7 +160,7 @@ const QtmPage: React.FC = () => {
     const selectedDayHasNoClass = selectedDayActivities.some(act => act.description === 'Sem Aula');
 
     return (
-        <MainLayout activePage="qtm">
+        <MainLayout activePage="qtm" reverseMobile>
             <MainLayout.Content>
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -188,166 +188,164 @@ const QtmPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col-reverse xl:flex-row gap-6 mt-6">
-                    {/* Calendar Grid */}
-                    <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                        <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800">
-                            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                                <div key={day} className="p-3 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0 border-slate-200 dark:border-slate-800">{day}</div>
-                            ))}
-                        </div>
-                        <div className="grid grid-cols-7 auto-rows-fr">
-                            {[...Array(getFirstDayOfMonth(currentYear, currentMonth))].map((_, i) => (
-                                <div key={`empty-${i}`} className="min-h-[100px] border-r border-b border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10"></div>
-                            ))}
-                            {[...Array(getDaysInMonth(currentYear, currentMonth))].map((_, i) => {
-                                const day = i + 1;
-                                const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                                const dayActivities = schedule.filter(s => s.date === dateStr).sort((a, b) => a.startTime.localeCompare(b.startTime));
-                                const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
-                                const isSelected = selectedDate === dateStr;
-
-                                const hasNoClass = dayActivities.some(act => act.description === 'Sem Aula');
-
-                                return (
-                                    <div
-                                        key={day}
-                                        onClick={() => handleDayClick(dateStr)}
-                                        className={`min-h-[100px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all relative cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isSelected ? 'ring-2 ring-primary ring-inset z-10' : ''} ${isToday ? 'bg-primary/5' : hasNoClass ? 'bg-red-50/50 dark:bg-red-900/10' : 'bg-white dark:bg-slate-900'}`}
-                                    >
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className={`text-xs font-bold ${isToday ? 'bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : hasNoClass ? 'text-red-500 font-black' : 'text-slate-400 group-hover:text-primary transition-colors'}`}>{day}</span>
-                                            {isModerator && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleOpenAddModal(day); }}
-                                                    className={`w-5 h-5 rounded opacity-0 group-hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center ${hasNoClass ? 'text-red-300 hover:text-red-500' : 'text-slate-300 hover:text-primary'} transition-all`}
-                                                >
-                                                    <span className="material-symbols-outlined text-xs">add</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="space-y-1">
-                                            {dayActivities.map(act => {
-                                                if (act.description === 'Sem Aula') return null;
-
-                                                const discipline = disciplines.find(d => d.id === act.disciplineId);
-
-                                                let type = 'Aula';
-                                                if (!act.disciplineId) {
-                                                    type = activityTypes.find(t => t === act.description) || 'Atividade Extra';
-                                                } else if (act.description === 'PROVA') {
-                                                    type = 'Prova';
-                                                }
-
-                                                const colors = activityColors[type] || activityColors['Aula'];
-
-                                                return (
-                                                    <div
-                                                        key={act.id}
-                                                        className={`w-full text-left p-1 rounded border overflow-hidden ${colors.bg} ${colors.border}`}
-                                                    >
-                                                        <div className="h-1 w-full bg-current opacity-20 mb-0.5"></div>
-                                                        <div className={`text-[7px] font-bold truncate px-0.5 ${colors.text}`}>
-                                                            {discipline?.name || act.description}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                {/* Calendar Grid */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
+                    <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800">
+                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                            <div key={day} className="p-3 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0 border-slate-200 dark:border-slate-800">{day}</div>
+                        ))}
                     </div>
+                    <div className="grid grid-cols-7 auto-rows-fr">
+                        {[...Array(getFirstDayOfMonth(currentYear, currentMonth))].map((_, i) => (
+                            <div key={`empty-${i}`} className="min-h-[100px] border-r border-b border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/10"></div>
+                        ))}
+                        {[...Array(getDaysInMonth(currentYear, currentMonth))].map((_, i) => {
+                            const day = i + 1;
+                            const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                            const dayActivities = schedule.filter(s => s.date === dateStr).sort((a, b) => a.startTime.localeCompare(b.startTime));
+                            const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
+                            const isSelected = selectedDate === dateStr;
 
-                    {/* Ficha do Dia */}
-                    <div className="w-full xl:w-80 space-y-4">
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden sticky top-6">
-                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm">
-                                    <span className="material-symbols-outlined text-primary">assignment</span>
-                                    Ficha do Dia
-                                </h3>
-                                <span className="text-[10px] font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full uppercase tracking-tighter">
-                                    {safeParseISO(selectedDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                </span>
-                            </div>
+                            const hasNoClass = dayActivities.some(act => act.description === 'Sem Aula');
 
-                            <div className="p-4 space-y-4 min-h-[400px]">
-                                {selectedDayHasNoClass ? (
-                                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-                                        <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center text-red-500">
-                                            <span className="material-symbols-outlined text-3xl">event_busy</span>
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-red-600 dark:text-red-400 uppercase text-xs tracking-widest">Sem Aula</p>
-                                            <p className="text-[10px] text-slate-500 font-medium">Não há atividades registradas para este dia.</p>
-                                        </div>
+                            return (
+                                <div
+                                    key={day}
+                                    onClick={() => handleDayClick(dateStr)}
+                                    className={`min-h-[100px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all relative cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isSelected ? 'ring-2 ring-primary ring-inset z-10' : ''} ${isToday ? 'bg-primary/5' : hasNoClass ? 'bg-red-50/50 dark:bg-red-900/10' : 'bg-white dark:bg-slate-900'}`}
+                                >
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className={`text-xs font-bold ${isToday ? 'bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : hasNoClass ? 'text-red-500 font-black' : 'text-slate-400 group-hover:text-primary transition-colors'}`}>{day}</span>
+                                        {isModerator && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleOpenAddModal(day); }}
+                                                className={`w-5 h-5 rounded opacity-0 group-hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center ${hasNoClass ? 'text-red-300 hover:text-red-500' : 'text-slate-300 hover:text-primary'} transition-all`}
+                                            >
+                                                <span className="material-symbols-outlined text-xs">add</span>
+                                            </button>
+                                        )}
                                     </div>
-                                ) : selectedDayActivities.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 opacity-40">
-                                        <span className="material-symbols-outlined text-4xl text-slate-300">calendar_today</span>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma atividade</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Atividades Agendadas</p>
-                                        {selectedDayActivities.map(act => {
+                                    <div className="space-y-1">
+                                        {dayActivities.map(act => {
+                                            if (act.description === 'Sem Aula') return null;
+
                                             const discipline = disciplines.find(d => d.id === act.disciplineId);
+
                                             let type = 'Aula';
                                             if (!act.disciplineId) {
                                                 type = activityTypes.find(t => t === act.description) || 'Atividade Extra';
                                             } else if (act.description === 'PROVA') {
                                                 type = 'Prova';
                                             }
+
                                             const colors = activityColors[type] || activityColors['Aula'];
 
                                             return (
-                                                <button
+                                                <div
                                                     key={act.id}
-                                                    onClick={() => isModerator && handleOpenEditModal(act)}
-                                                    className={`w-full text-left p-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98] ${colors.bg} ${colors.border} group relative overflow-hidden`}
+                                                    className={`w-full text-left p-1 rounded border overflow-hidden ${colors.bg} ${colors.border}`}
                                                 >
-                                                    <div className={`absolute top-0 left-0 bottom-0 w-1 ${colors.dot}`}></div>
-                                                    <div className="flex justify-between items-start mb-1">
-                                                        <span className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>{act.startTime.slice(0, 5)} - {act.endTime.slice(0, 5)}</span>
-                                                        {isModerator && <span className="material-symbols-outlined text-xs text-slate-300 group-hover:text-slate-500 transition-colors">edit</span>}
-                                                    </div>
-                                                    <p className={`text-xs font-bold leading-tight ${type === 'Liberação' ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
-                                                        {type === 'Prova' && <span className="text-pink-600 dark:text-pink-400 mr-1 uppercase font-black">[PROVA]</span>}
+                                                    <div className="h-1 w-full bg-current opacity-20 mb-0.5"></div>
+                                                    <div className={`text-[7px] font-bold truncate px-0.5 ${colors.text}`}>
                                                         {discipline?.name || act.description}
-                                                    </p>
-                                                    {act.location && type !== 'Liberação' && (
-                                                        <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-black/5 dark:border-white/5">
-                                                            <span className="material-symbols-outlined text-[12px] text-slate-400">location_on</span>
-                                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter truncate">{act.location}</span>
-                                                        </div>
-                                                    )}
-                                                </button>
+                                                    </div>
+                                                </div>
                                             );
                                         })}
                                     </div>
-                                )}
-
-                                {isModerator && (
-                                    <button
-                                        onClick={() => handleOpenAddModal(parseInt(selectedDate.split('-')[2]))}
-                                        className="w-full py-3 mt-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
-                                    >
-                                        <span className="material-symbols-outlined text-sm">add_circle</span>
-                                        Nova Atividade
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </MainLayout.Content>
 
+            <MainLayout.Sidebar>
+                {/* Ficha do Dia */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden sticky top-20">
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+                        <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase">
+                            <span className="material-symbols-outlined text-primary text-xl">assignment</span>
+                            Ficha do Dia
+                        </h3>
+                        <span className="text-[10px] font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full uppercase tracking-tighter">
+                            {safeParseISO(selectedDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                        </span>
+                    </div>
+
+                    <div className="p-4 space-y-4 min-h-[400px]">
+                        {selectedDayHasNoClass ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center text-red-500">
+                                    <span className="material-symbols-outlined text-3xl">event_busy</span>
+                                </div>
+                                <div>
+                                    <p className="font-bold text-red-600 dark:text-red-400 uppercase text-xs tracking-widest">Sem Aula</p>
+                                    <p className="text-[10px] text-slate-500 font-medium">Não há atividades registradas para este dia.</p>
+                                </div>
+                            </div>
+                        ) : selectedDayActivities.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 opacity-40">
+                                <span className="material-symbols-outlined text-4xl text-slate-300">calendar_today</span>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma atividade</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Atividades Agendadas</p>
+                                {selectedDayActivities.map(act => {
+                                    const discipline = disciplines.find(d => d.id === act.disciplineId);
+                                    let type = 'Aula';
+                                    if (!act.disciplineId) {
+                                        type = activityTypes.find(t => t === act.description) || 'Atividade Extra';
+                                    } else if (act.description === 'PROVA') {
+                                        type = 'Prova';
+                                    }
+                                    const colors = activityColors[type] || activityColors['Aula'];
+
+                                    return (
+                                        <button
+                                            key={act.id}
+                                            onClick={() => isModerator && handleOpenEditModal(act)}
+                                            className={`w-full text-left p-3 rounded-xl border transition-all hover:translate-x-1 ${colors.bg} ${colors.border} group relative overflow-hidden shadow-sm`}
+                                        >
+                                            <div className={`absolute top-0 left-0 bottom-0 w-1 ${colors.dot}`}></div>
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>{act.startTime.slice(0, 5)} - {act.endTime.slice(0, 5)}</span>
+                                                {isModerator && <span className="material-symbols-outlined text-xs text-slate-300 group-hover:text-slate-500 transition-colors">edit</span>}
+                                            </div>
+                                            <p className={`text-xs font-bold leading-tight ${type === 'Liberação' ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
+                                                {type === 'Prova' && <span className="text-pink-600 dark:text-pink-400 mr-1 uppercase font-black">[PROVA]</span>}
+                                                {discipline?.name || act.description}
+                                            </p>
+                                            {act.location && type !== 'Liberação' && (
+                                                <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-black/5 dark:border-white/5">
+                                                    <span className="material-symbols-outlined text-[12px] text-slate-400">location_on</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter truncate">{act.location}</span>
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {isModerator && (
+                            <button
+                                onClick={() => handleOpenAddModal(parseInt(selectedDate.split('-')[2]))}
+                                className="w-full py-3 mt-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-sm">add_circle</span>
+                                Nova Atividade
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </MainLayout.Sidebar>
+
             {/* Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200 text-slate-900 dark:text-white">
                         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary">edit_calendar</span>

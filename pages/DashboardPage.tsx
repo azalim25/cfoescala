@@ -241,7 +241,7 @@ const DashboardPage: React.FC = () => {
   const selectedDateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
 
   return (
-    <MainLayout activePage="dashboard" className="pb-20">
+    <MainLayout activePage="dashboard" reverseMobile className="pb-20">
       <MainLayout.Content>
         <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">

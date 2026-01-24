@@ -5,13 +5,14 @@ interface MainLayoutProps {
     children: ReactNode;
     activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'qdch';
     className?: string;
+    reverseMobile?: boolean;
 }
 
-const MainLayoutRoot = ({ children, activePage, className = '' }: MainLayoutProps) => {
+const MainLayoutRoot = ({ children, activePage, className = '', reverseMobile = false }: MainLayoutProps) => {
     return (
         <div className={`min-h-screen ${className}`}>
             <Header activePage={activePage} />
-            <main className="max-w-[1600px] mx-auto p-2 sm:p-4 flex flex-col lg:flex-row gap-4 lg:gap-6">
+            <main className={`max-w-[1600px] mx-auto p-2 sm:p-4 flex ${reverseMobile ? 'flex-col-reverse' : 'flex-col'} lg:flex-row gap-4 lg:gap-6`}>
                 {children}
             </main>
         </div>
