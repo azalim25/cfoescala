@@ -34,8 +34,7 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
                 setDisciplines(discRes.data.map(d => ({
                     id: d.id,
                     name: d.name,
-                    totalHours: d.total_hours,
-                    category: d.category
+                    totalHours: d.total_hours
                 })));
             }
 
@@ -64,8 +63,7 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
     const addDiscipline = async (discipline: Omit<Discipline, 'id'>) => {
         const { error } = await supabase.from('disciplines').insert({
             name: discipline.name,
-            total_hours: discipline.totalHours,
-            category: discipline.category
+            total_hours: discipline.totalHours
         });
         if (!error) await fetchAcademicData();
     };
@@ -74,7 +72,6 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
         const dbUpdates: any = {};
         if (updates.name !== undefined) dbUpdates.name = updates.name;
         if (updates.totalHours !== undefined) dbUpdates.total_hours = updates.totalHours;
-        if (updates.category !== undefined) dbUpdates.category = updates.category;
 
         const { error } = await supabase.from('disciplines').update(dbUpdates).eq('id', id);
         if (!error) await fetchAcademicData();

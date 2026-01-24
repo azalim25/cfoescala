@@ -43,7 +43,6 @@ export interface Discipline {
   id: string;
   name: string;
   totalHours: number;
-  category?: string;
 }
 
 export interface AcademicSchedule {

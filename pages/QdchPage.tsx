@@ -9,12 +9,12 @@ const QdchPage: React.FC = () => {
     const { isModerator } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDisc, setEditingDisc] = useState<Discipline | null>(null);
-    const [formData, setFormData] = useState({ name: '', totalHours: 0, category: 'Geral' });
+    const [formData, setFormData] = useState({ name: '', totalHours: 0 });
     const [isSaving, setIsSaving] = useState(false);
 
     const handleOpenAddModal = () => {
         setEditingDisc(null);
-        setFormData({ name: '', totalHours: 0, category: 'Geral' });
+        setFormData({ name: '', totalHours: 0 });
         setIsModalOpen(true);
     };
 
@@ -22,8 +22,7 @@ const QdchPage: React.FC = () => {
         setEditingDisc(disc);
         setFormData({
             name: disc.name,
-            totalHours: disc.totalHours,
-            category: disc.category || 'Geral'
+            totalHours: disc.totalHours
         });
         setIsModalOpen(true);
     };
@@ -41,7 +40,7 @@ const QdchPage: React.FC = () => {
                 await addDiscipline(formData);
             }
             setIsModalOpen(false);
-            setFormData({ name: '', totalHours: 0, category: 'Geral' });
+            setFormData({ name: '', totalHours: 0 });
             setEditingDisc(null);
         } catch (error) {
             console.error('Error saving discipline:', error);
@@ -164,7 +163,6 @@ const QdchPage: React.FC = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{s.name}</span>
-                                                <span className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">{s.category || 'Geral'}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
@@ -250,21 +248,6 @@ const QdchPage: React.FC = () => {
                                         />
                                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase">Horas</span>
                                     </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
-                                    <select
-                                        value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                        className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all"
-                                    >
-                                        <option value="Geral">Geral</option>
-                                        <option value="Jurídica">Jurídica</option>
-                                        <option value="Administrativa">Administrativa</option>
-                                        <option value="Técnica">Técnica</option>
-                                        <option value="Militar">Militar</option>
-                                        <option value="Operacional">Operacional</option>
-                                    </select>
                                 </div>
                                 <div className="pt-4 flex gap-3">
                                     <button
