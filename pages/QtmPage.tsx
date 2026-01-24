@@ -225,6 +225,7 @@ const QtmPage: React.FC = () => {
                                                         {act.startTime.slice(0, 5)} - {act.endTime.slice(0, 5)}
                                                     </div>
                                                     <div className={`text-[9px] font-bold truncate ${type === 'Liberação' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                        {type === 'Prova' && <span className="text-pink-600 dark:text-pink-400 mr-1 uppercase">[Prova]</span>}
                                                         {discipline?.name || act.description}
                                                     </div>
                                                     {act.location && type !== 'Liberação' && <div className="text-[7px] text-slate-500 truncate">{act.location}</div>}
