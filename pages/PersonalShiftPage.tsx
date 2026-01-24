@@ -4,6 +4,7 @@ import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useAcademic } from '../contexts/AcademicContext';
 import { supabase } from '../supabase';
 import { Shift, MilitaryPreference } from '../types';
 import { SHIFT_TYPE_COLORS } from '../constants';
@@ -23,6 +24,7 @@ interface ExtraHourRecord {
 const PersonalShiftPage: React.FC = () => {
   const { militaries } = useMilitary();
   const { shifts: allShifts, preferences, addPreference, removePreference } = useShift();
+  const { schedule, disciplines } = useAcademic();
   const { isModerator, session } = useAuth();
   const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -126,6 +128,12 @@ const PersonalShiftPage: React.FC = () => {
   };
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  const todaysClasses = useMemo(() => {
+    return schedule
+      .filter(s => s.date === today && s.description !== 'Sem Aula')
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [schedule, today]);
 
   // Robust Duplication Filter
   const combinedUpcoming = useMemo(() => {
@@ -433,6 +441,40 @@ const PersonalShiftPage: React.FC = () => {
               </div>
             </section>
 
+            {/* Mobile: Today's Classes */}
+            {todaysClasses.length > 0 && (
+              <div className="block sm:hidden mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
+                    <span className="material-symbols-outlined text-primary text-xl">school</span>
+                    Aulas de Hoje
+                  </h2>
+                </div>
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                  {todaysClasses.map((cls, idx) => {
+                    const discipline = disciplines.find(d => d.id === cls.disciplineId);
+                    const isExam = cls.description === 'PROVA';
+                    return (
+                      <div key={cls.id || idx} className="p-4 flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{cls.startTime.slice(0, 5)} - {cls.endTime.slice(0, 5)}</span>
+                          <span className="text-sm font-black text-slate-800 dark:text-white">
+                            {isExam && <span className="text-pink-600 dark:text-pink-400 mr-1">[PROVA]</span>}
+                            {discipline?.name || cls.description}
+                          </span>
+                          {cls.location && cls.description !== 'Liberação' && (
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
+                              {cls.location}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <section className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
@@ -637,6 +679,40 @@ const PersonalShiftPage: React.FC = () => {
             </div>
             <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl text-white/10 rotate-12 pointer-events-none">history</span>
           </div>
+
+          {/* Desktop: Today's Classes */}
+          {todaysClasses.length > 0 && (
+            <div className="hidden lg:block bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-lg">school</span>
+                Cronograma de Hoje
+              </h3>
+              <div className="space-y-3">
+                {todaysClasses.map((cls, idx) => {
+                  const discipline = disciplines.find(d => d.id === cls.disciplineId);
+                  const isExam = cls.description === 'PROVA';
+                  const isLib = cls.description === 'Liberação';
+                  return (
+                    <div key={cls.id || idx} className={`p-3 rounded-lg border leading-tight ${isExam ? 'bg-pink-50 border-pink-100 dark:bg-pink-900/10 dark:border-pink-800' : isLib ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-700'}`}>
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${isLib ? 'text-slate-400' : 'text-primary'}`}>{cls.startTime.slice(0, 5)} - {cls.endTime.slice(0, 5)}</span>
+                      </div>
+                      <p className={`text-xs font-bold ${isLib ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
+                        {isExam && <span className="text-pink-600 dark:text-pink-400 mr-1">[PROVA]</span>}
+                        {discipline?.name || cls.description}
+                      </p>
+                      {cls.location && !isLib && (
+                        <p className="text-[9px] font-bold text-slate-500 mt-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[12px]">location_on</span>
+                          {cls.location}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </MainLayout.Sidebar>
     </MainLayout>
