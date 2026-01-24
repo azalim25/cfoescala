@@ -270,11 +270,6 @@ const DashboardPage: React.FC = () => {
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-              <span className="material-symbols-outlined text-sm">print</span> Imprimir
-            </button>
-          </div>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
@@ -404,9 +399,14 @@ const DashboardPage: React.FC = () => {
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-slate-800 dark:text-100 uppercase text-xs sm:text-sm">FICHA DO DIA</h2>
-              <p className="text-[10px] sm:text-[11px] text-primary font-bold">
-                {safeParseISO(selectedDateStr).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}, {selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}
-              </p>
+              <div className="flex flex-col">
+                <span className="text-[10px] sm:text-[11px] text-primary font-bold">
+                  {safeParseISO(selectedDateStr).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}
+                </span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                  {selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}
+                </span>
+              </div>
             </div>
             {isModerator && (
               <button

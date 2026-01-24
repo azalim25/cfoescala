@@ -268,9 +268,14 @@ const QtmPage: React.FC = () => {
                             <span className="material-symbols-outlined text-primary text-xl">assignment</span>
                             Ficha do Dia
                         </h3>
-                        <span className="text-[10px] font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full uppercase tracking-tighter">
-                            {safeParseISO(selectedDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                        </span>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] sm:text-[11px] text-primary font-bold">
+                                {safeParseISO(selectedDate).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}
+                            </span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                {safeParseISO(selectedDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </span>
+                        </div>
                     </div>
 
                     <div className="p-4 space-y-4 min-h-[400px]">
