@@ -6,7 +6,7 @@ import { AcademicSchedule, Discipline } from '../types';
 import { safeParseISO } from '../utils/dateUtils';
 
 const QtmPage: React.FC = () => {
-    const { schedule, disciplines, addScheduleEntry, updateScheduleEntry, removeScheduleEntry } = useAcademic();
+    const { schedule, disciplines, addScheduleEntry, addScheduleEntries, updateScheduleEntry, removeScheduleEntry } = useAcademic();
     const { isModerator } = useAuth();
     const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -160,6 +160,50 @@ const QtmPage: React.FC = () => {
         }
     };
 
+    const handleSyncWeekends2026 = async () => {
+        if (!confirm('Deseja marcar todos os sábados e domingos de 2026 como "Sem Aula"?\n\nIsso preencherá automaticamente os finais de semana vazios.')) return;
+
+        try {
+            const weekends: Omit<AcademicSchedule, 'id'>[] = [];
+            const startDate = new Date(2026, 0, 1);
+            const endDate = new Date(2026, 11, 31);
+
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                const dayOfWeek = d.getDay();
+                if (dayOfWeek === 0 || dayOfWeek === 6) { // 0 = Sunday, 6 = Saturday
+                    const dateStr = d.toISOString().split('T')[0];
+
+                    // Check if there's already ANY activity on this date
+                    const hasActivity = schedule.some(s => s.date === dateStr);
+
+                    if (!hasActivity) {
+                        weekends.push({
+                            date: dateStr,
+                            startTime: '08:00',
+                            endTime: '18:00',
+                            disciplineId: null,
+                            location: 'LIBERADO',
+                            description: 'Sem Aula'
+                        });
+                    }
+                }
+            }
+
+            if (weekends.length === 0) {
+                alert('Não foram encontrados finais de semana vazios em 2026 para preencher.');
+                return;
+            }
+
+            if (!confirm(`Serão adicionados ${weekends.length} registros de "Sem Aula". Continuar?`)) return;
+
+            await addScheduleEntries(weekends);
+            alert('Finais de semana de 2026 sincronizados com sucesso!');
+        } catch (error) {
+            console.error('Error syncing weekends:', error);
+            alert('Erro ao sincronizar os dias.');
+        }
+    };
+
     const availableDisciplines = useMemo(() => {
         return disciplines.filter(disc => {
             const completedHours = schedule
@@ -192,7 +236,16 @@ const QtmPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-900">
+                        {isModerator && (
+                            <button
+                                onClick={handleSyncWeekends2026}
+                                className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg font-bold text-xs hover:bg-primary/10 hover:text-primary transition-all mr-2"
+                                title="Preencher finais de semana de 2026"
+                            >
+                                <span className="material-symbols-outlined text-sm">calendar_month</span> Sincronizar FDS 2026
+                            </button>
+                        )}
+                        <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
                             <button onClick={handlePrevMonth} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
                                 <span className="material-symbols-outlined text-sm">chevron_left</span>
                             </button>

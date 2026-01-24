@@ -11,6 +11,7 @@ interface AcademicContextType {
     updateDiscipline: (id: string, updates: Partial<Discipline>) => Promise<void>;
     removeDiscipline: (id: string) => Promise<void>;
     addScheduleEntry: (entry: Omit<AcademicSchedule, 'id'>) => Promise<void>;
+    addScheduleEntries: (entries: Omit<AcademicSchedule, 'id'>[]) => Promise<void>;
     updateScheduleEntry: (id: string, updates: Partial<AcademicSchedule>) => Promise<void>;
     removeScheduleEntry: (id: string) => Promise<void>;
 }
@@ -94,6 +95,20 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
         if (!error) await fetchAcademicData();
     };
 
+    const addScheduleEntries = async (entries: Omit<AcademicSchedule, 'id'>[]) => {
+        const { error } = await supabase.from('academic_schedule').insert(
+            entries.map(entry => ({
+                date: entry.date,
+                start_time: entry.startTime,
+                end_time: entry.endTime,
+                discipline_id: entry.disciplineId,
+                location: entry.location,
+                description: entry.description
+            }))
+        );
+        if (!error) await fetchAcademicData();
+    };
+
     const updateScheduleEntry = async (id: string, updates: Partial<AcademicSchedule>) => {
         const dbUpdates: any = {};
         if (updates.date !== undefined) dbUpdates.date = updates.date;
@@ -116,7 +131,7 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
         <AcademicContext.Provider value={{
             disciplines, schedule, isLoading, fetchAcademicData,
             addDiscipline, updateDiscipline, removeDiscipline,
-            addScheduleEntry, updateScheduleEntry, removeScheduleEntry
+            addScheduleEntry, addScheduleEntries, updateScheduleEntry, removeScheduleEntry
         }}>
             {children}
         </AcademicContext.Provider>
