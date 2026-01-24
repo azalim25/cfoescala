@@ -17,10 +17,23 @@ const QtmPage: React.FC = () => {
         'Aula',
         'Treinamento Esportivo',
         'Liberação',
-        'Dispensa de Ensino'
+        'Dispensa de Ensino',
+        'Atividade Extra',
+        'Sem Aula'
     ];
 
+    const activityColors: Record<string, { bg: string, text: string, border: string, dot: string }> = {
+        'Aula': { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-100 dark:border-blue-800/50', dot: 'bg-blue-500' },
+        'Prova': { bg: 'bg-pink-100 dark:bg-pink-900/40', text: 'text-pink-600 dark:text-pink-400', border: 'border-pink-300 dark:border-pink-800', dot: 'bg-pink-500' },
+        'Treinamento Esportivo': { bg: 'bg-orange-50 dark:bg-orange-900/20', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-100 dark:border-orange-800/50', dot: 'bg-orange-500' },
+        'Liberação': { bg: 'bg-slate-900 dark:bg-black', text: 'text-white dark:text-slate-200', border: 'border-slate-800 dark:border-slate-700', dot: 'bg-white' },
+        'Dispensa de Ensino': { bg: 'bg-slate-100 dark:bg-slate-800/50', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-700', dot: 'bg-slate-500' },
+        'Atividade Extra': { bg: 'bg-yellow-50 dark:bg-yellow-900/20', text: 'text-yellow-700 dark:text-yellow-400', border: 'border-yellow-200 dark:border-yellow-800/50', dot: 'bg-yellow-500' },
+        'Sem Aula': { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-600 dark:text-red-400', border: 'border-red-100 dark:border-red-800/50', dot: 'bg-red-500' }
+    };
+
     const [selectedType, setSelectedType] = useState('Aula');
+    const [isExam, setIsExam] = useState(false);
     const [formData, setFormData] = useState<Omit<AcademicSchedule, 'id'>>({
         date: '',
         startTime: '08:00',
@@ -60,6 +73,7 @@ const QtmPage: React.FC = () => {
         const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         setEditingEntry(null);
         setSelectedType('Aula');
+        setIsExam(false);
         setFormData({
             date: dateStr,
             startTime: '08:00',
@@ -73,8 +87,14 @@ const QtmPage: React.FC = () => {
 
     const handleOpenEditModal = (entry: AcademicSchedule) => {
         setEditingEntry(entry);
-        const type = entry.disciplineId ? 'Aula' : (entry.description || 'Aula');
-        setSelectedType(activityTypes.includes(type) ? type : 'Aula');
+
+        let foundType = 'Aula';
+        if (!entry.disciplineId) {
+            foundType = activityTypes.find(t => t === entry.description) || 'Atividade Extra';
+        }
+
+        setSelectedType(foundType);
+        setIsExam(entry.disciplineId !== null && entry.description === 'PROVA');
         setFormData({
             date: entry.date,
             startTime: entry.startTime,
@@ -91,7 +111,11 @@ const QtmPage: React.FC = () => {
             const dataToSave = { ...formData };
             if (selectedType !== 'Aula') {
                 dataToSave.disciplineId = null;
-                dataToSave.description = selectedType;
+                if (selectedType !== 'Atividade Extra') {
+                    dataToSave.description = selectedType;
+                }
+            } else {
+                dataToSave.description = isExam ? 'PROVA' : '';
             }
 
             if (editingEntry) {
@@ -158,17 +182,19 @@ const QtmPage: React.FC = () => {
                             const dayActivities = schedule.filter(s => s.date === dateStr).sort((a, b) => a.startTime.localeCompare(b.startTime));
                             const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
 
+                            const hasNoClass = dayActivities.some(act => act.description === 'Sem Aula');
+
                             return (
                                 <div
                                     key={day}
-                                    className={`min-h-[120px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all relative ${isToday ? 'bg-primary/5' : 'bg-white dark:bg-slate-900'}`}
+                                    className={`min-h-[120px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all relative ${isToday ? 'bg-primary/5' : hasNoClass ? 'bg-red-50/50 dark:bg-red-900/10' : 'bg-white dark:bg-slate-900'}`}
                                 >
                                     <div className="flex justify-between items-center mb-1">
-                                        <span className={`text-xs font-bold ${isToday ? 'bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-slate-400'}`}>{day}</span>
+                                        <span className={`text-xs font-bold ${isToday ? 'bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : hasNoClass ? 'text-red-500 font-black' : 'text-slate-400'}`}>{day}</span>
                                         {isModerator && (
                                             <button
                                                 onClick={() => handleOpenAddModal(day)}
-                                                className="w-5 h-5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-300 hover:text-primary transition-colors"
+                                                className={`w-5 h-5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center ${hasNoClass ? 'text-red-300 hover:text-red-500' : 'text-slate-300 hover:text-primary'} transition-colors`}
                                             >
                                                 <span className="material-symbols-outlined text-xs">add</span>
                                             </button>
@@ -177,14 +203,23 @@ const QtmPage: React.FC = () => {
                                     <div className="space-y-1">
                                         {dayActivities.map(act => {
                                             const discipline = disciplines.find(d => d.id === act.disciplineId);
-                                            const isSpecial = !act.disciplineId;
+
+                                            let type = 'Aula';
+                                            if (!act.disciplineId) {
+                                                type = activityTypes.find(t => t === act.description) || 'Atividade Extra';
+                                            } else if (act.description === 'PROVA') {
+                                                type = 'Prova';
+                                            }
+
+                                            const colors = activityColors[type] || activityColors['Aula'];
+
                                             return (
                                                 <button
                                                     key={act.id}
                                                     onClick={() => isModerator && handleOpenEditModal(act)}
-                                                    className={`w-full text-left p-1.5 rounded transition-all border ${isSpecial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/50' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/50'} hover:opacity-80`}
+                                                    className={`w-full text-left p-1.5 rounded transition-all border ${colors.bg} ${colors.border} hover:opacity-80`}
                                                 >
-                                                    <div className={`text-[8px] font-black mb-0.5 ${isSpecial ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                                    <div className={`text-[8px] font-black mb-0.5 ${colors.text}`}>
                                                         {act.startTime.slice(0, 5)} - {act.endTime.slice(0, 5)}
                                                     </div>
                                                     <div className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate">
@@ -215,7 +250,7 @@ const QtmPage: React.FC = () => {
                                 <span className="material-symbols-outlined text-slate-400">close</span>
                             </button>
                         </div>
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Atividade</label>
                                 <div className="grid grid-cols-2 gap-2">
@@ -231,7 +266,7 @@ const QtmPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {selectedType === 'Aula' && (
+                            {selectedType === 'Aula' ? (
                                 <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Disciplina</label>
                                     <select
@@ -242,8 +277,32 @@ const QtmPage: React.FC = () => {
                                         <option value="">Selecione a disciplina...</option>
                                         {disciplines.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                     </select>
+
+                                    <label className="flex items-center gap-2 px-1 cursor-pointer group pt-1">
+                                        <div className="relative flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={isExam}
+                                                onChange={e => setIsExam(e.target.checked)}
+                                                className="peer appearance-none w-5 h-5 rounded border-2 border-slate-200 dark:border-slate-700 checked:bg-pink-500 checked:border-pink-500 transition-all cursor-pointer"
+                                            />
+                                            <span className="material-symbols-outlined absolute text-white text-sm scale-0 peer-checked:scale-100 transition-transform pointer-events-none left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">check</span>
+                                        </div>
+                                        <span className={`text-xs font-bold transition-colors ${isExam ? 'text-pink-600 dark:text-pink-400' : 'text-slate-500'}`}>Avaliação / Prova</span>
+                                    </label>
                                 </div>
-                            )}
+                            ) : selectedType === 'Atividade Extra' ? (
+                                <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Descrição da Atividade</label>
+                                    <input
+                                        type="text"
+                                        value={formData.description || ''}
+                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="Ex: Formatura Geral, Instrução de Tiro"
+                                        className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
+                                    />
+                                </div>
+                            ) : null}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
