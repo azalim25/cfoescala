@@ -1,16 +1,32 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useAcademic } from '../contexts/AcademicContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Discipline, AcademicSchedule } from '../types';
 
 const QdchPage: React.FC = () => {
-    const { disciplines, schedule, isLoading } = useAcademic();
+    const { disciplines, schedule, isLoading, addDiscipline } = useAcademic();
+    const { isModerator } = useAuth();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newDisc, setNewDisc] = useState({ name: '', totalHours: 0, category: 'Geral' });
+    const [isSaving, setIsSaving] = useState(false);
 
-    const calculateHours = (start: string, end: string) => {
-        const [h1, m1] = start.split(':').map(Number);
-        const [h2, m2] = end.split(':').map(Number);
-        const totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-        return totalMinutes / 60;
+    const handleAddDiscipline = async () => {
+        if (!newDisc.name || newDisc.totalHours <= 0) {
+            alert('Preencha os campos corretamente.');
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await addDiscipline(newDisc);
+            setIsModalOpen(false);
+            setNewDisc({ name: '', totalHours: 0, category: 'Geral' });
+        } catch (error) {
+            console.error('Error adding discipline:', error);
+            alert('Erro ao cadastrar disciplina.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const stats = useMemo(() => {
@@ -53,8 +69,18 @@ const QdchPage: React.FC = () => {
                             <p className="text-xs text-slate-500 font-medium">Acompanhamento de Execução do Curso</p>
                         </div>
                     </div>
+
+                    {isModerator && (
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm shadow-sm hover:opacity-90 transition-all border border-primary/20"
+                        >
+                            <span className="material-symbols-outlined text-sm">add</span> Adicionar Disciplina
+                        </button>
+                    )}
                 </div>
 
+                {/* Grid de Stats Médios */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">C.H. Total Prevista</p>
@@ -81,6 +107,7 @@ const QdchPage: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Tabela de Disciplinas */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-8">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -94,7 +121,13 @@ const QdchPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {stats.map(s => (
+                                {stats.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold italic">
+                                            Nenhuma disciplina cadastrada.
+                                        </td>
+                                    </tr>
+                                ) : stats.map(s => (
                                     <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
@@ -128,6 +161,78 @@ const QdchPage: React.FC = () => {
                         </table>
                     </div>
                 </div>
+
+                {/* Modal Adicionar Disciplina */}
+                {isModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary">add_circle</span>
+                                    Nova Disciplina
+                                </h3>
+                                <button onClick={() => setIsModalOpen(false)} className="w-9 h-9 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors">
+                                    <span className="material-symbols-outlined text-slate-400">close</span>
+                                </button>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Disciplina</label>
+                                    <input
+                                        type="text"
+                                        value={newDisc.name}
+                                        onChange={(e) => setNewDisc({ ...newDisc, name: e.target.value })}
+                                        className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all"
+                                        placeholder="Ex: Legislação Militar"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Carga Horária Prevista</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={newDisc.totalHours}
+                                            onChange={(e) => setNewDisc({ ...newDisc, totalHours: parseInt(e.target.value) || 0 })}
+                                            className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all"
+                                            placeholder="0"
+                                        />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase">Horas</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
+                                    <select
+                                        value={newDisc.category}
+                                        onChange={(e) => setNewDisc({ ...newDisc, category: e.target.value })}
+                                        className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all"
+                                    >
+                                        <option value="Geral">Geral</option>
+                                        <option value="Jurídica">Jurídica</option>
+                                        <option value="Administrativa">Administrativa</option>
+                                        <option value="Técnica">Técnica</option>
+                                        <option value="Militar">Militar</option>
+                                        <option value="Operacional">Operacional</option>
+                                    </select>
+                                </div>
+                                <div className="pt-4 flex gap-3">
+                                    <button
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="flex-1 h-12 text-slate-500 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={handleAddDiscipline}
+                                        disabled={isSaving}
+                                        className="flex-[2] h-12 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50"
+                                    >
+                                        {isSaving ? 'Salvando...' : 'Cadastrar'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </MainLayout.Content>
         </MainLayout>
     );

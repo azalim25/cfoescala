@@ -46,19 +46,12 @@ export interface Discipline {
   category?: string;
 }
 
-export interface Instructor {
-  id: string;
-  name: string;
-  rank?: string;
-}
-
 export interface AcademicSchedule {
   id: string;
   date: string;
   startTime: string;
   endTime: string;
   disciplineId: string | null;
-  instructorId: string | null;
   location?: string;
   description?: string;
 }
