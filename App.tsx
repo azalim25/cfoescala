@@ -19,93 +19,110 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { MilitaryProvider } from './contexts/MilitaryContext';
 import { ShiftProvider } from './contexts/ShiftContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { AcademicProvider } from './contexts/AcademicContext';
+import QtmPage from './pages/QtmPage';
+import QdchPage from './pages/QdchPage';
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <MilitaryProvider>
-        <ShiftProvider>
-          <HashRouter>
-            <Routes>
-              <Route path="/auth" element={<AuthPage />} />
+      <AcademicProvider>
+        <MilitaryProvider>
+          <ShiftProvider>
+            <HashRouter>
+              <Routes>
+                <Route path="/auth" element={<AuthPage />} />
 
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/contacts" element={
-                <ProtectedRoute>
-                  <ContactsPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/contacts" element={
+                  <ProtectedRoute>
+                    <ContactsPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/generate-scale" element={
-                <ProtectedRoute>
-                  <GenerateScalePage />
-                </ProtectedRoute>
-              } />
+                <Route path="/generate-scale" element={
+                  <ProtectedRoute>
+                    <GenerateScalePage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/personal" element={
-                <ProtectedRoute>
-                  <PersonalShiftPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/personal" element={
+                  <ProtectedRoute>
+                    <PersonalShiftPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/extra-hours" element={
-                <ProtectedRoute>
-                  <ExtraHoursPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/extra-hours" element={
+                  <ProtectedRoute>
+                    <ExtraHoursPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/ranking" element={
-                <ProtectedRoute>
-                  <RankingPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/ranking" element={
+                  <ProtectedRoute>
+                    <RankingPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/estado-maior" element={
-                <ProtectedRoute>
-                  <EstadoMaiorPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/estado-maior" element={
+                  <ProtectedRoute>
+                    <EstadoMaiorPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/funcoes-turma" element={
-                <ProtectedRoute>
-                  <FuncoesTurmaPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/funcoes-turma" element={
+                  <ProtectedRoute>
+                    <FuncoesTurmaPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/stage" element={
-                <ProtectedRoute>
-                  <StageLocalPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/stage" element={
+                  <ProtectedRoute>
+                    <StageLocalPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/stage-quantity" element={
-                <ProtectedRoute>
-                  <StageQuantityPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/stage-quantity" element={
+                  <ProtectedRoute>
+                    <StageQuantityPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/comandante-guarda" element={
-                <ProtectedRoute>
-                  <ComandanteGuardaPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/comandante-guarda" element={
+                  <ProtectedRoute>
+                    <ComandanteGuardaPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/hours-control" element={
-                <ProtectedRoute>
-                  <HoursControlPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/hours-control" element={
+                  <ProtectedRoute>
+                    <HoursControlPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </HashRouter>
-        </ShiftProvider>
-      </MilitaryProvider>
+                <Route path="/qtm" element={
+                  <ProtectedRoute>
+                    <QtmPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/qdch" element={
+                  <ProtectedRoute>
+                    <QdchPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </HashRouter>
+          </ShiftProvider>
+        </MilitaryProvider>
+      </AcademicProvider>
     </AuthProvider>
   );
 };
