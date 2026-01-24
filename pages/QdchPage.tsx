@@ -63,15 +63,9 @@ const QdchPage: React.FC = () => {
 
     const stats = useMemo(() => {
         return disciplines.map(disc => {
-            const completedMinutes = schedule
+            const completedHours = schedule
                 .filter(s => s.disciplineId === disc.id)
-                .reduce((acc, s) => {
-                    const [h1, m1] = s.startTime.split(':').map(Number);
-                    const [h2, m2] = s.endTime.split(':').map(Number);
-                    return acc + ((h2 * 60 + m2) - (h1 * 60 + m1));
-                }, 0);
-
-            const completedHours = completedMinutes / 60;
+                .length * 2;
             const remainingHours = Math.max(0, disc.totalHours - completedHours);
             const percentage = disc.totalHours > 0 ? (completedHours / disc.totalHours) * 100 : 0;
 
