@@ -6,13 +6,26 @@ import { AcademicSchedule, Discipline } from '../types';
 import { safeParseISO } from '../utils/dateUtils';
 
 const QtmPage: React.FC = () => {
-    const { schedule, disciplines, addScheduleEntry, addScheduleEntries, updateScheduleEntry, removeScheduleEntry } = useAcademic();
+    const {
+        schedule,
+        disciplines,
+        timeSlots,
+        addScheduleEntry,
+        addScheduleEntries,
+        updateScheduleEntry,
+        removeScheduleEntry,
+        addTimeSlot,
+        updateTimeSlot,
+        removeTimeSlot
+    } = useAcademic();
     const { isModerator } = useAuth();
     const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isTimeSlotsModalOpen, setIsTimeSlotsModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<AcademicSchedule | null>(null);
+    const [selectedSlotId, setSelectedSlotId] = useState<string>('');
 
     const activityTypes = [
         'Aula',
@@ -97,6 +110,7 @@ const QtmPage: React.FC = () => {
         setEditingEntry(null);
         setSelectedType('Aula');
         setIsExam(false);
+        setSelectedSlotId('');
         setFormData({
             date: dateStr,
             startTime: '08:00',
@@ -132,6 +146,15 @@ const QtmPage: React.FC = () => {
     const handleSaveEntry = async () => {
         try {
             const dataToSave = { ...formData };
+
+            if (selectedSlotId) {
+                const slot = timeSlots.find(s => s.id === selectedSlotId);
+                if (slot) {
+                    dataToSave.startTime = slot.startTime;
+                    dataToSave.endTime = slot.endTime;
+                }
+            }
+
             if (selectedType !== 'Aula') {
                 dataToSave.disciplineId = null;
                 if (selectedType !== 'Atividade Extra') {
@@ -219,6 +242,27 @@ const QtmPage: React.FC = () => {
         .filter(s => s.date === selectedDate)
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
+    const availableTimeSlots = useMemo(() => {
+        const occupiedTimes = selectedDayActivities.map(act => ({
+            start: act.startTime.slice(0, 5),
+            end: act.endTime.slice(0, 5)
+        }));
+
+        return timeSlots.filter(slot => {
+            if (!slot.active) return false;
+
+            // Check if this slot's time is already taken
+            const slotStart = slot.startTime.slice(0, 5);
+            const slotEnd = slot.endTime.slice(0, 5);
+
+            return !occupiedTimes.some(occ =>
+                (slotStart >= occ.start && slotStart < occ.end) ||
+                (slotEnd > occ.start && slotEnd <= occ.end) ||
+                (occ.start >= slotStart && occ.start < slotEnd)
+            );
+        });
+    }, [timeSlots, selectedDayActivities]);
+
     const selectedDayHasNoClass = selectedDayActivities.some(act => act.description === 'Sem Aula');
 
     return (
@@ -237,13 +281,22 @@ const QtmPage: React.FC = () => {
 
                     <div className="flex items-center gap-2">
                         {isModerator && (
-                            <button
-                                onClick={handleSyncWeekends2026}
-                                className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg font-bold text-xs hover:bg-primary/10 hover:text-primary transition-all mr-2"
-                                title="Preencher finais de semana de 2026"
-                            >
-                                <span className="material-symbols-outlined text-sm">calendar_month</span> Sincronizar FDS 2026
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsTimeSlotsModalOpen(true)}
+                                    className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-lg font-bold text-xs hover:bg-primary/20 transition-all mr-2"
+                                    title="Gerenciar opções de horário"
+                                >
+                                    <span className="material-symbols-outlined text-sm">schedule</span> Horários
+                                </button>
+                                <button
+                                    onClick={handleSyncWeekends2026}
+                                    className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg font-bold text-xs hover:bg-primary/10 hover:text-primary transition-all mr-2"
+                                    title="Preencher finais de semana de 2026"
+                                >
+                                    <span className="material-symbols-outlined text-sm">calendar_month</span> Sincronizar FDS 2026
+                                </button>
+                            </div>
                         )}
                         <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
                             <button onClick={handlePrevMonth} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
@@ -496,16 +549,51 @@ const QtmPage: React.FC = () => {
                                 </div>
                             ) : null}
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Início</label>
-                                    <input type="time" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20" />
+                            {selectedType === 'Aula' ? (
+                                <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Horário da Aula</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {availableTimeSlots.map(slot => (
+                                            <button
+                                                key={slot.id}
+                                                onClick={() => setSelectedSlotId(slot.id)}
+                                                className={`px-3 py-2 rounded-lg text-[10px] font-bold border transition-all ${selectedSlotId === slot.id ? 'bg-primary text-white border-primary shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'}`}
+                                            >
+                                                {slot.startTime.slice(0, 5)} - {slot.endTime.slice(0, 5)}
+                                            </button>
+                                        ))}
+                                        {availableTimeSlots.length === 0 && (
+                                            <div className="col-span-2 p-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl text-center">
+                                                <p className="text-[10px] font-bold text-red-500 uppercase">Todos os horários padrão estão ocupados</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {!selectedSlotId && (
+                                        <div className="grid grid-cols-2 gap-4 mt-2 animate-in fade-in duration-300">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Início Manual</label>
+                                                <input type="time" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fim Manual</label>
+                                                <input type="time" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20" />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fim</label>
-                                    <input type="time" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20" />
+                            ) : (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Início</label>
+                                        <input type="time" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fim</label>
+                                        <input type="time" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20" />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Local / Observação</label>
@@ -524,6 +612,69 @@ const QtmPage: React.FC = () => {
                             )}
                             <button onClick={handleSaveEntry} className="flex-1 px-4 py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
                                 {editingEntry ? 'Salvar Alterações' : 'Adicionar no Cronograma'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Modal de Gerenciamento de Horários */}
+            {isTimeSlotsModalOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">schedule_send</span>
+                                Gerenciar Horários Padrão
+                            </h3>
+                            <button onClick={() => setIsTimeSlotsModalOpen(false)} className="w-8 h-8 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors">
+                                <span className="material-symbols-outlined text-slate-400">close</span>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                            <div className="space-y-4">
+                                {timeSlots.map(slot => (
+                                    <div key={slot.id} className="flex items-center gap-4 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
+                                        <div className="flex-1 grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Início</label>
+                                                <input
+                                                    type="time"
+                                                    value={slot.startTime.slice(0, 5)}
+                                                    onChange={e => updateTimeSlot(slot.id, { startTime: e.target.value })}
+                                                    className="w-full h-9 px-2 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Fim</label>
+                                                <input
+                                                    type="time"
+                                                    value={slot.endTime.slice(0, 5)}
+                                                    onChange={e => updateTimeSlot(slot.id, { endTime: e.target.value })}
+                                                    className="w-full h-9 px-2 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold"
+                                                />
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => removeTimeSlot(slot.id)}
+                                            className="w-9 h-9 flex items-center justify-center text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">delete</span>
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <button
+                                    onClick={() => addTimeSlot({ startTime: '08:00', endTime: '09:40', active: true })}
+                                    className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-sm">add_circle</span>
+                                    Novo Horário
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800">
+                            <button onClick={() => setIsTimeSlotsModalOpen(false)} className="w-full px-4 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm hover:opacity-90 transition-all">
+                                Fechar
                             </button>
                         </div>
                     </div>

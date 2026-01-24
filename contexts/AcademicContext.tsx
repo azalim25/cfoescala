@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../supabase';
-import { Discipline, AcademicSchedule } from '../types';
+import { Discipline, AcademicSchedule, AcademicTimeSlot } from '../types';
 
 interface AcademicContextType {
     disciplines: Discipline[];
     schedule: AcademicSchedule[];
+    timeSlots: AcademicTimeSlot[];
     isLoading: boolean;
     fetchAcademicData: () => Promise<void>;
     addDiscipline: (discipline: Omit<Discipline, 'id'>) => Promise<void>;
@@ -14,6 +15,9 @@ interface AcademicContextType {
     addScheduleEntries: (entries: Omit<AcademicSchedule, 'id'>[]) => Promise<void>;
     updateScheduleEntry: (id: string, updates: Partial<AcademicSchedule>) => Promise<void>;
     removeScheduleEntry: (id: string) => Promise<void>;
+    addTimeSlot: (slot: Omit<AcademicTimeSlot, 'id'>) => Promise<void>;
+    updateTimeSlot: (id: string, updates: Partial<AcademicTimeSlot>) => Promise<void>;
+    removeTimeSlot: (id: string) => Promise<void>;
 }
 
 const AcademicContext = createContext<AcademicContextType | undefined>(undefined);
@@ -21,14 +25,16 @@ const AcademicContext = createContext<AcademicContextType | undefined>(undefined
 export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [disciplines, setDisciplines] = useState<Discipline[]>([]);
     const [schedule, setSchedule] = useState<AcademicSchedule[]>([]);
+    const [timeSlots, setTimeSlots] = useState<AcademicTimeSlot[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchAcademicData = async () => {
         try {
             setIsLoading(true);
-            const [discRes, schRes] = await Promise.all([
+            const [discRes, schRes, slotRes] = await Promise.all([
                 supabase.from('disciplines').select('*').order('name'),
-                supabase.from('academic_schedule').select('*').order('date')
+                supabase.from('academic_schedule').select('*').order('date'),
+                supabase.from('academic_time_slots').select('*').order('start_time')
             ]);
 
             if (discRes.data) {
@@ -48,6 +54,15 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
                     disciplineId: s.discipline_id,
                     location: s.location,
                     description: s.description
+                })));
+            }
+
+            if (slotRes.data) {
+                setTimeSlots(slotRes.data.map(s => ({
+                    id: s.id,
+                    startTime: s.start_time,
+                    endTime: s.end_time,
+                    active: s.active
                 })));
             }
         } catch (error) {
@@ -127,11 +142,36 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
         if (!error) await fetchAcademicData();
     };
 
+    const addTimeSlot = async (slot: Omit<AcademicTimeSlot, 'id'>) => {
+        const { error } = await supabase.from('academic_time_slots').insert({
+            start_time: slot.startTime,
+            end_time: slot.endTime,
+            active: slot.active
+        });
+        if (!error) await fetchAcademicData();
+    };
+
+    const updateTimeSlot = async (id: string, updates: Partial<AcademicTimeSlot>) => {
+        const dbUpdates: any = {};
+        if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
+        if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
+        if (updates.active !== undefined) dbUpdates.active = updates.active;
+
+        const { error } = await supabase.from('academic_time_slots').update(dbUpdates).eq('id', id);
+        if (!error) await fetchAcademicData();
+    };
+
+    const removeTimeSlot = async (id: string) => {
+        const { error } = await supabase.from('academic_time_slots').delete().eq('id', id);
+        if (!error) await fetchAcademicData();
+    };
+
     return (
         <AcademicContext.Provider value={{
-            disciplines, schedule, isLoading, fetchAcademicData,
+            disciplines, schedule, timeSlots, isLoading, fetchAcademicData,
             addDiscipline, updateDiscipline, removeDiscipline,
-            addScheduleEntry, addScheduleEntries, updateScheduleEntry, removeScheduleEntry
+            addScheduleEntry, addScheduleEntries, updateScheduleEntry, removeScheduleEntry,
+            addTimeSlot, updateTimeSlot, removeTimeSlot
         }}>
             {children}
         </AcademicContext.Provider>

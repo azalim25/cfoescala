@@ -54,3 +54,10 @@ export interface AcademicSchedule {
   location?: string;
   description?: string;
 }
+
+export interface AcademicTimeSlot {
+  id: string;
+  startTime: string;
+  endTime: string;
+  active: boolean;
+}
