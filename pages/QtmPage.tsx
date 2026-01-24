@@ -236,7 +236,7 @@ const QtmPage: React.FC = () => {
                                                         className={`w-full text-left p-1 rounded border overflow-hidden ${colors.bg} ${colors.border}`}
                                                     >
                                                         <div className="h-1 w-full bg-current opacity-20 mb-0.5"></div>
-                                                        <div className="text-[7px] font-bold text-slate-700 dark:text-slate-200 truncate px-0.5">
+                                                        <div className={`text-[7px] font-bold truncate px-0.5 ${colors.text}`}>
                                                             {discipline?.name || act.description}
                                                         </div>
                                                     </div>
