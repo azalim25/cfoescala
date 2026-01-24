@@ -35,6 +35,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   };
 
   const navLinks = [
+    { to: '/qtm', label: 'QTM', icon: 'event_note', id: 'qtm' },
     { to: '/', label: 'Calendário', icon: 'calendar_month', id: 'dashboard' },
     { to: '/contacts', label: 'Contatos', icon: 'contact_page', id: 'contacts' },
     { to: '/personal', label: 'Minha Escala', icon: 'person_pin', id: 'personal' },
@@ -46,7 +47,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     { to: '/stage-quantity', label: 'Estágio - Qtde', icon: 'analytics', id: 'stage-quantity' },
     { to: '/comandante-guarda', label: 'Cmd. Guarda', icon: 'military_tech', id: 'comandante-guarda' },
     { to: '/hours-control', label: 'Controle de Serviços', icon: 'query_stats', id: 'hours-control' },
-    { to: '/qtm', label: 'QTM', icon: 'event_note', id: 'qtm' },
     { to: '/qdch', label: 'QDCH', icon: 'monitoring', id: 'qdch' },
   ];
 

@@ -185,7 +185,7 @@ const QtmPage: React.FC = () => {
                                                     className={`w-full text-left p-1.5 rounded transition-all border ${isSpecial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/50' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/50'} hover:opacity-80`}
                                                 >
                                                     <div className={`text-[8px] font-black mb-0.5 ${isSpecial ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                                        {act.startTime} - {act.endTime}
+                                                        {act.startTime.slice(0, 5)} - {act.endTime.slice(0, 5)}
                                                     </div>
                                                     <div className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate">
                                                         {discipline?.name || act.description}
