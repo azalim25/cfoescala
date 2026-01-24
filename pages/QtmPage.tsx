@@ -224,10 +224,10 @@ const QtmPage: React.FC = () => {
                                                     <div className={`text-[8px] font-black mb-0.5 ${colors.text}`}>
                                                         {act.startTime.slice(0, 5)} - {act.endTime.slice(0, 5)}
                                                     </div>
-                                                    <div className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate">
+                                                    <div className={`text-[9px] font-bold truncate ${type === 'Liberação' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                                                         {discipline?.name || act.description}
                                                     </div>
-                                                    {act.location && <div className="text-[7px] text-slate-500 truncate">{act.location}</div>}
+                                                    {act.location && type !== 'Liberação' && <div className="text-[7px] text-slate-500 truncate">{act.location}</div>}
                                                 </button>
                                             );
                                         })}
