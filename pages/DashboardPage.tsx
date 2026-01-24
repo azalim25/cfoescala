@@ -105,6 +105,29 @@ const DashboardPage: React.FC = () => {
     return new Date(year, month, 1).getDay();
   };
 
+  const handlePrevDay = () => {
+    if (selectedDay > 1) {
+      setSelectedDay(prev => prev - 1);
+    } else {
+      const prevDate = new Date(currentYear, currentMonth, 0);
+      setCurrentYear(prevDate.getFullYear());
+      setCurrentMonth(prevDate.getMonth());
+      setSelectedDay(prevDate.getDate());
+    }
+  };
+
+  const handleNextDay = () => {
+    const daysInCurrentMonth = getDaysInMonth(currentYear, currentMonth);
+    if (selectedDay < daysInCurrentMonth) {
+      setSelectedDay(prev => prev + 1);
+    } else {
+      const nextDate = new Date(currentYear, currentMonth + 1, 1);
+      setCurrentYear(nextDate.getFullYear());
+      setCurrentMonth(nextDate.getMonth());
+      setSelectedDay(1);
+    }
+  };
+
   const handleOpenAddModal = () => {
     setEditingShift(null);
     setFormData({
@@ -397,15 +420,26 @@ const DashboardPage: React.FC = () => {
       <MainLayout.Sidebar>
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-slate-800 dark:text-100 uppercase text-xs sm:text-sm">FICHA DO DIA</h2>
+            <div className="flex items-center gap-4">
               <div className="flex flex-col">
-                <span className="text-[10px] sm:text-[11px] text-primary font-bold">
-                  {safeParseISO(selectedDateStr).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}
-                </span>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                  {selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}
-                </span>
+                <h2 className="font-bold text-slate-800 dark:text-100 uppercase text-xs sm:text-sm leading-none mb-1">FICHA DO DIA</h2>
+                <div className="flex flex-col">
+                  <span className="text-[10px] sm:text-[11px] text-primary font-bold leading-tight">
+                    {safeParseISO(selectedDateStr).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}
+                  </span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter leading-tight">
+                    {selectedDay.toString().padStart(2, '0')} {months[currentMonth].toUpperCase()} {currentYear}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800/50 h-7">
+                <button onClick={handlePrevDay} className="px-1 h-full hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-colors border-r border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-base">chevron_left</span>
+                </button>
+                <button onClick={handleNextDay} className="px-1 h-full hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-colors flex items-center justify-center">
+                  <span className="material-symbols-outlined text-base">chevron_right</span>
+                </button>
               </div>
             </div>
             {isModerator && (

@@ -74,6 +74,24 @@ const QtmPage: React.FC = () => {
         setSelectedDate(dayStr);
     };
 
+    const handlePrevDay = () => {
+        const date = safeParseISO(selectedDate);
+        date.setDate(date.getDate() - 1);
+        const newDateStr = date.toISOString().split('T')[0];
+        setSelectedDate(newDateStr);
+        setCurrentMonth(date.getMonth());
+        setCurrentYear(date.getFullYear());
+    };
+
+    const handleNextDay = () => {
+        const date = safeParseISO(selectedDate);
+        date.setDate(date.getDate() + 1);
+        const newDateStr = date.toISOString().split('T')[0];
+        setSelectedDate(newDateStr);
+        setCurrentMonth(date.getMonth());
+        setCurrentYear(date.getFullYear());
+    };
+
     const handleOpenAddModal = (day: number) => {
         const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         setEditingEntry(null);
@@ -268,13 +286,24 @@ const QtmPage: React.FC = () => {
                             <span className="material-symbols-outlined text-primary text-xl">assignment</span>
                             Ficha do Dia
                         </h3>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] sm:text-[11px] text-primary font-bold">
-                                {safeParseISO(selectedDate).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}
-                            </span>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                                {safeParseISO(selectedDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                            </span>
+                        <div className="flex items-center gap-4">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] sm:text-[11px] text-primary font-bold leading-tight">
+                                    {safeParseISO(selectedDate).toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase()}
+                                </span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter leading-tight">
+                                    {safeParseISO(selectedDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800/50 h-7">
+                                <button onClick={handlePrevDay} className="px-1 h-full hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-colors border-r border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-base">chevron_left</span>
+                                </button>
+                                <button onClick={handleNextDay} className="px-1 h-full hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-colors flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-base">chevron_right</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
