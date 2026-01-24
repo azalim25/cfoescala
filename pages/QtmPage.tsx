@@ -202,6 +202,8 @@ const QtmPage: React.FC = () => {
                                     </div>
                                     <div className="space-y-1">
                                         {dayActivities.map(act => {
+                                            if (act.description === 'Sem Aula') return null;
+
                                             const discipline = disciplines.find(d => d.id === act.disciplineId);
 
                                             let type = 'Aula';
