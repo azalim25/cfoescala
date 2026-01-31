@@ -44,13 +44,22 @@ const PersonalShiftPage: React.FC = () => {
     Object.keys(SHIFT_TYPE_COLORS).filter(type => !['Escala Geral', 'Escala Diversa'].includes(type)),
     []);
   const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
+  const [selectedPastTypes, setSelectedPastTypes] = useState<string[]>([]);
 
   useEffect(() => {
-    setSelectedShiftTypes([...allShiftTypes, 'Escala Diversa']);
+    const defaultTypes = [...allShiftTypes, 'Escala Diversa'];
+    setSelectedShiftTypes(defaultTypes);
+    setSelectedPastTypes(defaultTypes);
   }, [allShiftTypes]);
 
   const toggleShiftType = (type: string) => {
     setSelectedShiftTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  const togglePastType = (type: string) => {
+    setSelectedPastTypes(prev =>
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
@@ -252,9 +261,9 @@ const PersonalShiftPage: React.FC = () => {
     ];
     return list
       .filter(s => s.date < today)
-      .filter(s => selectedShiftTypes.includes(s.type))
+      .filter(s => selectedPastTypes.includes(s.type))
       .sort((a, b) => b.date.localeCompare(a.date));
-  }, [personalShifts, personalStages, extraHours, today, selectedShiftTypes]);
+  }, [personalShifts, personalStages, extraHours, today, selectedPastTypes]);
 
   const isExcludedActivity = (type: string) => {
     const excludedExact = ['CFO I - Faxina', 'CFO I - Manutenção', 'CFO I - Sobreaviso'];
@@ -708,6 +717,24 @@ const PersonalShiftPage: React.FC = () => {
                   <span className="material-symbols-outlined text-slate-400 text-xl">history</span>
                   Serviços Concluídos
                 </h2>
+              </div>
+
+              <div className="mb-4 flex flex-wrap gap-2 px-1">
+                {[...allShiftTypes, 'Escala Diversa'].map(type => {
+                  const isSelected = selectedPastTypes.includes(type);
+                  const colors = SHIFT_TYPE_COLORS[type] || SHIFT_TYPE_COLORS['Escala Geral'];
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => togglePastType(type)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${isSelected
+                        ? `bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 ring-1 ring-offset-1 ring-slate-400/20 shadow-sm`
+                        : 'bg-slate-50 dark:bg-slate-800/20 text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 grayscale opacity-40'}`}
+                    >
+                      {type}
+                    </button>
+                  );
+                })}
               </div>
 
               {combinedPast.length === 0 ? (
