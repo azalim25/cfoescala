@@ -39,6 +39,22 @@ const PersonalShiftPage: React.FC = () => {
   const [prefType, setPrefType] = useState<'restriction' | 'priority'>('restriction');
   const [isSavingPref, setIsSavingPref] = useState(false);
 
+  // Filter State
+  const allShiftTypes = useMemo(() =>
+    Object.keys(SHIFT_TYPE_COLORS).filter(type => !['Escala Geral', 'Escala Diversa'].includes(type)),
+    []);
+  const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedShiftTypes([...allShiftTypes, 'Escala Diversa']);
+  }, [allShiftTypes]);
+
+  const toggleShiftType = (type: string) => {
+    setSelectedShiftTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
   // Fetch user profile
   useEffect(() => {
     if (session?.user) {
@@ -184,8 +200,11 @@ const PersonalShiftPage: React.FC = () => {
           status: 'Confirmado'
         }))
     ];
-    return list.filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
-  }, [personalShifts, personalStages, extraHours, today]);
+    return list
+      .filter(s => s.date >= today)
+      .filter(s => selectedShiftTypes.includes(s.type))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [personalShifts, personalStages, extraHours, today, selectedShiftTypes]);
 
   const isExcludedActivity = (type: string) => {
     const excludedExact = ['CFO I - Faxina', 'CFO I - Manutenção', 'CFO I - Sobreaviso'];
@@ -379,6 +398,24 @@ const PersonalShiftPage: React.FC = () => {
                   <span className="material-symbols-outlined text-primary text-xl">event_upcoming</span>
                   Próximos Serviços
                 </h2>
+              </div>
+
+              <div className="mb-4 flex flex-wrap gap-2 px-1">
+                {[...allShiftTypes, 'Escala Diversa'].map(type => {
+                  const isSelected = selectedShiftTypes.includes(type);
+                  const colors = SHIFT_TYPE_COLORS[type] || SHIFT_TYPE_COLORS['Escala Geral'];
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => toggleShiftType(type)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${isSelected
+                        ? `${colors.bg} ${colors.text} ${colors.border} ring-1 ring-offset-1 ring-primary/20 shadow-sm`
+                        : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 grayscale opacity-60'}`}
+                    >
+                      {type}
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
