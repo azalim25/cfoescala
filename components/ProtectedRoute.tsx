@@ -2,8 +2,8 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    const { session, isGuest, loading } = useAuth();
+const ProtectedRoute = ({ children, requireModerator = false }: { children: React.ReactNode; requireModerator?: boolean }) => {
+    const { session, isGuest, isModerator, loading } = useAuth();
 
     if (loading) {
         return (
@@ -15,6 +15,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     if (!session && !isGuest) {
         return <Navigate to="/auth" />;
+    }
+
+    if (requireModerator && !isModerator) {
+        return <Navigate to="/" />;
     }
 
     return <>{children}</>;

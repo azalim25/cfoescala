@@ -47,7 +47,7 @@ const App: React.FC = () => {
                 } />
 
                 <Route path="/generate-scale" element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requireModerator={true}>
                     <GenerateScalePage />
                   </ProtectedRoute>
                 } />

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useMilitary } from '../contexts/MilitaryContext';
+import { useAuth } from '../contexts/AuthContext';
 import { PageId, NAV_LINKS } from '../constants';
 
 interface HeaderProps {
@@ -11,6 +12,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const { militaries } = useMilitary();
+  const { isModerator } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -71,12 +73,14 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             </button>
           </div>
 
-          <Link
-            to="/generate-scale"
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm shadow-sm hover:opacity-90 transition-all"
-          >
-            <span className="material-symbols-outlined text-sm">add</span> Gerar Escala
-          </Link>
+          {isModerator && (
+            <Link
+              to="/generate-scale"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm shadow-sm hover:opacity-90 transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">add</span> Gerar Escala
+            </Link>
+          )}
 
           <div className="flex items-center gap-2 lg:gap-3 lg:ml-2 lg:border-l lg:border-slate-200 lg:dark:border-slate-800 lg:pl-4">
             <div className="text-right hidden lg:block">
@@ -158,13 +162,15 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               </Link>
             ))}
 
-            <Link
-              to="/generate-scale"
-              onClick={() => setIsMenuOpen(false)}
-              className="flex lg:hidden items-center gap-3 px-3 py-2.5 bg-primary/10 text-primary rounded-lg text-sm font-bold mt-4"
-            >
-              <span className="material-symbols-outlined">add</span> Gerar Escala
-            </Link>
+            {isModerator && (
+              <Link
+                to="/generate-scale"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex lg:hidden items-center gap-3 px-3 py-2.5 bg-primary/10 text-primary rounded-lg text-sm font-bold mt-4"
+              >
+                <span className="material-symbols-outlined">add</span> Gerar Escala
+              </Link>
+            )}
           </div>
 
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
