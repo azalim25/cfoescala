@@ -466,7 +466,8 @@ const DashboardPage: React.FC = () => {
                   'Faxina': 3,
                   'Estágio': 4,
                   'Sobreaviso': 5,
-                  'Escala Diversa': 6
+                  'Escala Diversa': 6,
+                  'Barra': 7
                 };
 
                 const dayShifts = allShifts.filter(s => s.date === selectedDateStr);
@@ -589,7 +590,9 @@ const DashboardPage: React.FC = () => {
                                 ? (stages.find(st => st.date === s.date && st.military_id === s.militaryId)?.location.split(' - ')[0] || s.location)
                                 : s.type === 'Escala Diversa'
                                   ? `${s.location} • ${s.startTime} às ${s.endTime}`
-                                  : `BM: ${m?.firefighterNumber}`}
+                                  : s.type === 'Barra'
+                                    ? `HORÁRIO: ${s.startTime}`
+                                    : `BM: ${m?.firefighterNumber}`}
                             </p>
                           </div>
                         </div>
