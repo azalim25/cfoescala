@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
 import { MOCK_SHIFTS, SHIFT_TYPE_COLORS } from '../constants';
 import { useShift } from '../contexts/ShiftContext';
@@ -39,6 +39,22 @@ const DashboardPage: React.FC = () => {
     startTime: '08:00',
     endTime: '12:00'
   });
+
+  // Filter State
+  const allShiftTypes = useMemo(() =>
+    Object.keys(SHIFT_TYPE_COLORS).filter(type => !['Escala Geral', 'Escala Diversa'].includes(type)),
+    []);
+  const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedShiftTypes([...allShiftTypes, 'Escala Diversa']);
+  }, [allShiftTypes]);
+
+  const toggleShiftType = (type: string) => {
+    setSelectedShiftTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
 
   useEffect(() => {
     fetchStages();
@@ -263,78 +279,100 @@ const DashboardPage: React.FC = () => {
 
   const selectedDateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
 
+  const isShiftVisible = (type: string) => selectedShiftTypes.includes(type);
+
   return (
     <MainLayout activePage="dashboard" reverseMobile className="pb-20">
       <MainLayout.Content>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-              <button
-                onClick={handlePrevMonth}
-                className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all hover:shadow-sm"
-                title="Mês Anterior"
-              >
-                <span className="material-symbols-outlined text-xl">keyboard_arrow_left</span>
-              </button>
-
-              <div className="flex items-center px-4 py-1.5 gap-2 group cursor-pointer relative min-w-[140px] justify-center">
-                <select
-                  value={currentMonth}
-                  onChange={handleMonthChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full"
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={handlePrevMonth}
+                  className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all hover:shadow-sm"
+                  title="Mês Anterior"
                 >
-                  {months.map((m, i) => <option key={m} value={i}>{m}</option>)}
-                </select>
-                <span className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-1 group-hover:text-primary transition-colors">
-                  {months[currentMonth]}
-                  <span className="material-symbols-outlined text-base opacity-40 group-hover:opacity-100 transition-opacity">expand_more</span>
-                </span>
+                  <span className="material-symbols-outlined text-xl">keyboard_arrow_left</span>
+                </button>
 
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-2"></div>
-
-                <div className="relative flex items-center group/year">
+                <div className="flex items-center px-4 py-1.5 gap-2 group cursor-pointer relative min-w-[140px] justify-center">
                   <select
-                    value={currentYear}
-                    onChange={handleYearChange}
+                    value={currentMonth}
+                    onChange={handleMonthChange}
                     className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full"
                   >
-                    {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                    {months.map((m, i) => <option key={m} value={i}>{m}</option>)}
                   </select>
-                  <span className="text-sm font-black text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">
-                    {currentYear}
+                  <span className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-1 group-hover:text-primary transition-colors">
+                    {months[currentMonth]}
+                    <span className="material-symbols-outlined text-base opacity-40 group-hover:opacity-100 transition-opacity">expand_more</span>
                   </span>
+
+                  <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+
+                  <div className="relative flex items-center group/year">
+                    <select
+                      value={currentYear}
+                      onChange={handleYearChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full"
+                    >
+                      {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <span className="text-sm font-black text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">
+                      {currentYear}
+                    </span>
+                  </div>
                 </div>
+
+                <button
+                  onClick={handleNextMonth}
+                  className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all hover:shadow-sm"
+                  title="Próximo Mês"
+                >
+                  <span className="material-symbols-outlined text-xl">keyboard_arrow_right</span>
+                </button>
               </div>
 
               <button
-                onClick={handleNextMonth}
-                className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all hover:shadow-sm"
-                title="Próximo Mês"
+                onClick={() => {
+                  const now = new Date();
+                  setCurrentMonth(now.getMonth());
+                  setCurrentYear(now.getFullYear());
+                  setSelectedDay(now.getDate());
+                }}
+                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-primary hover:text-white dark:hover:bg-primary text-slate-600 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-xl">keyboard_arrow_right</span>
+                <span className="material-symbols-outlined text-sm">restart_alt</span>
+                Voltar para Hoje
               </button>
             </div>
 
-            <button
-              onClick={() => {
-                const now = new Date();
-                setCurrentMonth(now.getMonth());
-                setCurrentYear(now.getFullYear());
-                setSelectedDay(now.getDate());
-              }}
-              className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-primary hover:text-white dark:hover:bg-primary text-slate-600 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-sm">restart_alt</span>
-              Voltar para Hoje
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-              <div className="px-3 py-1.5 text-[10px] font-black uppercase text-slate-500 tracking-tighter">
-                Exibição Mensal
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
+                <div className="px-3 py-1.5 text-[10px] font-black uppercase text-slate-500 tracking-tighter">
+                  Exibição Mensal
+                </div>
               </div>
             </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 px-1">
+            {[...allShiftTypes, 'Escala Diversa'].map(type => {
+              const isSelected = selectedShiftTypes.includes(type);
+              const colors = SHIFT_TYPE_COLORS[type] || SHIFT_TYPE_COLORS['Escala Geral'];
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleShiftType(type)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${isSelected
+                    ? `${colors.bg} ${colors.text} ${colors.border} ring-1 ring-offset-1 ring-primary/20 shadow-sm`
+                    : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 grayscale opacity-60'}`}
+                >
+                  {type}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -382,19 +420,23 @@ const DashboardPage: React.FC = () => {
 
                       const combined = [
                         ...dayStages
-                          .filter(st => !shifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'))
+                          .filter(st => isShiftVisible('Estágio') && !shifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'))
                           .map(s => ({ ...s, isStage: true, type: 'Estágio' as const, militaryId: s.military_id })),
-                        ...shifts.map(s => ({ ...s, isStage: false })),
-                        ...dayExtraHours.map(eh => ({
-                          id: eh.id,
-                          militaryId: eh.military_id,
-                          type: 'Escala Diversa' as const,
-                          location: eh.description.replace('Escala Diversa: ', ''),
-                          startTime: '08:00',
-                          endTime: '12:00',
-                          isStage: false,
-                          isExtra: true
-                        }))
+                        ...shifts
+                          .filter(s => isShiftVisible(s.type))
+                          .map(s => ({ ...s, isStage: false })),
+                        ...dayExtraHours
+                          .filter(eh => isShiftVisible('Escala Diversa'))
+                          .map(eh => ({
+                            id: eh.id,
+                            militaryId: eh.military_id,
+                            type: 'Escala Diversa' as const,
+                            location: eh.description.replace('Escala Diversa: ', ''),
+                            startTime: '08:00',
+                            endTime: '12:00',
+                            isStage: false,
+                            isExtra: true
+                          }))
                       ].sort((a, b) => {
                         const prioA = priority[a.type] || 99;
                         const prioB = priority[b.type] || 99;
@@ -513,9 +555,9 @@ const DashboardPage: React.FC = () => {
                   'Barra': 7
                 };
 
-                const dayShifts = allShifts.filter(s => s.date === selectedDateStr);
-                const dayStages = stages.filter(st => st.date === selectedDateStr && !dayShifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'));
-                const dayExtraHours = extraHours.filter(eh => eh.date === selectedDateStr);
+                const dayShifts = allShifts.filter(s => s.date === selectedDateStr && isShiftVisible(s.type));
+                const dayStages = stages.filter(st => st.date === selectedDateStr && isShiftVisible('Estágio') && !allShifts.some(sh => sh.date === st.date && sh.militaryId === st.military_id && sh.type === 'Estágio'));
+                const dayExtraHours = extraHours.filter(eh => eh.date === selectedDateStr && isShiftVisible('Escala Diversa'));
 
                 const unifiedList = [
                   ...dayShifts.map(s => ({ ...s, isStage: false, isExtra: false })),
