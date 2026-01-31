@@ -25,8 +25,23 @@ const BarraFixaPage: React.FC = () => {
             if (!groups[s.date][s.startTime]) groups[s.date][s.startTime] = [];
             groups[s.date][s.startTime].push(s);
         });
+
+        // Sort each time slot by military seniority
+        Object.keys(groups).forEach(date => {
+            Object.keys(groups[date]).forEach(time => {
+                groups[date][time].sort((a, b) => {
+                    const milA = militaries.find(m => m.id === a.militaryId);
+                    const milB = militaries.find(m => m.id === b.militaryId);
+                    const antA = milA?.antiguidade ?? 999999;
+                    const antB = milB?.antiguidade ?? 999999;
+                    if (antA !== antB) return antA - antB;
+                    return (milA?.name || "").localeCompare(milB?.name || "");
+                });
+            });
+        });
+
         return groups;
-    }, [barraShifts]);
+    }, [barraShifts, militaries]);
 
     const sortedDates = useMemo(() => {
         return Object.keys(groupedShifts).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
