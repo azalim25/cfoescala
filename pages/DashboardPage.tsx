@@ -266,31 +266,74 @@ const DashboardPage: React.FC = () => {
   return (
     <MainLayout activePage="dashboard" reverseMobile className="pb-20">
       <MainLayout.Content>
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-              <button onClick={handlePrevMonth} className="px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
-                <span className="material-symbols-outlined text-sm">chevron_left</span>
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={handlePrevMonth}
+                className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all hover:shadow-sm"
+                title="Mês Anterior"
+              >
+                <span className="material-symbols-outlined text-xl">keyboard_arrow_left</span>
               </button>
-              <div className="flex items-center bg-white dark:bg-slate-900 px-2 font-bold text-sm">
+
+              <div className="flex items-center px-4 py-1.5 gap-2 group cursor-pointer relative min-w-[140px] justify-center">
                 <select
                   value={currentMonth}
                   onChange={handleMonthChange}
-                  className="bg-transparent border-none focus:ring-0 cursor-pointer uppercase py-1.5 px-2"
+                  className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full"
                 >
                   {months.map((m, i) => <option key={m} value={i}>{m}</option>)}
                 </select>
-                <select
-                  value={currentYear}
-                  onChange={handleYearChange}
-                  className="bg-transparent border-none focus:ring-0 cursor-pointer py-1.5 px-2"
-                >
-                  {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
+                <span className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-1 group-hover:text-primary transition-colors">
+                  {months[currentMonth]}
+                  <span className="material-symbols-outlined text-base opacity-40 group-hover:opacity-100 transition-opacity">expand_more</span>
+                </span>
+
+                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+
+                <div className="relative flex items-center group/year">
+                  <select
+                    value={currentYear}
+                    onChange={handleYearChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full"
+                  >
+                    {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <span className="text-sm font-black text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">
+                    {currentYear}
+                  </span>
+                </div>
               </div>
-              <button onClick={handleNextMonth} className="px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 border-l border-slate-200 dark:border-slate-700">
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
+
+              <button
+                onClick={handleNextMonth}
+                className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all hover:shadow-sm"
+                title="Próximo Mês"
+              >
+                <span className="material-symbols-outlined text-xl">keyboard_arrow_right</span>
               </button>
+            </div>
+
+            <button
+              onClick={() => {
+                const now = new Date();
+                setCurrentMonth(now.getMonth());
+                setCurrentYear(now.getFullYear());
+                setSelectedDay(now.getDate());
+              }}
+              className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-primary hover:text-white dark:hover:bg-primary text-slate-600 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">restart_alt</span>
+              Voltar para Hoje
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
+              <div className="px-3 py-1.5 text-[10px] font-black uppercase text-slate-500 tracking-tighter">
+                Exibição Mensal
+              </div>
             </div>
           </div>
         </div>
