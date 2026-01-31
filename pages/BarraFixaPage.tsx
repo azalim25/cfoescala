@@ -9,9 +9,16 @@ import { Shift } from '../types';
 
 const BarraFixaPage: React.FC = () => {
     const { militaries } = useMilitary();
-    const { shifts, removeShift, createShifts } = useShift();
+    const { shifts, removeShift, createShifts, createShift, updateShift } = useShift();
     const { isModerator } = useAuth();
     const [isRepeatModalOpen, setIsRepeatModalOpen] = useState(false);
+    const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
+    const [editingShift, setEditingShift] = useState<Shift | null>(null);
+    const [formData, setFormData] = useState({
+        militaryId: '',
+        date: '',
+        startTime: '09:40',
+    });
     const [repeatSource, setRepeatSource] = useState<{ date: string; time: string; shifts: Shift[] } | null>(null);
     const [repeatTarget, setRepeatTarget] = useState({ date: '', time: '' });
     const [isProcessing, setIsProcessing] = useState(false);
@@ -51,6 +58,60 @@ const BarraFixaPage: React.FC = () => {
     const handleDeleteShift = async (id: string) => {
         if (window.confirm('Deseja realmente remover este militar desta escala?')) {
             await removeShift(id);
+        }
+    };
+
+    const handleOpenAddModal = (date?: string, time?: string) => {
+        setEditingShift(null);
+        setFormData({
+            militaryId: '',
+            date: date || new Date().toISOString().split('T')[0],
+            startTime: time || '09:40',
+        });
+        setIsAddEditModalOpen(true);
+    };
+
+    const handleOpenEditModal = (shift: Shift) => {
+        setEditingShift(shift);
+        setFormData({
+            militaryId: shift.militaryId,
+            date: shift.date,
+            startTime: shift.startTime,
+        });
+        setIsAddEditModalOpen(true);
+    };
+
+    const handleSaveShift = async () => {
+        if (!formData.militaryId || !formData.date || !formData.startTime) {
+            alert('Por favor, preencha todos os campos.');
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            if (editingShift) {
+                await updateShift(editingShift.id, {
+                    militaryId: formData.militaryId,
+                    date: formData.date,
+                    startTime: formData.startTime,
+                    endTime: formData.startTime,
+                });
+            } else {
+                await createShift({
+                    militaryId: formData.militaryId,
+                    date: formData.date,
+                    type: 'Barra',
+                    startTime: formData.startTime,
+                    endTime: formData.startTime,
+                    status: 'Confirmado',
+                    location: 'Escola'
+                });
+            }
+            setIsAddEditModalOpen(false);
+        } catch (error) {
+            console.error('Error saving shift:', error);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -119,25 +180,37 @@ const BarraFixaPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 max-w-md">
-                        <div className="relative group">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-500 transition-colors">search</span>
-                            <input
-                                type="text"
-                                placeholder="Pesquisar militar..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all dark:text-white"
-                            />
-                            {searchTerm && (
-                                <button
-                                    onClick={() => setSearchTerm('')}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                                >
-                                    <span className="material-symbols-outlined text-sm">close</span>
-                                </button>
-                            )}
+                    <div className="flex items-center gap-3 flex-1 justify-end max-w-2xl">
+                        <div className="flex-1 max-w-sm">
+                            <div className="relative group">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-500 transition-colors">search</span>
+                                <input
+                                    type="text"
+                                    placeholder="Pesquisar militar..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all dark:text-white"
+                                />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">close</span>
+                                    </button>
+                                )}
+                            </div>
                         </div>
+
+                        {isModerator && (
+                            <button
+                                onClick={() => handleOpenAddModal()}
+                                className="flex items-center gap-2 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-xl text-xs font-black uppercase shadow-lg shadow-pink-200 dark:shadow-none transition-all shrink-0"
+                            >
+                                <span className="material-symbols-outlined text-sm">add_circle</span>
+                                Novo Serviço
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -176,13 +249,22 @@ const BarraFixaPage: React.FC = () => {
                                                     </div>
 
                                                     {isModerator && (
-                                                        <button
-                                                            onClick={() => handleOpenRepeatModal(date, time, groupedShifts[date][time])}
-                                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-all border border-pink-100 dark:border-pink-800/50 text-[10px] font-black uppercase"
-                                                        >
-                                                            <span className="material-symbols-outlined text-sm">content_copy</span>
-                                                            Repetir Grupo
-                                                        </button>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => handleOpenAddModal(date, time)}
+                                                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-all border border-pink-100 dark:border-pink-800/50 text-[10px] font-black uppercase"
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm">add</span>
+                                                                Adicionar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleOpenRepeatModal(date, time, groupedShifts[date][time])}
+                                                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-all border border-pink-100 dark:border-pink-800/50 text-[10px] font-black uppercase"
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm">content_copy</span>
+                                                                Repetir Grupo
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
 
@@ -213,13 +295,22 @@ const BarraFixaPage: React.FC = () => {
                                                                     </div>
 
                                                                     {isModerator && (
-                                                                        <button
-                                                                            onClick={() => handleDeleteShift(s.id)}
-                                                                            className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all"
-                                                                            title="Remover militar"
-                                                                        >
-                                                                            <span className="material-symbols-outlined text-lg">delete</span>
-                                                                        </button>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <button
+                                                                                onClick={() => handleOpenEditModal(s)}
+                                                                                className="p-2 text-slate-300 hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg transition-all"
+                                                                                title="Editar serviço"
+                                                                            >
+                                                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => handleDeleteShift(s.id)}
+                                                                                className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all"
+                                                                                title="Remover militar"
+                                                                            >
+                                                                                <span className="material-symbols-outlined text-lg">delete</span>
+                                                                            </button>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                                 <div className="absolute top-0 right-0 w-1 h-full bg-pink-500/30 group-hover:bg-pink-500 transition-colors"></div>
@@ -321,6 +412,99 @@ const BarraFixaPage: React.FC = () => {
                                         <>
                                             <span className="material-symbols-outlined text-base">check_circle</span>
                                             Confirmar Cópia
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {/* Add/Edit Modal */}
+                {isAddEditModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+                                <div>
+                                    <h3 className="font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                        {editingShift ? 'Editar Serviço' : 'Novo Serviço'}
+                                    </h3>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Escala de Barra</p>
+                                </div>
+                                <button
+                                    onClick={() => !isProcessing && setIsAddEditModalOpen(false)}
+                                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-400"
+                                >
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">Militar</label>
+                                    <select
+                                        value={formData.militaryId}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, militaryId: e.target.value }))}
+                                        className="w-full h-11 px-4 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 font-medium text-sm transition-all dark:text-white"
+                                    >
+                                        <option value="">Selecione um militar...</option>
+                                        {militaries
+                                            .sort((a, b) => (a.antiguidade || 999) - (b.antiguidade || 999))
+                                            .map(m => (
+                                                <option key={m.id} value={m.id}>
+                                                    {m.rank} {m.name}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">Data</label>
+                                    <input
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                                        className="w-full h-11 px-4 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 font-medium text-sm transition-all dark:text-white"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">Horário da Barra</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {['09:40', '11:40', '15:40', '17:40'].map(t => (
+                                            <button
+                                                key={t}
+                                                onClick={() => setFormData(prev => ({ ...prev, startTime: t }))}
+                                                className={`py-3 rounded-xl text-xs font-bold border transition-all ${formData.startTime === t
+                                                    ? 'bg-pink-500 border-pink-500 text-white shadow-lg shadow-pink-200 dark:shadow-none'
+                                                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-pink-300'
+                                                    }`}
+                                            >
+                                                {t}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+                                <button
+                                    onClick={() => setIsAddEditModalOpen(false)}
+                                    disabled={isProcessing}
+                                    className="flex-1 py-3 text-xs font-black uppercase text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleSaveShift}
+                                    disabled={isProcessing || !formData.militaryId || !formData.date}
+                                    className="flex-[2] bg-pink-500 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl text-xs font-black uppercase shadow-lg shadow-pink-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
+                                >
+                                    {isProcessing ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined text-base">save</span>
+                                            {editingShift ? 'Salvar Alterações' : 'Criar Serviço'}
                                         </>
                                     )}
                                 </button>
