@@ -7,6 +7,7 @@ interface ShiftContextType {
     preferences: MilitaryPreference[];
     addShifts: (newShifts: Shift[]) => Promise<void>;
     createShift: (shift: Omit<Shift, 'id'>) => Promise<void>;
+    createShifts: (shifts: Omit<Shift, 'id'>[]) => Promise<void>;
     updateShift: (id: string, updates: Partial<Shift>) => Promise<void>;
     removeShift: (id: string) => Promise<void>;
     clearShifts: () => void;
@@ -140,6 +141,29 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     };
 
+    const createShifts = async (newShifts: Omit<Shift, 'id'>[]) => {
+        try {
+            const dbShifts = newShifts.map(s => ({
+                military_id: s.militaryId,
+                date: s.date,
+                type: s.type,
+                start_time: s.startTime,
+                end_time: s.endTime,
+                location: s.location,
+                status: s.status,
+                duration: s.duration
+            }));
+
+            const { error } = await supabase.from('shifts').insert(dbShifts);
+            if (error) throw error;
+            await fetchShifts();
+        } catch (error) {
+            console.error('Error creating shifts bulk:', error);
+            alert('Erro ao adicionar serviços em lote.');
+        }
+    };
+
+
     // I need to add `createShift` to the Context Interface if I use it.
     // Wait, I can just overload `addShifts` or add an argument `overwrite: boolean`.
     // Let's just create `updateShift` and `removeShift` as requested, and `addSingleShift`.
@@ -250,6 +274,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             updateShift,
             removeShift,
             createShift,
+            createShifts,
             addPreference,
             removePreference
         }}>
