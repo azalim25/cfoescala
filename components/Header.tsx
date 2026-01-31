@@ -16,7 +16,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
   const militaryProfile = useMemo(() => {
     if (!profile || !militaries) return null;
-    return militaries.find(m => m.firefighterNumber === profile.firefighter_number);
+    const cleanProfileNumber = profile.firefighter_number?.replace(/\D/g, '');
+    return militaries.find(m => m.firefighterNumber?.replace(/\D/g, '') === cleanProfileNumber);
   }, [profile, militaries]);
 
   useEffect(() => {
@@ -80,7 +81,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           <div className="flex items-center gap-2 lg:gap-3 lg:ml-2 lg:border-l lg:border-slate-200 lg:dark:border-slate-800 lg:pl-4">
             <div className="text-right hidden lg:block">
               <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">{profile?.name || 'Usuário'}</p>
-              <p className="text-[10px] text-slate-500 font-medium mt-1">{profile?.rank || 'Militar'}</p>
+              <p className="text-[10px] text-slate-500 font-medium mt-1">{militaryProfile?.rank || profile?.rank || 'Militar'}</p>
             </div>
             <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden text-orange-600 dark:text-orange-400 font-black text-xs">
               {militaryProfile?.antiguidade || '-'}
@@ -141,7 +142,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                 </div>
                 <div>
                   <p className="text-sm font-bold dark:text-white">{profile?.name || 'Usuário'}</p>
-                  <p className="text-xs text-slate-500">{profile?.rank || 'Militar'}</p>
+                  <p className="text-xs text-slate-500">{militaryProfile?.rank || profile?.rank || 'Militar'}</p>
                 </div>
               </div>
             </div>
