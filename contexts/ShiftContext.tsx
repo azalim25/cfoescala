@@ -10,6 +10,7 @@ interface ShiftContextType {
     createShifts: (shifts: Omit<Shift, 'id'>[]) => Promise<void>;
     updateShift: (id: string, updates: Partial<Shift>) => Promise<void>;
     removeShift: (id: string) => Promise<void>;
+    removeShifts: (ids: string[]) => Promise<void>;
     clearShifts: () => void;
     addPreference: (pref: Omit<MilitaryPreference, 'id'>) => Promise<void>;
     removePreference: (id: string) => Promise<void>;
@@ -226,6 +227,21 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     };
 
+    const removeShifts = async (ids: string[]) => {
+        try {
+            const { error } = await supabase
+                .from('shifts')
+                .delete()
+                .in('id', ids);
+
+            if (error) throw error;
+            await fetchShifts();
+        } catch (error) {
+            console.error('Error removing shifts:', error);
+            alert('Erro ao remover serviços.');
+        }
+    };
+
     const clearShifts = async () => {
         // Optionally implement full wipe if needed, currently just clears local
         setShifts([]);
@@ -273,6 +289,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             isLoading,
             updateShift,
             removeShift,
+            removeShifts,
             createShift,
             createShifts,
             addPreference,

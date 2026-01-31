@@ -9,7 +9,7 @@ import { Shift } from '../types';
 
 const BarraFixaPage: React.FC = () => {
     const { militaries } = useMilitary();
-    const { shifts, removeShift, createShifts, createShift, updateShift } = useShift();
+    const { shifts, removeShift, removeShifts, createShifts, createShift, updateShift } = useShift();
     const { isModerator } = useAuth();
     const [isRepeatModalOpen, setIsRepeatModalOpen] = useState(false);
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
@@ -58,6 +58,13 @@ const BarraFixaPage: React.FC = () => {
     const handleDeleteShift = async (id: string) => {
         if (window.confirm('Deseja realmente remover este militar desta escala?')) {
             await removeShift(id);
+        }
+    };
+
+    const handleDeleteGroup = async (groupShifts: Shift[]) => {
+        if (window.confirm(`Deseja realmente excluir todo este grupo (${groupShifts.length} militares)?`)) {
+            const ids = groupShifts.map(s => s.id);
+            await removeShifts(ids);
         }
     };
 
@@ -263,6 +270,13 @@ const BarraFixaPage: React.FC = () => {
                                                             >
                                                                 <span className="material-symbols-outlined text-sm">content_copy</span>
                                                                 Repetir Grupo
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteGroup(groupedShifts[date][time])}
+                                                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all border border-rose-100 dark:border-rose-800/50 text-[10px] font-black uppercase"
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm">delete_sweep</span>
+                                                                Excluir Grupo
                                                             </button>
                                                         </div>
                                                     )}
