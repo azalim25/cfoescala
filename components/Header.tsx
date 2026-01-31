@@ -1,17 +1,24 @@
 
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { useMilitary } from '../contexts/MilitaryContext';
 
 interface HeaderProps {
   activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'qdch' | 'barra-fixa';
 }
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
-  const [profile, setProfile] = React.useState<any>(null);
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const { militaries } = useMilitary();
+  const [profile, setProfile] = useState<any>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  React.useEffect(() => {
+  const militaryProfile = useMemo(() => {
+    if (!profile || !militaries) return null;
+    return militaries.find(m => m.firefighterNumber === profile.firefighter_number);
+  }, [profile, militaries]);
+
+  useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -99,8 +106,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">{profile?.name || 'Usuário'}</p>
               <p className="text-[10px] text-slate-500 font-medium mt-1">{profile?.rank || 'Militar'}</p>
             </div>
-            <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden text-slate-400 dark:text-slate-500">
-              <span className="material-symbols-outlined text-xl">person</span>
+            <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden text-orange-600 dark:text-orange-400 font-black text-xs">
+              {militaryProfile?.antiguidade || '-'}
             </div>
           </div>
 
@@ -153,8 +160,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
             <div className="px-2 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                  <span className="material-symbols-outlined">person</span>
+                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-sm border border-orange-200 dark:border-orange-800/50">
+                  {militaryProfile?.antiguidade || '-'}
                 </div>
                 <div>
                   <p className="text-sm font-bold dark:text-white">{profile?.name || 'Usuário'}</p>
