@@ -357,7 +357,7 @@ const PersonalShiftPage: React.FC = () => {
                     onClick={() => { setSelectedMilitaryId(m.id); setSearchTerm(''); }}
                     className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
                   >
-                    <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary font-black text-[10px] shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-[10px] shrink-0">
                       {m.antiguidade || '-'}
                     </div>
                     <div>
@@ -399,7 +399,7 @@ const PersonalShiftPage: React.FC = () => {
                         onClick={() => { setSelectedMilitaryId(m.id); setSearchTerm(''); }}
                         className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left border-b border-slate-100 dark:border-slate-800 last:border-0"
                       >
-                        <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary font-black text-sm shrink-0 border border-primary/20">
+                        <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-sm shrink-0 border border-orange-200 dark:border-orange-800/50">
                           {m.antiguidade || '-'}
                         </div>
                         <div>
@@ -421,7 +421,7 @@ const PersonalShiftPage: React.FC = () => {
           <>
             <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col items-center justify-between gap-6 sm:flex-row">
               <div className="flex items-center gap-4 w-full sm:w-auto">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary font-black text-xl sm:text-2xl border-2 sm:border-4 border-primary/20 dark:border-primary/30 shadow-sm shrink-0">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-xl sm:text-2xl border-2 sm:border-4 border-orange-200 dark:border-orange-800/50 shadow-sm shrink-0">
                   {selectedMilitary.antiguidade || '-'}
                 </div>
                 <div>
