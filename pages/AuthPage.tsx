@@ -172,9 +172,7 @@ const AuthPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="mt-8 flex justify-center items-center gap-6 opacity-40 pointer-events-none">
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Exército Brasileiro • 2026</p>
-                </div>
+
             </div>
         </div>
     );

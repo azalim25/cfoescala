@@ -309,18 +309,7 @@ const PersonalShiftPage: React.FC = () => {
     return Object.values(summary).sort((a, b) => b.totalHours - a.totalHours || b.totalServices - a.totalServices);
   }, [personalShifts, extraHours]);
 
-  const handleExport = () => {
-    const headers = ['Data', 'Tipo', 'Início', 'Fim', 'Local', 'Status'].join(',');
-    const rows = personalShifts.map(s => [s.date, s.type, s.startTime, s.endTime, s.location || '-', s.status].join(','));
-    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `escala_${selectedMilitary?.name.replace(/\s+/g, '_')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+
 
   const handleAddPref = async () => {
     if (!selectedMilitaryId) return;
@@ -435,20 +424,7 @@ const PersonalShiftPage: React.FC = () => {
                   <p className="text-[9px] font-bold text-slate-400 uppercase mt-1.5">{selectedMilitary.battalion}</p>
                 </div>
               </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <button
-                  onClick={handleExport}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 font-bold text-[10px] sm:text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm">download</span> Exportar
-                </button>
-                <button
-                  onClick={() => window.print()}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-primary text-white rounded-lg font-bold text-[10px] sm:text-xs hover:opacity-90 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm">print</span> Imprimir
-                </button>
-              </div>
+
             </div>
 
             <section className="mb-8">
