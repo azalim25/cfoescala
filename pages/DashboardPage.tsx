@@ -747,7 +747,7 @@ const DashboardPage: React.FC = () => {
                 <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Horário da Barra</label>
                   <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                    {['09:40', '11:40', '15:40'].map(time => (
+                    {['09:40', '11:40', '15:40', '17:40'].map(time => (
                       <button
                         key={time}
                         onClick={() => setFormData(prev => ({ ...prev, startTime: time, endTime: time }))}

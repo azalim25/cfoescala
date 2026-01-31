@@ -249,8 +249,8 @@ const BarraFixaPage: React.FC = () => {
 
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Horário de Destino</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {['09:40', '11:40', '15:40'].map(t => (
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {['09:40', '11:40', '15:40', '17:40'].map(t => (
                                                 <button
                                                     key={t}
                                                     onClick={() => setRepeatTarget(prev => ({ ...prev, time: t }))}
