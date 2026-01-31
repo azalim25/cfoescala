@@ -15,6 +15,7 @@ const BarraFixaPage: React.FC = () => {
     const [repeatSource, setRepeatSource] = useState<{ date: string; time: string; shifts: Shift[] } | null>(null);
     const [repeatTarget, setRepeatTarget] = useState({ date: '', time: '' });
     const [isProcessing, setIsProcessing] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const handleOpenRepeatModal = (date: string, time: string, groupShifts: Shift[]) => {
         setRepeatSource({ date, time, shifts: groupShifts });
@@ -53,12 +54,25 @@ const BarraFixaPage: React.FC = () => {
         }
     };
 
-    // Filter shifts of type 'Barra'
+    // Filter shifts of type 'Barra' and search term
     const barraShifts = useMemo(() => {
         return shifts
-            .filter(s => s.type === 'Barra')
+            .filter(s => {
+                const isBarra = s.type === 'Barra';
+                if (!isBarra) return false;
+
+                if (!searchTerm.trim()) return true;
+
+                const military = militaries.find(m => m.id === s.militaryId);
+                const searchLower = searchTerm.toLowerCase();
+                return (
+                    military?.name.toLowerCase().includes(searchLower) ||
+                    military?.rank.toLowerCase().includes(searchLower) ||
+                    military?.firefighterNumber.includes(searchTerm)
+                );
+            })
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    }, [shifts]);
+    }, [shifts, searchTerm, militaries]);
 
     // Group by date and then by time
     const groupedShifts = useMemo(() => {
@@ -99,9 +113,30 @@ const BarraFixaPage: React.FC = () => {
                         <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center text-pink-600 dark:text-pink-400">
                             <span className="material-symbols-outlined text-2xl">fitness_center</span>
                         </div>
-                        <div>
+                        <div className="flex flex-col">
                             <h2 className="font-bold text-lg text-slate-800 dark:text-slate-100 capitalize">Barra Fixa</h2>
                             <p className="text-xs text-slate-500 font-medium text-wrap max-sm:max-w-40 sm:max-w-full">Escala de treinamento físico (Barra)</p>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 max-w-md">
+                        <div className="relative group">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-500 transition-colors">search</span>
+                            <input
+                                type="text"
+                                placeholder="Pesquisar militar..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all dark:text-white"
+                            />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-sm">close</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
