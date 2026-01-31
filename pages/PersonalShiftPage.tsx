@@ -206,6 +206,56 @@ const PersonalShiftPage: React.FC = () => {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [personalShifts, personalStages, extraHours, today, selectedShiftTypes]);
 
+  const combinedPast = useMemo(() => {
+    const list = [
+      ...personalShifts.map(s => {
+        if (s.type === 'Estágio') {
+          const stageMatch = personalStages.find(ps => ps.date === s.date);
+          return { ...s, location: stageMatch ? stageMatch.location : s.location, isStage: false };
+        }
+        return { ...s, isStage: false };
+      }),
+      ...personalStages
+        .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
+        .map(s => ({
+          id: s.id,
+          date: s.date,
+          type: 'Estágio',
+          location: s.location,
+          isStage: true,
+          startTime: '08:00',
+          endTime: '08:00',
+          status: 'Confirmado'
+        })),
+      ...extraHours
+        .filter(eh => {
+          if (eh.category !== 'CFO II - Registro de Horas' || eh.date >= today) return false;
+          // Normalização e deduplicação
+          const ehDate = eh.date.split('T')[0];
+          const hasExistingShift = personalShifts.some(s => {
+            const shiftDate = s.date.split('T')[0];
+            return shiftDate === ehDate && s.type === 'Escala Diversa';
+          });
+          return !hasExistingShift;
+        })
+        .map(eh => ({
+          id: eh.id,
+          date: eh.date,
+          type: 'Escala Diversa',
+          location: eh.description.replace('Escala Diversa: ', ''),
+          isStage: false,
+          isExtra: true,
+          startTime: '08:00',
+          endTime: '12:00',
+          status: 'Confirmado'
+        }))
+    ];
+    return list
+      .filter(s => s.date < today)
+      .filter(s => selectedShiftTypes.includes(s.type))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [personalShifts, personalStages, extraHours, today, selectedShiftTypes]);
+
   const isExcludedActivity = (type: string) => {
     const excludedExact = ['CFO I - Faxina', 'CFO I - Manutenção', 'CFO I - Sobreaviso'];
     if (excludedExact.includes(type)) return true;
@@ -650,6 +700,73 @@ const PersonalShiftPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </section>
+
+            <section className="mb-8 opacity-75 grayscale-[0.5]">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base sm:text-lg font-bold text-slate-400 dark:text-slate-500 flex items-center gap-2 px-1">
+                  <span className="material-symbols-outlined text-slate-400 text-xl">history</span>
+                  Serviços Concluídos
+                </h2>
+              </div>
+
+              {combinedPast.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border border-slate-200 dark:border-slate-800 text-center">
+                  <p className="text-sm text-slate-500 font-medium">Nenhum serviço anterior registrado.</p>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <div className="hidden sm:block">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
+                        <tr>
+                          <th className="px-6 py-4">Data</th>
+                          <th className="px-6 py-4">Tipo de Serviço</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {combinedPast.map((s: any, idx: number) => (
+                          <tr key={s.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-extrabold text-slate-400 dark:text-slate-500">
+                                  {safeParseISO(s.date).toLocaleDateString('pt-BR')}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
+                                  {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border-slate-200 text-[10px] font-bold uppercase border`}>
+                                {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
+                                {s.type === 'Escala Diversa' && ` - ${s.location}`}
+                                {s.type === 'Barra' && ` (${s.startTime})`}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                    {combinedPast.map((s: any, idx: number) => (
+                      <div key={s.id || idx} className="p-4 flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
+                          <span className="text-sm font-black text-slate-400 dark:text-slate-500">
+                            {safeParseISO(s.date).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        <span className={`px-2 py-1 rounded-md bg-slate-100 text-slate-500 border-slate-200 text-[9px] font-black uppercase border`}>
+                          {s.type}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           </>
         )}
