@@ -53,7 +53,8 @@ const RankingPage: React.FC = () => {
             const separateCounts: Record<string, number> = {
                 'Sobreaviso': 0,
                 'Faxina': 0,
-                'Manutenção': 0
+                'Manutenção': 0,
+                'Barra': 0
             };
 
             const milShifts = shifts.filter(s => s.militaryId === mil.id);
@@ -71,7 +72,7 @@ const RankingPage: React.FC = () => {
                 } else if (s.type === 'Estágio') {
                     if (dayOfWeek === 6) totalHours += 24;
                     else if (dayOfWeek === 0) totalHours += 12;
-                } else if (['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)) {
+                } else if (['Sobreaviso', 'Faxina', 'Manutenção', 'Barra'].includes(s.type)) {
                     separateCounts[s.type] = (separateCounts[s.type] || 0) + 1;
                 }
             });
@@ -171,6 +172,7 @@ const RankingPage: React.FC = () => {
                                     <th className="px-4 py-4 text-center">Sobreaviso</th>
                                     <th className="px-4 py-4 text-center">Faxina</th>
                                     <th className="px-4 py-4 text-center">Manutenção</th>
+                                    <th className="px-4 py-4 text-center">Barra</th>
                                     <th className="px-6 py-4 text-right">Média p/ Militar</th>
                                 </tr>
                             </thead>
@@ -218,6 +220,13 @@ const RankingPage: React.FC = () => {
                                                 </span>
                                             )}
                                         </td>
+                                        <td className="px-4 py-4 text-center">
+                                            {mil.separateCounts['Barra'] > 0 && (
+                                                <span className="px-2 py-1 bg-pink-50 text-pink-700 rounded text-xs font-bold border border-pink-100">
+                                                    {mil.separateCounts['Barra']}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="inline-flex flex-col items-end">
                                                 <span className="text-lg font-black text-primary font-mono tabular-nums">
@@ -258,6 +267,9 @@ const RankingPage: React.FC = () => {
                                             )}
                                             {mil.separateCounts['Manutenção'] > 0 && (
                                                 <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-1 rounded">M:{mil.separateCounts['Manutenção']}</span>
+                                            )}
+                                            {mil.separateCounts['Barra'] > 0 && (
+                                                <span className="text-[9px] font-bold text-pink-600 bg-pink-50 dark:bg-pink-900/20 px-1 rounded">B:{mil.separateCounts['Barra']}</span>
                                             )}
                                         </div>
                                     </div>
