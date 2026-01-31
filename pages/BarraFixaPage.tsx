@@ -4,6 +4,7 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { SHIFT_TYPE_COLORS } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
+import { Shift } from '../types';
 
 const BarraFixaPage: React.FC = () => {
     const { militaries } = useMilitary();
@@ -16,12 +17,13 @@ const BarraFixaPage: React.FC = () => {
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }, [shifts]);
 
-    // Group by date
+    // Group by date and then by time
     const groupedShifts = useMemo(() => {
-        const groups: Record<string, typeof barraShifts> = {};
+        const groups: Record<string, Record<string, Shift[]>> = {};
         barraShifts.forEach(s => {
-            if (!groups[s.date]) groups[s.date] = [];
-            groups[s.date].push(s);
+            if (!groups[s.date]) groups[s.date] = {};
+            if (!groups[s.date][s.startTime]) groups[s.date][s.startTime] = [];
+            groups[s.date][s.startTime].push(s);
         });
         return groups;
     }, [barraShifts]);
@@ -61,45 +63,55 @@ const BarraFixaPage: React.FC = () => {
                             const month = dateObj.toLocaleDateString('pt-BR', { month: 'long' });
 
                             return (
-                                <div key={date} className="space-y-3">
+                                <div key={date} className="space-y-6 bg-slate-50/50 dark:bg-slate-800/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/50">
                                     <div className="flex items-center gap-2 px-2">
-                                        <div className="w-1 h-4 bg-pink-500 rounded-full"></div>
-                                        <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                        <div className="w-1.5 h-6 bg-pink-500 rounded-full"></div>
+                                        <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">
                                             {dayOfWeek}, {dayNum} de {month}
                                         </h3>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {groupedShifts[date].map(s => {
-                                            const military = militaries.find(m => m.id === s.militaryId);
-                                            const colors = SHIFT_TYPE_COLORS['Barra'];
 
-                                            return (
-                                                <div
-                                                    key={s.id}
-                                                    className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group"
-                                                >
-                                                    <div className="flex items-center gap-4 relative z-10">
-                                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
-                                                            <span className="material-symbols-outlined">person</span>
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate">
-                                                                {military?.rank} {military?.name}
-                                                            </h4>
-                                                            <div className="flex items-center gap-2 mt-1">
-                                                                <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border border-pink-100 dark:border-pink-800">
-                                                                    {s.startTime}
-                                                                </span>
-                                                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                                                    BM: {military?.firefighterNumber}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="absolute top-0 right-0 w-1 h-full bg-pink-500"></div>
+                                    <div className="space-y-8 pl-2">
+                                        {Object.keys(groupedShifts[date]).sort().map(time => (
+                                            <div key={time} className="space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="flex items-center justify-center px-3 py-1 bg-pink-500 text-white text-[11px] font-black rounded-lg shadow-sm shadow-pink-200 dark:shadow-none">
+                                                        {time}
+                                                    </span>
+                                                    <div className="h-px flex-1 bg-gradient-to-r from-pink-200 to-transparent dark:from-pink-900/50"></div>
                                                 </div>
-                                            );
-                                        })}
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {groupedShifts[date][time].map(s => {
+                                                        const military = militaries.find(m => m.id === s.militaryId);
+
+                                                        return (
+                                                            <div
+                                                                key={s.id}
+                                                                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
+                                                            >
+                                                                <div className="flex items-center gap-4 relative z-10">
+                                                                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                                                                        <span className="material-symbols-outlined">person</span>
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate">
+                                                                            {military?.rank} {military?.name}
+                                                                        </h4>
+                                                                        <div className="flex items-center gap-2 mt-1">
+                                                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                                                BM: {military?.firefighterNumber}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="absolute top-0 right-0 w-1 h-full bg-pink-500/50 group-hover:bg-pink-500 transition-colors"></div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             );
