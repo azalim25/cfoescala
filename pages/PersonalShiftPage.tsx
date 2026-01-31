@@ -407,6 +407,7 @@ const PersonalShiftPage: React.FC = () => {
                             <span className={`px-2.5 py-0.5 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[10px] font-bold uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
                               {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
                               {s.type === 'Escala Diversa' && ` - ${s.location} (${s.startTime} às ${s.endTime})`}
+                              {s.type === 'Barra' && ` (${s.startTime})`}
                             </span>
                           </td>
                         </tr>
@@ -430,6 +431,7 @@ const PersonalShiftPage: React.FC = () => {
                       <span className={`px-2 py-1 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[9px] font-black uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
                         {s.type}
                         {s.type === 'Escala Diversa' && ` - ${s.location} (${s.startTime} às ${s.endTime})`}
+                        {s.type === 'Barra' && ` (${s.startTime})`}
                       </span>
                     </div>
                   ))}

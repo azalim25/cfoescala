@@ -30,11 +30,13 @@ const GenerateScalePage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDay, setEditingDay] = useState<number | null>(null);
     const [editingShiftId, setEditingShiftId] = useState<string | null>(null); // If editing specific shift
-    const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string; duration?: number }>({
+    const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string; duration?: number; startTime?: string; endTime?: string }>({
         militaryId: '',
         type: 'Escala Geral',
         location: 'QCG',
-        duration: undefined
+        duration: undefined,
+        startTime: '08:00',
+        endTime: '08:00'
     });
 
     useEffect(() => {
@@ -87,7 +89,14 @@ const GenerateScalePage: React.FC = () => {
     const handleDayClick = (day: number) => {
         setEditingDay(day);
         setEditingShiftId(null); // New shift by default
-        setFormData({ militaryId: '', type: 'Escala Geral', location: 'QCG', duration: undefined });
+        setFormData({
+            militaryId: '',
+            type: 'Escala Geral',
+            location: 'QCG',
+            duration: undefined,
+            startTime: '08:00',
+            endTime: '08:00'
+        });
         setIsModalOpen(true);
     };
 
@@ -99,7 +108,9 @@ const GenerateScalePage: React.FC = () => {
             militaryId: shift.militaryId,
             type: shift.type,
             location: shift.location || 'QCG',
-            duration: shift.duration
+            duration: shift.duration,
+            startTime: shift.startTime,
+            endTime: shift.endTime
         });
         setIsModalOpen(true);
     };
@@ -113,7 +124,7 @@ const GenerateScalePage: React.FC = () => {
             // Update existing
             setDraftShifts(prev => prev.map(s =>
                 s.id === editingShiftId
-                    ? { ...s, militaryId: formData.militaryId, type: formData.type, location: formData.location, duration: formData.duration }
+                    ? { ...s, militaryId: formData.militaryId, type: formData.type, location: formData.location, duration: formData.duration, startTime: formData.startTime || '08:00', endTime: formData.endTime || '08:00' }
                     : s
             ));
         } else {
@@ -123,8 +134,8 @@ const GenerateScalePage: React.FC = () => {
                 militaryId: formData.militaryId,
                 date: dateStr,
                 type: formData.type,
-                startTime: '08:00',
-                endTime: '08:00',
+                startTime: formData.startTime || '08:00',
+                endTime: formData.endTime || '08:00',
                 location: formData.location,
                 status: 'Confirmado',
                 duration: formData.duration
@@ -432,6 +443,25 @@ const GenerateScalePage: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
+
+                                {formData.type === 'Barra' && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Horário da Barra</label>
+                                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                            {['09:40', '11:40', '15:40'].map(time => (
+                                                <button
+                                                    key={time}
+                                                    onClick={() => setFormData({ ...formData, startTime: time, endTime: time })}
+                                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.startTime === time
+                                                        ? 'bg-white dark:bg-slate-700 text-pink-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                                                        : 'text-slate-500 hover:text-slate-700'}`}
+                                                >
+                                                    {time}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-2">
                                 {editingShiftId && (
@@ -456,7 +486,7 @@ const GenerateScalePage: React.FC = () => {
                     </div>
                 )}
             </MainLayout.Content>
-        </MainLayout >
+        </MainLayout>
     );
 };
 

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
 interface HeaderProps {
-  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'qdch';
+  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'qdch' | 'barra-fixa';
 }
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
@@ -48,6 +48,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     { to: '/comandante-guarda', label: 'Cmd. Guarda', icon: 'military_tech', id: 'comandante-guarda' },
     { to: '/hours-control', label: 'Controle de Serviços', icon: 'query_stats', id: 'hours-control' },
     { to: '/qdch', label: 'QDCH', icon: 'monitoring', id: 'qdch' },
+    { to: '/barra-fixa', label: 'Barra Fixa', icon: 'fitness_center', id: 'barra-fixa' },
   ];
 
   return (

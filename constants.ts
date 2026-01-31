@@ -75,5 +75,11 @@ export const SHIFT_TYPE_COLORS: Record<string, { bg: string; text: string; borde
     text: 'text-gray-600 dark:text-gray-400',
     border: 'border-gray-200 dark:border-gray-700',
     dot: 'bg-gray-400'
+  },
+  'Barra': {
+    bg: 'bg-pink-50 dark:bg-pink-900/30',
+    text: 'text-pink-700 dark:text-pink-300',
+    border: 'border-pink-100 dark:border-pink-800',
+    dot: 'bg-pink-500'
   }
 };

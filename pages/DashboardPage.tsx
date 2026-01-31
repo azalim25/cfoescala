@@ -147,11 +147,11 @@ const DashboardPage: React.FC = () => {
     setFormData({
       militaryId: shift.militaryId,
       type: shift.type,
-      location: shift.location || 'QCG',
+      location: (shift.type === 'Escala Diversa' || shift.type === 'Barra') ? shift.location || '' : shift.location || 'QCG',
       duration: shift.duration,
       description: shift.type === 'Escala Diversa' ? shift.location : '',
-      startTime: shift.type === 'Escala Diversa' ? shift.startTime : '08:00',
-      endTime: shift.type === 'Escala Diversa' ? shift.endTime : '12:00'
+      startTime: (shift.type === 'Escala Diversa' || shift.type === 'Barra') ? shift.startTime : '08:00',
+      endTime: (shift.type === 'Escala Diversa' || shift.type === 'Barra') ? shift.endTime : '12:00'
     });
     setIsModalOpen(true);
   };
@@ -171,16 +171,16 @@ const DashboardPage: React.FC = () => {
           type: formData.type,
           location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
           duration: formData.duration,
-          startTime: formData.type === 'Escala Diversa' ? (formData.startTime || '08:00') : '08:00',
-          endTime: formData.type === 'Escala Diversa' ? (formData.endTime || '12:00') : '08:00',
+          startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra') ? (formData.startTime || '08:00') : '08:00',
+          endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra') ? (formData.endTime || '12:00') : '08:00',
         });
       } else {
         await createShift({
           militaryId: formData.militaryId,
           date: dateStr,
           type: formData.type,
-          startTime: formData.type === 'Escala Diversa' ? (formData.startTime || '08:00') : '08:00',
-          endTime: formData.type === 'Escala Diversa' ? (formData.endTime || '12:00') : '08:00',
+          startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra') ? (formData.startTime || '08:00') : '08:00',
+          endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra') ? (formData.endTime || '12:00') : '08:00',
           location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
           status: 'Confirmado',
           duration: formData.duration
@@ -333,7 +333,8 @@ const DashboardPage: React.FC = () => {
                         'Faxina': 3,
                         'Estágio': 4,
                         'Sobreaviso': 5,
-                        'Escala Diversa': 6
+                        'Escala Diversa': 6,
+                        'Barra': 7
                       };
 
                       const combined = [
@@ -736,6 +737,24 @@ const DashboardPage: React.FC = () => {
                         className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
                       />
                     </div>
+                  </div>
+                </div>
+              )}
+              {formData.type === 'Barra' && (
+                <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Horário da Barra</label>
+                  <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                    {['09:40', '11:40', '15:40'].map(time => (
+                      <button
+                        key={time}
+                        onClick={() => setFormData(prev => ({ ...prev, startTime: time, endTime: time }))}
+                        className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.startTime === time
+                          ? 'bg-white dark:bg-slate-700 text-pink-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                          : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        {time}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
