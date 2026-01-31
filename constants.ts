@@ -83,3 +83,22 @@ export const SHIFT_TYPE_COLORS: Record<string, { bg: string; text: string; borde
     dot: 'bg-pink-500'
   }
 };
+
+export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'qdch' | 'barra-fixa';
+
+export const NAV_LINKS = [
+  { to: '/qtm', label: 'QTM', icon: 'event_note', id: 'qtm' as PageId },
+  { to: '/', label: 'Calendário', icon: 'calendar_month', id: 'dashboard' as PageId },
+  { to: '/contacts', label: 'Contatos', icon: 'contact_page', id: 'contacts' as PageId },
+  { to: '/personal', label: 'Minha Escala', icon: 'person_pin', id: 'personal' as PageId },
+  { to: '/extra-hours', label: 'Registro de Horas', icon: 'more_time', id: 'extra-hours' as PageId },
+  { to: '/ranking', label: 'Ranking', icon: 'leaderboard', id: 'ranking' as PageId },
+  { to: '/estado-maior', label: 'Estado Maior', icon: 'military_tech', id: 'estado-maior' as PageId },
+  { to: '/funcoes-turma', label: 'Funções de Turma', icon: 'school', id: 'funcoes-turma' as PageId },
+  { to: '/stage', label: 'Estágio - Local', icon: 'location_city', id: 'stage' as PageId },
+  { to: '/stage-quantity', label: 'Estágio - Qtde', icon: 'analytics', id: 'stage-quantity' as PageId },
+  { to: '/comandante-guarda', label: 'Cmd. Guarda', icon: 'military_tech', id: 'comandante-guarda' as PageId },
+  { to: '/hours-control', label: 'Controle de Serviços', icon: 'query_stats', id: 'hours-control' as PageId },
+  { to: '/qdch', label: 'QDCH', icon: 'monitoring', id: 'qdch' as PageId },
+  { to: '/barra-fixa', label: 'Barra Fixa', icon: 'fitness_center', id: 'barra-fixa' as PageId },
+];

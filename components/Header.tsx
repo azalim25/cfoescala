@@ -3,9 +3,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useMilitary } from '../contexts/MilitaryContext';
+import { PageId, NAV_LINKS } from '../constants';
 
 interface HeaderProps {
-  activePage: 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'qdch' | 'barra-fixa';
+  activePage: PageId;
 }
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
@@ -41,26 +42,11 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     }
   };
 
-  const navLinks = [
-    { to: '/qtm', label: 'QTM', icon: 'event_note', id: 'qtm' },
-    { to: '/', label: 'Calendário', icon: 'calendar_month', id: 'dashboard' },
-    { to: '/contacts', label: 'Contatos', icon: 'contact_page', id: 'contacts' },
-    { to: '/personal', label: 'Minha Escala', icon: 'person_pin', id: 'personal' },
-    { to: '/extra-hours', label: 'Registro de Horas', icon: 'more_time', id: 'extra-hours' },
-    { to: '/ranking', label: 'Ranking', icon: 'leaderboard', id: 'ranking' },
-    { to: '/estado-maior', label: 'Estado Maior', icon: 'military_tech', id: 'estado-maior' },
-    { to: '/funcoes-turma', label: 'Funções de Turma', icon: 'school', id: 'funcoes-turma' },
-    { to: '/stage', label: 'Estágio - Local', icon: 'location_city', id: 'stage' },
-    { to: '/stage-quantity', label: 'Estágio - Qtde', icon: 'analytics', id: 'stage-quantity' },
-    { to: '/comandante-guarda', label: 'Cmd. Guarda', icon: 'military_tech', id: 'comandante-guarda' },
-    { to: '/hours-control', label: 'Controle de Serviços', icon: 'query_stats', id: 'hours-control' },
-    { to: '/qdch', label: 'QDCH', icon: 'monitoring', id: 'qdch' },
-    { to: '/barra-fixa', label: 'Barra Fixa', icon: 'fitness_center', id: 'barra-fixa' },
-  ];
+
 
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
-      <div className="max-w-[1600px] mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="w-full px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-4 lg:gap-8">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-9 h-9 lg:w-10 lg:h-10 bg-primary rounded-lg flex items-center justify-center text-white shrink-0">
@@ -71,17 +57,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               <p className="text-[8px] lg:text-[10px] text-slate-500 font-medium tracking-widest uppercase">Sistema de Gestão</p>
             </div>
           </Link>
-          <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.map(link => (
-              <Link
-                key={link.id}
-                to={link.to}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${activePage === link.id ? 'bg-primary/10 text-primary font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-              >
-                <span className="material-symbols-outlined text-sm">{link.icon}</span> {link.label}
-              </Link>
-            ))}
-          </nav>
+
         </div>
 
         <div className="flex items-center gap-2 lg:gap-4">
@@ -170,7 +146,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               </div>
             </div>
 
-            {navLinks.map(link => (
+            {NAV_LINKS.map(link => (
               <Link
                 key={link.id}
                 to={link.to}

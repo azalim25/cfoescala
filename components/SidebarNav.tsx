@@ -1,39 +1,42 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { PageId, NAV_LINKS } from '../constants';
 
-const SidebarNav: React.FC = () => {
+interface SidebarNavProps {
+    activePage: PageId;
+}
+
+const SidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
     return (
-        <aside className="w-64 lg:w-72 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-20 transition-all shrink-0">
-            <div className="p-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary flex items-center justify-center rounded-lg shadow-md">
-                    <span className="material-symbols-outlined text-white text-2xl font-bold">shield</span>
-                </div>
-                <div>
-                    <h2 className="text-sm font-extrabold tracking-tight uppercase leading-none dark:text-white">CFO - GUARANI</h2>
-                    <p className="text-[10px] text-slate-400 font-bold tracking-widest mt-0.5">MINHA CONTA</p>
-                </div>
+        <aside className="hidden lg:flex w-72 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col sticky top-16 h-[calc(100vh-64px)] z-20 transition-all shrink-0">
+            <div className="p-6 border-b border-slate-50 dark:border-slate-800/50">
+                <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4">Navegação Principal</h3>
+                <nav className="space-y-1">
+                    {NAV_LINKS.map(link => (
+                        <Link
+                            key={link.id}
+                            to={link.to}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all group ${activePage === link.id
+                                ? 'bg-primary text-white shadow-lg shadow-primary/20 font-bold'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }`}
+                        >
+                            <span className={`material-symbols-outlined text-[22px] ${activePage === link.id ? 'text-white' : 'text-slate-400 group-hover:text-primary'}`}>
+                                {link.icon}
+                            </span>
+                            <span className="truncate">{link.label}</span>
+                        </Link>
+                    ))}
+                </nav>
             </div>
-            <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
-                <Link to="/" className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group">
-                    <span className="material-symbols-outlined text-[22px] group-hover:text-primary">dashboard</span>
-                    <span className="text-sm font-bold">Voltar ao Início</span>
-                </Link>
-                <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-white shadow-lg shadow-primary/20 transition-all">
-                    <span className="material-symbols-outlined text-[22px]">history</span>
-                    <span className="text-sm font-extrabold">Histórico Pessoal</span>
-                </div>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group">
-                    <span className="material-symbols-outlined text-[22px] group-hover:text-primary">person</span>
-                    <span className="text-sm font-bold">Perfil</span>
-                </button>
-            </nav>
-            <div className="p-6">
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+
+            <div className="mt-auto p-6">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/50">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="size-2 rounded-full bg-primary animate-pulse"></div>
-                        <span className="text-xs font-bold uppercase tracking-wider dark:text-slate-200 text-slate-700">Status</span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest dark:text-slate-200 text-slate-700">Sistema Online</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium">Dados sincronizados. Nenhuma pendência urgente.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">Todas as escalas estão sincronizadas com o servidor em tempo real.</p>
                 </div>
             </div>
         </aside>
