@@ -8,7 +8,7 @@ interface SidebarNavProps {
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
     return (
-        <aside className="hidden lg:flex w-72 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col sticky top-16 h-[calc(100vh-64px)] z-20 transition-all shrink-0">
+        <aside className="hidden lg:flex w-72 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col sticky top-16 h-[calc(100vh-64px)] z-20 transition-all shrink-0 overflow-y-auto custom-scrollbar">
             <div className="p-6 border-b border-slate-50 dark:border-slate-800/50">
                 <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4">Navegação Principal</h3>
                 <nav className="space-y-1">
