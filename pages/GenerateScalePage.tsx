@@ -11,7 +11,7 @@ import { generateAIScale } from '../geminiService';
 const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
     const { militaries } = useMilitary();
-    const { addShifts } = useShift();
+    const { addShifts, preferences } = useShift();
     const { isModerator } = useAuth();
 
     // Time State
@@ -370,9 +370,20 @@ const GenerateScalePage: React.FC = () => {
                                         className="w-full h-9 px-2 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none text-xs font-bold"
                                     >
                                         <option value="">Selecione...</option>
-                                        {militaries.map(m => (
-                                            <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
-                                        ))}
+                                        {militaries.map(m => {
+                                            const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${(editingDay || 1).toString().padStart(2, '0')}`;
+                                            const hasRestriction = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'restriction');
+                                            return (
+                                                <option
+                                                    key={m.id}
+                                                    value={m.id}
+                                                    className={hasRestriction ? "text-red-600 font-bold" : ""}
+                                                    style={hasRestriction ? { color: '#dc2626' } : {}}
+                                                >
+                                                    {m.rank} {m.name} {hasRestriction ? '(RESTRIÇÃO)' : ''}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 </div>
                                 <div className="space-y-1">

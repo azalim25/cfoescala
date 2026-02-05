@@ -722,21 +722,18 @@ const DashboardPage: React.FC = () => {
                 >
                   <option value="">Selecione um militar...</option>
                   {militaries
-                    .filter(m => {
-                      const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
-                      const hasRestriction = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'restriction');
-                      return !hasRestriction;
-                    })
                     .map(m => {
                       const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+                      const hasRestriction = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'restriction');
                       const hasPriority = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'priority');
                       return (
                         <option
                           key={m.id}
                           value={m.id}
-                          className={hasPriority ? "bg-amber-100 font-bold" : ""}
+                          className={`${hasRestriction ? "text-red-600 font-bold" : ""} ${hasPriority ? "bg-amber-100 font-bold" : ""}`}
+                          style={hasRestriction ? { color: '#dc2626' } : {}}
                         >
-                          {m.rank} {m.name} {hasPriority ? '★' : ''}
+                          {m.rank} {m.name} {hasRestriction ? '(RESTRIÇÃO)' : ''} {hasPriority ? '★' : ''}
                         </option>
                       );
                     })}
