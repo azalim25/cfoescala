@@ -29,6 +29,32 @@ const AuthPage: React.FC = () => {
 
         try {
             if (isSignUp) {
+                // Validate against militaries list (Contacts)
+                const { data: militaries, error: militariesError } = await supabase
+                    .from('militaries')
+                    .select('name, firefighter_number');
+
+                if (militariesError) throw militariesError;
+
+                const normalizedInputNumber = cleanNumber.replace(/\D/g, '');
+                const inputNameWords = cleanName.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+
+                const isValidMilitary = militaries?.some(m => {
+                    const normalizedMilNumber = m.firefighter_number.replace(/\D/g, '');
+                    const milNameWords = m.name.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+
+                    const numberMatch = normalizedMilNumber === normalizedInputNumber;
+                    const nameMatch = inputNameWords.some(word => milNameWords.includes(word));
+
+                    return numberMatch && nameMatch;
+                });
+
+                if (!isValidMilitary) {
+                    setError('Cadastro Indeferido.');
+                    setLoading(false);
+                    return;
+                }
+
                 const { data, error: signUpError } = await supabase.auth.signUp({
                     email: internalEmail,
                     password: internalPassword,
