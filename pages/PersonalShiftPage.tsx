@@ -221,6 +221,7 @@ const PersonalShiftPage: React.FC = () => {
           id: eh.id,
           date: eh.date,
           type: 'Escala Diversa',
+          description: eh.description.replace('Escala Diversa: ', ''),
           location: '', // No location for Escala Diversa as per user request
           isStage: false,
           isExtra: true,
@@ -265,6 +266,7 @@ const PersonalShiftPage: React.FC = () => {
           id: eh.id,
           date: eh.date,
           type: 'Escala Diversa',
+          description: eh.description.replace('Escala Diversa: ', ''),
           location: '',
           isStage: false,
           isExtra: true,
@@ -304,6 +306,7 @@ const PersonalShiftPage: React.FC = () => {
           id: eh.id,
           date: eh.date,
           type: 'Escala Diversa',
+          description: eh.description.replace('Escala Diversa: ', ''),
           location: '',
           isStage: false,
           isExtra: true,
@@ -503,6 +506,9 @@ const PersonalShiftPage: React.FC = () => {
                             </span>
                           </div>
                           <h3 className={`text-lg font-extrabold ${colors.text} mb-2`}>{s.type}</h3>
+                          {s.type === 'Escala Diversa' && s.description && (
+                            <p className={`text-xs font-bold ${colors.text} opacity-80 mb-3 -mt-1`}>{s.description}</p>
+                          )}
                           {s.location && (
                             <div className={`flex items-center gap-2 pt-3 border-t ${colors.border} opacity-60`}>
                               <span className={`material-symbols-outlined ${colors.text} text-sm`}>location_on</span>
