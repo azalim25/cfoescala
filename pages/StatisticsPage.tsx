@@ -239,8 +239,43 @@ const StatisticsPage: React.FC = () => {
                                 )}
                             </div>
                         </div>
+                        <button
+                            onClick={() => setMonthFilter(monthFilter === 'all' ? new Date().getMonth() : 'all')}
+                            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-500 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-primary hover:text-white transition-all"
+                        >
+                            {monthFilter === 'all' ? 'Ver Mês Atual' : 'Ver Período Total'}
+                        </button>
                     </div>
                 </div>
+
+                {holidays.length > 0 && (
+                    <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-2xl">
+                        <h3 className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-base">event_busy</span>
+                            Feriados Registrados
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            {holidays
+                                .sort((a, b) => a.date.localeCompare(b.date))
+                                .map(h => (
+                                    <div key={h.id} className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 rounded-lg shadow-sm">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase leading-none">
+                                                {new Date(h.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                            </span>
+                                            <span className="text-[8px] font-bold text-slate-500 uppercase truncate max-w-[100px]">{h.description}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => confirm(`Remover feriado: ${h.description}?`) && removeHoliday(h.id)}
+                                            className="text-red-300 hover:text-red-600 p-0.5 rounded-md hover:bg-red-50 transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Charts Grid */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-12">
@@ -250,8 +285,8 @@ const StatisticsPage: React.FC = () => {
                         data={statsData.comandante}
                         color="bg-rose-500"
                         bars={[
-                            { key: 'weekday', label: 'Segunda a Sexta', color: '#be123c' },
-                            { key: 'weekend', label: 'Sábado e Domingo', color: '#fb7185' }
+                            { key: 'weekday', label: 'Dia de Semana', color: '#3b82f6' },
+                            { key: 'weekend', label: 'Fim de Semana / Feriado', color: '#ef4444' }
                         ]}
                     />
 
