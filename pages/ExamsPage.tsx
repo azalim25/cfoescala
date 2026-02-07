@@ -34,14 +34,11 @@ const ExamsPage: React.FC = () => {
 
             for (let i = 1; i < dayExams.length; i++) {
                 const next = dayExams[i];
-                // If they are contiguous (next starts when current ends)
-                if (next.startTime === currentMerged.endTime) {
+                // If they are for the same discipline, merge them
+                // We consider them part of the same exam if they are on the same day and have the same disciplineId
+                if (next.disciplineId === currentMerged.disciplineId) {
                     currentMerged.endTime = next.endTime;
-                    // Keep the first discipline name or combine? Prompt says "uma prova só", 
-                    // usually it's the same discipline but even if different, we represent as one block.
-                    if (currentMerged.disciplineId !== next.disciplineId) {
-                        // Optional: could append discipline names, but keeping first is cleaner for UI
-                    }
+                    // Join description if they are different (e.g. "PROVA" and "PROVA PRÁTICA" - though filtering is usually just "PROVA")
                 } else {
                     result.push(currentMerged);
                     currentMerged = {

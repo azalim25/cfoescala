@@ -88,7 +88,6 @@ export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra
 
 export const NAV_LINKS = [
   { to: '/qtm', label: 'QTM', icon: 'event_note', id: 'qtm' as PageId },
-  { to: '/provas', label: 'Provas', icon: 'assignment_turned_in', id: 'provas' as PageId },
   { to: '/', label: 'Calendário', icon: 'calendar_month', id: 'dashboard' as PageId },
   { to: '/contacts', label: 'Contatos', icon: 'contact_page', id: 'contacts' as PageId },
   { to: '/personal', label: 'Minha Escala', icon: 'person_pin', id: 'personal' as PageId },
@@ -101,5 +100,6 @@ export const NAV_LINKS = [
   { to: '/comandante-guarda', label: 'Cmd. Guarda', icon: 'military_tech', id: 'comandante-guarda' as PageId },
   { to: '/hours-control', label: 'Controle de Serviços', icon: 'query_stats', id: 'hours-control' as PageId },
   { to: '/qdch', label: 'QDCH', icon: 'monitoring', id: 'qdch' as PageId },
+  { to: '/provas', label: 'Provas', icon: 'assignment_turned_in', id: 'provas' as PageId },
   { to: '/barra-fixa', label: 'Barra Fixa', icon: 'fitness_center', id: 'barra-fixa' as PageId },
 ];
