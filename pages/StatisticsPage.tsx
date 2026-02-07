@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
+import { useAuth } from '../contexts/AuthContext';
 import { SHIFT_TYPE_COLORS } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { Filter, Calendar } from 'lucide-react';
@@ -9,6 +10,7 @@ import { Filter, Calendar } from 'lucide-react';
 const StatisticsPage: React.FC = () => {
     const { shifts, isLoading: shiftsLoading, holidays, removeHoliday } = useShift();
     const { militaries } = useMilitary();
+    const { isModerator } = useAuth();
 
     const [selectedMonths, setSelectedMonths] = useState<number[]>([new Date().getMonth()]);
 
@@ -326,12 +328,14 @@ const StatisticsPage: React.FC = () => {
                                             </span>
                                             <span className="text-[8px] font-bold text-slate-500 uppercase truncate max-w-[100px]">{h.description}</span>
                                         </div>
-                                        <button
-                                            onClick={() => confirm(`Remover feriado: ${h.description}?`) && removeHoliday(h.id)}
-                                            className="text-red-300 hover:text-red-600 p-0.5 rounded-md hover:bg-red-50 transition-colors"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">close</span>
-                                        </button>
+                                        {isModerator && (
+                                            <button
+                                                onClick={() => confirm(`Remover feriado: ${h.description}?`) && removeHoliday(h.id)}
+                                                className="text-red-300 hover:text-red-600 p-0.5 rounded-md hover:bg-red-50 transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-sm">close</span>
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                         </div>

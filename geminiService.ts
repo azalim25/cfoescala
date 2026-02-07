@@ -97,12 +97,19 @@ export async function generateAIScale(
   militaryData: any[],
   month: number,
   year: number,
-  customPrompt: string
+  customPrompt: string,
+  preferencesData: any[]
 ) {
   if (isPlaceholder) throw new Error("Chave API não configurada.");
 
   // Create a structured summary for the AI that includes IDs
   const militarySummary = militaryData.map(m => `ID: ${m.id}, Nome: ${m.rank} ${m.name}`).join(' | ');
+
+  // Summary of preferences (restrictions and priorities)
+  const prefsSummary = preferencesData.map(p => {
+    const mil = militaryData.find(m => m.id === p.militaryId);
+    return mil ? `${mil.rank} ${mil.name} (ID: ${p.militaryId}): ${p.type === 'restriction' ? 'PROIBIDO trabalhar' : 'PREFERE trabalhar'} em ${p.date}` : '';
+  }).filter(t => t !== '').join('\n    ');
 
   const promptText = `
     Aja como um especialista em escalas militares.
@@ -111,10 +118,15 @@ export async function generateAIScale(
     MILITARES DISPONÍVEIS (Use EXATAMENTE o militaryId fornecido):
     ${militarySummary}
     
-    REGRAS: 
-    1. Respeite o interstício (descanso) de 48h entre serviços.
-    2. Tipos suportados: Comandante da Guarda, Faxina, Manutenção, Estágio, Sobreaviso, Escala Geral.
-    3. Distribua os serviços de forma justa entre os militares.
+    RESTRIÇÕES E PREFERÊNCIAS (CRÍTICO):
+    ${prefsSummary || 'Nenhuma restrição cadastrada.'}
+    
+    REGRAS OBRIGATÓRIAS: 
+    1. JAMAIS escale um militar em uma data que ele possua uma restrição (PROIBIDO trabalhar).
+    2. Respeite o interstício (descanso) de 48h entre qualquer serviço.
+    3. Tipos suportados: Comandante da Guarda, Faxina, Manutenção, Estágio, Sobreaviso, Escala Geral.
+    4. DISTRIBUIÇÃO JUSTA: Tente equalizar a carga horária entre todos, exceto se houver restrições.
+    5. PRIORIDADE: Se houver "PREFERE trabalhar" em uma data, tente escalá-lo lá (se não quebrar as outras regras).
     
     Instruções do Usuário: ${customPrompt || 'Nenhuma.'}
     

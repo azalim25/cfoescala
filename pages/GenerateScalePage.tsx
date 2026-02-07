@@ -66,7 +66,7 @@ const GenerateScalePage: React.FC = () => {
         setDraftShifts([]);
 
         try {
-            const aiShifts = await generateAIScale(militaries, currentMonth, currentYear, aiPrompt);
+            const aiShifts = await generateAIScale(militaries, currentMonth, currentYear, aiPrompt, preferences);
 
             // Add unique IDs to the generated shifts
             const processedShifts = aiShifts.map((s: any) => ({
