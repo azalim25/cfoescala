@@ -55,11 +55,11 @@ const StatisticsPage: React.FC = () => {
         };
 
         militaries.forEach(m => {
-            data.comandante[m.id] = { name: m.name, weekday: 0, weekend: 0, total: 0 };
-            data.estagio[m.id] = { name: m.name, h12: 0, h24: 0, total: 0 };
-            data.manutencao[m.id] = { name: m.name, count: 0, total: 0 };
-            data.faxina[m.id] = { name: m.name, count: 0, total: 0 };
-            data.sobreaviso[m.id] = { name: m.name, count: 0, total: 0 };
+            data.comandante[m.id] = { name: m.name, weekday: 0, weekend: 0, total: 0, antiguidade: m.antiguidade };
+            data.estagio[m.id] = { name: m.name, h12: 0, h24: 0, total: 0, antiguidade: m.antiguidade };
+            data.manutencao[m.id] = { name: m.name, count: 0, total: 0, antiguidade: m.antiguidade };
+            data.faxina[m.id] = { name: m.name, count: 0, total: 0, antiguidade: m.antiguidade };
+            data.sobreaviso[m.id] = { name: m.name, count: 0, total: 0, antiguidade: m.antiguidade };
         });
 
         filteredShifts.forEach(s => {
@@ -96,12 +96,14 @@ const StatisticsPage: React.FC = () => {
             }
         });
 
+        const sortBySeniority = (a: any, b: any) => (a.antiguidade || 999) - (b.antiguidade || 0);
+
         return {
-            comandante: Object.values(data.comandante).sort((a: any, b: any) => b.total - a.total),
-            estagio: Object.values(data.estagio).sort((a: any, b: any) => b.total - a.total),
-            manutencao: Object.values(data.manutencao).sort((a: any, b: any) => b.total - a.total),
-            faxina: Object.values(data.faxina).sort((a: any, b: any) => b.total - a.total),
-            sobreaviso: Object.values(data.sobreaviso).sort((a: any, b: any) => b.total - a.total)
+            comandante: Object.values(data.comandante).sort(sortBySeniority),
+            estagio: Object.values(data.estagio).sort(sortBySeniority),
+            manutencao: Object.values(data.manutencao).sort(sortBySeniority),
+            faxina: Object.values(data.faxina).sort(sortBySeniority),
+            sobreaviso: Object.values(data.sobreaviso).sort(sortBySeniority)
         };
     }, [filteredShifts, militaries]);
 
