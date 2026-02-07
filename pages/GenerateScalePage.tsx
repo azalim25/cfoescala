@@ -39,6 +39,14 @@ const GenerateScalePage: React.FC = () => {
         endTime: '08:00'
     });
 
+    // Confirm Modal State
+    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({
+        open: false,
+        title: '',
+        message: '',
+        onConfirm: () => { }
+    });
+
     useEffect(() => {
         // Automatically load existing shifts for the selected month/year into the draft
         const existingShifts = shifts.filter(s => {
@@ -59,38 +67,50 @@ const GenerateScalePage: React.FC = () => {
     // --- Generation Logic ---
 
     const handleGenerate = async () => {
-        if (draftShifts.length > 0) {
-            if (!confirm('Deseja alterar os nomes que já estão incluídos nesta escala?')) {
-                return;
+        const executeGeneration = async () => {
+            setIsGenerating(true);
+            setDraftShifts([]);
+
+            try {
+                const aiShifts = await generateAIScale(militaries, currentMonth, currentYear, aiPrompt, preferences);
+
+                // Add unique IDs to the generated shifts
+                const processedShifts = aiShifts.map((s: any) => ({
+                    ...s,
+                    id: `draft-${Date.now()}-${Math.random()}`
+                }));
+
+                setDraftShifts(processedShifts);
+            } catch (error: any) {
+                console.error(error);
+                const errorMessage = error.message || 'Erro desconhecido ao gerar escala.';
+                alert(`Erro ao gerar escala: ${errorMessage}\n\nVerifique sua conexão e a chave da API no painel do Vercel.`);
+            } finally {
+                setIsGenerating(false);
             }
+        };
+
+        if (draftShifts.length > 0) {
+            setConfirmDialog({
+                open: true,
+                title: 'Confirmar Alteração',
+                message: 'Deseja alterar os nomes que já estão incluídos nesta escala? Isso irá gerar uma nova escala do zero.',
+                onConfirm: executeGeneration
+            });
+            return;
         }
 
         if (generationMode === 'auto' && !aiPrompt.trim()) {
-            if (!confirm('Nenhuma instrução foi digitada para a IA. Deseja gerar usando as regras padrão?')) {
-                return;
-            }
+            setConfirmDialog({
+                open: true,
+                title: 'Instruções Padrão',
+                message: 'Nenhuma instrução foi digitada para a IA. Deseja gerar usando as regras padrão?',
+                onConfirm: executeGeneration
+            });
+            return;
         }
 
-        setIsGenerating(true);
-        setDraftShifts([]);
-
-        try {
-            const aiShifts = await generateAIScale(militaries, currentMonth, currentYear, aiPrompt, preferences);
-
-            // Add unique IDs to the generated shifts
-            const processedShifts = aiShifts.map((s: any) => ({
-                ...s,
-                id: `draft-${Date.now()}-${Math.random()}`
-            }));
-
-            setDraftShifts(processedShifts);
-        } catch (error: any) {
-            console.error(error);
-            const errorMessage = error.message || 'Erro desconhecido ao gerar escala.';
-            alert(`Erro ao gerar escala: ${errorMessage}\n\nVerifique sua conexão e a chave da API no painel do Vercel.`);
-        } finally {
-            setIsGenerating(false);
-        }
+        executeGeneration();
     };
 
     // --- CRUD Operations on Draft ---
@@ -170,18 +190,24 @@ const GenerateScalePage: React.FC = () => {
             alert('A escala está vazia. Gere ou adicione serviços.');
             return;
         }
-        if (confirm(`Confirma a publicação de ${draftShifts.length} serviços para ${months[currentMonth]}?`)) {
-            try {
-                setIsPublishing(true);
-                await addShifts(draftShifts);
-                navigate('/');
-            } catch (error) {
-                console.error("Erro ao publicar:", error);
-                alert("Erro ao publicar a escala. Tente novamente.");
-            } finally {
-                setIsPublishing(false);
+
+        setConfirmDialog({
+            open: true,
+            title: 'Confirmar Publicação',
+            message: `Confirma a publicação de ${draftShifts.length} serviços para ${months[currentMonth]}?`,
+            onConfirm: async () => {
+                try {
+                    setIsPublishing(true);
+                    await addShifts(draftShifts);
+                    navigate('/');
+                } catch (error) {
+                    console.error("Erro ao publicar:", error);
+                    alert("Erro ao publicar a escala. Tente novamente.");
+                } finally {
+                    setIsPublishing(false);
+                }
             }
-        }
+        });
     };
 
     return (
@@ -516,6 +542,38 @@ const GenerateScalePage: React.FC = () => {
                                 >
                                     <span className="material-symbols-outlined text-sm">check</span>
                                     Salvar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Confirm Modal (Sim/Não) */}
+                {confirmDialog.open && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 overflow-hidden transform animate-in zoom-in-95 duration-200">
+                            <div className="p-6 text-center">
+                                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center mx-auto mb-4">
+                                    <span className="material-symbols-outlined text-3xl">help</span>
+                                </div>
+                                <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">{confirmDialog.title}</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{confirmDialog.message}</p>
+                            </div>
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex gap-3">
+                                <button
+                                    onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+                                    className="flex-1 h-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-colors"
+                                >
+                                    Não
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        confirmDialog.onConfirm();
+                                        setConfirmDialog({ ...confirmDialog, open: false });
+                                    }}
+                                    className="flex-1 h-12 rounded-xl bg-indigo-600 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center justify-center"
+                                >
+                                    Sim
                                 </button>
                             </div>
                         </div>
