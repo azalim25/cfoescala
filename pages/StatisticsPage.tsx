@@ -229,8 +229,8 @@ const StatisticsPage: React.FC = () => {
                                             key={m.value}
                                             onClick={() => toggleMonth(m.value)}
                                             className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedMonths.includes(m.value)
-                                                    ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
-                                                    : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-700'
+                                                ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
+                                                : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-700'
                                                 }`}
                                         >
                                             {m.label}
@@ -308,3 +308,5 @@ const StatisticsPage: React.FC = () => {
         </MainLayout>
     );
 };
+
+export default StatisticsPage;
