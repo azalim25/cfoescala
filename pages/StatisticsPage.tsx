@@ -3,7 +3,7 @@ import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { SHIFT_TYPE_COLORS } from '../constants';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { Filter, Calendar } from 'lucide-react';
 
 const StatisticsPage: React.FC = () => {
@@ -57,98 +57,135 @@ const StatisticsPage: React.FC = () => {
         militaries.forEach(m => {
             data.comandante[m.id] = { name: m.name, weekday: 0, weekend: 0, total: 0 };
             data.estagio[m.id] = { name: m.name, h12: 0, h24: 0, total: 0 };
-            data.manutencao[m.id] = { name: m.name, count: 0 };
-            data.faxina[m.id] = { name: m.name, count: 0 };
-            data.sobreaviso[m.id] = { name: m.name, count: 0 };
+            data.manutencao[m.id] = { name: m.name, count: 0, total: 0 };
+            data.faxina[m.id] = { name: m.name, count: 0, total: 0 };
+            data.sobreaviso[m.id] = { name: m.name, count: 0, total: 0 };
         });
 
         filteredShifts.forEach(s => {
-            const milData = data;
             if (s.type === 'Comandante da Guarda') {
                 const date = new Date(s.date + 'T12:00:00');
                 const day = date.getDay();
                 const isWeekend = day === 0 || day === 6;
-                if (milData.comandante[s.militaryId]) {
-                    if (isWeekend) milData.comandante[s.militaryId].weekend++;
-                    else milData.comandante[s.militaryId].weekday++;
-                    milData.comandante[s.militaryId].total++;
+                if (data.comandante[s.militaryId]) {
+                    if (isWeekend) data.comandante[s.militaryId].weekend++;
+                    else data.comandante[s.militaryId].weekday++;
+                    data.comandante[s.militaryId].total++;
                 }
             } else if (s.type === 'Estágio') {
-                if (milData.estagio[s.militaryId]) {
-                    if (s.duration === 24) milData.estagio[s.militaryId].h24++;
-                    else milData.estagio[s.militaryId].h12++;
-                    milData.estagio[s.militaryId].total++;
+                if (data.estagio[s.militaryId]) {
+                    if (s.duration === 24) data.estagio[s.militaryId].h24++;
+                    else data.estagio[s.militaryId].h12++;
+                    data.estagio[s.militaryId].total++;
                 }
             } else if (s.type === 'Manutenção') {
-                if (milData.manutencao[s.militaryId]) milData.manutencao[s.militaryId].count++;
+                if (data.manutencao[s.militaryId]) {
+                    data.manutencao[s.militaryId].count++;
+                    data.manutencao[s.militaryId].total++;
+                }
             } else if (s.type === 'Faxina') {
-                if (milData.faxina[s.militaryId]) milData.faxina[s.militaryId].count++;
+                if (data.faxina[s.militaryId]) {
+                    data.faxina[s.militaryId].count++;
+                    data.faxina[s.militaryId].total++;
+                }
             } else if (s.type === 'Sobreaviso') {
-                if (milData.sobreaviso[s.militaryId]) milData.sobreaviso[s.militaryId].count++;
+                if (data.sobreaviso[s.militaryId]) {
+                    data.sobreaviso[s.militaryId].count++;
+                    data.sobreaviso[s.militaryId].total++;
+                }
             }
         });
 
         return {
-            comandante: Object.values(data.comandante).filter((v: any) => v.total > 0).sort((a: any, b: any) => b.total - a.total),
-            estagio: Object.values(data.estagio).filter((v: any) => v.total > 0).sort((a: any, b: any) => b.total - a.total),
-            manutencao: Object.values(data.manutencao).filter((v: any) => v.count > 0).sort((a: any, b: any) => b.count - a.count),
-            faxina: Object.values(data.faxina).filter((v: any) => v.count > 0).sort((a: any, b: any) => b.count - a.count),
-            sobreaviso: Object.values(data.sobreaviso).filter((v: any) => v.count > 0).sort((a: any, b: any) => b.count - a.count)
+            comandante: Object.values(data.comandante).sort((a: any, b: any) => b.total - a.total),
+            estagio: Object.values(data.estagio).sort((a: any, b: any) => b.total - a.total),
+            manutencao: Object.values(data.manutencao).sort((a: any, b: any) => b.total - a.total),
+            faxina: Object.values(data.faxina).sort((a: any, b: any) => b.total - a.total),
+            sobreaviso: Object.values(data.sobreaviso).sort((a: any, b: any) => b.total - a.total)
         };
     }, [filteredShifts, militaries]);
 
-    const ChartSection = ({ title, data, bars, color }: { title: string, data: any[], bars: { key: string, label: string, color: string }[], color: string }) => (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-                <div className={`w-1.5 h-6 rounded-full ${color}`}></div>
-                <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">{title}</h2>
+    const ChartSection = ({ title, data, bars, color }: { title: string, data: any[], bars: { key: string, label: string, color: string }[], color: string }) => {
+        const chartHeight = Math.max(400, data.length * 25); // Dynamic height to fit labels
+
+        return (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className={`w-1.5 h-6 rounded-full ${color}`}></div>
+                    <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">{title}</h2>
+                </div>
+                <div className="overflow-y-auto max-h-[1000px] custom-scrollbar pr-2">
+                    <div style={{ height: `${chartHeight}px`, minWidth: '100%' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={data} layout="vertical" margin={{ top: 5, right: 40, left: 40, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                                <XAxis type="number" hide />
+                                <YAxis
+                                    dataKey="name"
+                                    type="category"
+                                    width={100}
+                                    tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: 'transparent' }}
+                                    contentStyle={{
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                        backgroundColor: '#1e293b',
+                                        color: '#fff'
+                                    }}
+                                    itemStyle={{ color: '#fff' }}
+                                    labelStyle={{ fontWeight: 800, marginBottom: '4px', textTransform: 'uppercase', fontSize: '10px' }}
+                                />
+                                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }} />
+                                {bars.map(bar => (
+                                    <Bar
+                                        key={bar.key}
+                                        dataKey={bar.key}
+                                        name={bar.label}
+                                        fill={bar.color}
+                                        stackId="a"
+                                        radius={[0, 0, 0, 0]}
+                                        barSize={20}
+                                    >
+                                        <LabelList
+                                            dataKey={bar.key}
+                                            position="center"
+                                            content={(props: any) => {
+                                                const { x, y, width, height, value } = props;
+                                                if (value === 0) return null;
+                                                return (
+                                                    <text
+                                                        x={x + width / 2}
+                                                        y={y + height / 2}
+                                                        fill="#fff"
+                                                        textAnchor="middle"
+                                                        dominantBaseline="middle"
+                                                        fontSize={10}
+                                                        fontWeight={900}
+                                                    >
+                                                        {value}
+                                                    </text>
+                                                );
+                                            }}
+                                        />
+                                    </Bar>
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
-            <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
-                        <XAxis type="number" hide />
-                        <YAxis
-                            dataKey="name"
-                            type="category"
-                            width={100}
-                            tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }}
-                            axisLine={false}
-                            tickLine={false}
-                        />
-                        <Tooltip
-                            cursor={{ fill: 'transparent' }}
-                            contentStyle={{
-                                borderRadius: '12px',
-                                border: 'none',
-                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                                backgroundColor: '#1e293b',
-                                color: '#fff'
-                            }}
-                            itemStyle={{ color: '#fff' }}
-                            labelStyle={{ fontWeight: 800, marginBottom: '4px', textTransform: 'uppercase', fontSize: '10px' }}
-                        />
-                        <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }} />
-                        {bars.map(bar => (
-                            <Bar
-                                key={bar.key}
-                                dataKey={bar.key}
-                                name={bar.label}
-                                fill={bar.color}
-                                radius={[0, 4, 4, 0]}
-                                barSize={bars.length > 1 ? 15 : 25}
-                            />
-                        ))}
-                    </BarChart>
-                </ResponsiveContainer>
-            </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <MainLayout activePage="statistics">
             <MainLayout.Content>
-                {/* Header */}
+                {/* Header content... */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
@@ -180,6 +217,7 @@ const StatisticsPage: React.FC = () => {
 
                         <div className="relative group">
                             <button className="h-10 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                                {/* Re-use Filter icon */}
                                 <Filter className="w-4 h-4 text-slate-500" />
                                 <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Filtrar</span>
                             </button>
@@ -220,7 +258,7 @@ const StatisticsPage: React.FC = () => {
                         data={statsData.comandante}
                         color="bg-rose-500"
                         bars={[
-                            { key: 'weekday', label: 'Segunda a Sexta', color: '#f43f5e' },
+                            { key: 'weekday', label: 'Segunda a Sexta', color: '#be123c' },
                             { key: 'weekend', label: 'Sábado e Domingo', color: '#fb7185' }
                         ]}
                     />
@@ -231,7 +269,7 @@ const StatisticsPage: React.FC = () => {
                         data={statsData.estagio}
                         color="bg-indigo-500"
                         bars={[
-                            { key: 'h12', label: '12 Horas', color: '#6366f1' },
+                            { key: 'h12', label: '12 Horas', color: '#4338ca' },
                             { key: 'h24', label: '24 Horas', color: '#818cf8' }
                         ]}
                     />
@@ -270,5 +308,3 @@ const StatisticsPage: React.FC = () => {
         </MainLayout>
     );
 };
-
-export default StatisticsPage;
