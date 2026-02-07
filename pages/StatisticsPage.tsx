@@ -28,24 +28,13 @@ const StatisticsPage: React.FC = () => {
         { value: '12', label: 'Dezembro' }
     ];
 
-    const filteredShifts = useMemo(() => {
-        if (selectedMonths.length === 0) return shifts;
-        return shifts.filter(s => {
-            const month = s.date.split('-')[1];
-            return selectedMonths.includes(month);
-        });
-    }, [shifts, selectedMonths]);
-
-    const toggleMonth = (month: string) => {
-        setSelectedMonths(prev =>
-            prev.includes(month) ? prev.filter(m => m !== month) : [...prev, month]
-        );
-    };
-
-    const clearFilters = () => setSelectedMonths([]);
-
-    // Data Aggregation Logic
     const statsData = useMemo(() => {
+        if (!shifts.length || !militaries.length) return null;
+
+        const filteredShifts = monthFilter === 'all'
+            ? shifts
+            : shifts.filter(s => new Date(s.date + 'T12:00:00').getMonth() === monthFilter);
+
         const data: any = {
             comandante: {},
             estagio: {},
@@ -66,7 +55,8 @@ const StatisticsPage: React.FC = () => {
             if (s.type === 'Comandante da Guarda') {
                 const date = new Date(s.date + 'T12:00:00');
                 const day = date.getDay();
-                const isWeekend = day === 0 || day === 6;
+                const isHoliday = holidays.some(h => h.date === s.date);
+                const isWeekend = day === 0 || day === 6 || isHoliday;
                 if (data.comandante[s.militaryId]) {
                     if (isWeekend) data.comandante[s.militaryId].weekend++;
                     else data.comandante[s.militaryId].weekday++;
@@ -105,7 +95,7 @@ const StatisticsPage: React.FC = () => {
             faxina: Object.values(data.faxina).sort(sortBySeniority),
             sobreaviso: Object.values(data.sobreaviso).sort(sortBySeniority)
         };
-    }, [filteredShifts, militaries]);
+    }, [shifts, militaries, monthFilter, holidays]);
 
     const ChartSection = ({ title, data, bars, color }: { title: string, data: any[], bars: { key: string, label: string, color: string }[], color: string }) => {
         const chartHeight = Math.max(400, data.length * 25); // Dynamic height to fit labels

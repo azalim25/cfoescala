@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Shift, MilitaryPreference } from '../types';
+import { Shift, MilitaryPreference, Holiday } from '../types';
 import { supabase } from '../supabase';
 
 interface ShiftContextType {
     shifts: Shift[];
     preferences: MilitaryPreference[];
+    holidays: Holiday[];
     addShifts: (newShifts: Shift[]) => Promise<void>;
     createShift: (shift: Omit<Shift, 'id'>) => Promise<void>;
     createShifts: (shifts: Omit<Shift, 'id'>[]) => Promise<void>;
@@ -14,6 +15,8 @@ interface ShiftContextType {
     clearShifts: () => void;
     addPreference: (pref: Omit<MilitaryPreference, 'id'>) => Promise<void>;
     removePreference: (id: string) => Promise<void>;
+    addHoliday: (holiday: Omit<Holiday, 'id'>) => Promise<void>;
+    removeHoliday: (id: string) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -22,7 +25,18 @@ const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [preferences, setPreferences] = useState<MilitaryPreference[]>([]);
+    const [holidays, setHolidays] = useState<Holiday[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    const fetchHolidays = async () => {
+        try {
+            const { data, error } = await supabase.from('holidays').select('*');
+            if (error) throw error;
+            if (data) setHolidays(data);
+        } catch (error) {
+            console.error('Error fetching holidays:', error);
+        }
+    };
 
     const fetchShifts = async () => {
         try {
@@ -79,6 +93,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     useEffect(() => {
         fetchShifts();
         fetchPreferences();
+        fetchHolidays();
     }, []);
 
     const addShifts = async (newShifts: Shift[]) => {
@@ -280,10 +295,31 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     };
 
+    const addHoliday = async (holiday: Omit<Holiday, 'id'>) => {
+        try {
+            const { error } = await supabase.from('holidays').insert([holiday]);
+            if (error) throw error;
+            await fetchHolidays();
+        } catch (error) {
+            console.error('Error adding holiday:', error);
+        }
+    };
+
+    const removeHoliday = async (id: string) => {
+        try {
+            const { error } = await supabase.from('holidays').delete().eq('id', id);
+            if (error) throw error;
+            await fetchHolidays();
+        } catch (error) {
+            console.error('Error removing holiday:', error);
+        }
+    };
+
     return (
         <ShiftContext.Provider value={{
             shifts,
             preferences,
+            holidays,
             addShifts,
             clearShifts,
             isLoading,
@@ -293,7 +329,9 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             createShift,
             createShifts,
             addPreference,
-            removePreference
+            removePreference,
+            addHoliday,
+            removeHoliday
         }}>
             {children}
         </ShiftContext.Provider>

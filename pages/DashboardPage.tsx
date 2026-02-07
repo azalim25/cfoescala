@@ -9,7 +9,7 @@ import { supabase } from '../supabase';
 import { safeParseISO } from '../utils/dateUtils';
 
 const DashboardPage: React.FC = () => {
-  const { shifts: allShifts, createShift, updateShift, removeShift, preferences } = useShift();
+  const { shifts: allShifts, createShift, updateShift, removeShift, preferences, holidays, addHoliday, removeHoliday } = useShift();
   const { militaries } = useMilitary();
   const { isModerator } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -395,15 +395,19 @@ const DashboardPage: React.FC = () => {
               const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
 
               return (
-                <button
-                  key={day}
-                  onClick={() => setSelectedDay(day)}
-                  className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${isToday ? 'bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'} ${selectedDay === day ? 'ring-2 ring-primary ring-inset z-10' : ''}`}
                 >
                   <div className="flex justify-between items-start mb-0.5 sm:mb-1">
-                    <span className={`text-[10px] sm:text-xs font-bold ${isToday ? 'bg-primary text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
-                      {day}
-                    </span>
+                    <div className="flex flex-col items-start gap-1">
+                      <span className={`text-[10px] sm:text-xs font-bold ${isToday ? 'bg-primary text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
+                        {day}
+                      </span>
+                      {holidays.some(h => h.date === dateStr) && (
+                        <div className="flex items-center gap-0.5 px-1 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded ring-1 ring-red-100 dark:ring-red-900/30">
+                          <span className="material-symbols-outlined text-[8px] sm:text-[10px] font-black">event_busy</span>
+                          <span className="text-[6px] sm:text-[7px] font-black uppercase tracking-tighter">Feriado</span>
+                        </div>
+                      )}
+                    </div>
                     {(shifts.length > 0 || dayStages.length > 0) && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary"></span>}
                   </div>
                   <div className="space-y-0.5 sm:space-y-1">
@@ -519,24 +523,39 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800/50 h-7">
-                <button onClick={handlePrevDay} className="px-1 h-full hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-colors border-r border-slate-200 dark:border-slate-700 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-base">chevron_left</span>
-                </button>
-                <button onClick={handleNextDay} className="px-1 h-full hover:bg-white dark:hover:bg-slate-700 text-slate-500 transition-colors flex items-center justify-center">
-                  <span className="material-symbols-outlined text-base">chevron_right</span>
-                </button>
+                </div>
               </div>
             </div>
-            {isModerator && (
-              <button
-                onClick={handleOpenAddModal}
-                className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity"
-                title="Adicionar Serviço"
-              >
-                <span className="material-symbols-outlined text-lg">add</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {isModerator && (
+                <button
+                  onClick={() => {
+                    const existing = holidays.find(h => h.date === selectedDateStr);
+                    if (existing) {
+                      removeHoliday(existing.id);
+                    } else {
+                      const desc = prompt("Descrição do Feriado (opcional):") || "Feriado";
+                      addHoliday({ date: selectedDateStr, description: desc });
+                    }
+                  }}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${holidays.some(h => h.date === selectedDateStr)
+                    ? 'bg-red-100 dark:bg-red-900/30 text-red-600 border border-red-200 dark:border-red-800 shadow-sm'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'}`}
+                  title={holidays.some(h => h.date === selectedDateStr) ? "Remover Feriado" : "Marcar como Feriado"}
+                >
+                  <span className="material-symbols-outlined text-lg">event_busy</span>
+                </button>
+              )}
+              {isModerator && (
+                <button
+                  onClick={handleOpenAddModal}
+                  className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-sm"
+                  title="Adicionar Serviço"
+                >
+                  <span className="material-symbols-outlined text-lg">add</span>
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 sm:space-y-6">
             <section className="space-y-3 pb-4 lg:pb-0">
@@ -690,182 +709,184 @@ const DashboardPage: React.FC = () => {
               })()}
             </section>
           </div>
+        </div >
+      </MainLayout.Sidebar >
+
+  {/* Edit Modal */ }
+{
+  isModalOpen && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+          <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">
+              {editingShift ? 'edit_calendar' : 'add_circle'}
+            </span>
+            {editingShift ? 'Editar Serviço' : 'Adicionar Serviço'}
+          </h3>
+          <button
+            onClick={() => setIsModalOpen(false)}
+            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
         </div>
-      </MainLayout.Sidebar>
 
-      {/* Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">
-                  {editingShift ? 'edit_calendar' : 'add_circle'}
-                </span>
-                {editingShift ? 'Editar Serviço' : 'Adicionar Serviço'}
-              </h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Militar</label>
-                <select
-                  value={formData.militaryId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, militaryId: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
-                >
-                  <option value="">Selecione um militar...</option>
-                  {militaries
-                    .map(m => {
-                      const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
-                      const hasRestriction = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'restriction');
-                      const hasPriority = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'priority');
-                      return (
-                        <option
-                          key={m.id}
-                          value={m.id}
-                          className={`${hasRestriction ? "text-red-600 font-bold" : ""} ${hasPriority ? "bg-amber-100 font-bold" : ""}`}
-                          style={hasRestriction ? { color: '#dc2626' } : {}}
-                        >
-                          {m.rank} {m.name} {hasRestriction ? '(RESTRIÇÃO)' : ''} {hasPriority ? '★' : ''}
-                        </option>
-                      );
-                    })}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Tipo de Escala</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
-                  className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
-                >
-                  {Object.keys(SHIFT_TYPE_COLORS).map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
-
-              {(formData.type === 'Comandante da Guarda') && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
-                  <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                    {[11, 24].map(h => (
-                      <button
-                        key={h}
-                        onClick={() => setFormData(prev => ({ ...prev, duration: h }))}
-                        className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
-                          ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                          : 'text-slate-500 hover:text-slate-700'}`}
-                      >
-                        {h} Horas
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {formData.type === 'Estágio' && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
-                  <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                    {[12, 24].map(h => (
-                      <button
-                        key={h}
-                        onClick={() => setFormData(prev => ({ ...prev, duration: h }))}
-                        className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
-                          ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                          : 'text-slate-500 hover:text-slate-700'}`}
-                      >
-                        {h} Horas
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {formData.type === 'Escala Diversa' && (
-                <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Descrição da Atividade</label>
-                    <input
-                      type="text"
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Ex: Reunião, Patrulhamento, etc."
-                      className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
-                      <input
-                        type="time"
-                        value={formData.startTime}
-                        onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                        className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">Término</label>
-                      <input
-                        type="time"
-                        value={formData.endTime}
-                        onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-                        className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-              {formData.type === 'Barra' && (
-                <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Horário da Barra</label>
-                  <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                    {['09:40', '11:40', '15:40', '17:40'].map(time => (
-                      <button
-                        key={time}
-                        onClick={() => setFormData(prev => ({ ...prev, startTime: time, endTime: time }))}
-                        className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.startTime === time
-                          ? 'bg-white dark:bg-slate-700 text-pink-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                          : 'text-slate-500 hover:text-slate-700'}`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-3">
-              {editingShift && (
-                <button
-                  onClick={handleDeleteShift}
-                  className="px-4 py-2 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-100 transition-colors flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-sm">delete</span>
-                  Excluir
-                </button>
-              )}
-              <button
-                onClick={handleSaveShift}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all ml-auto"
-              >
-                Salvar
-              </button>
-            </div>
+        <div className="p-6 space-y-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase">Militar</label>
+            <select
+              value={formData.militaryId}
+              onChange={(e) => setFormData(prev => ({ ...prev, militaryId: e.target.value }))}
+              className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+            >
+              <option value="">Selecione um militar...</option>
+              {militaries
+                .map(m => {
+                  const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+                  const hasRestriction = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'restriction');
+                  const hasPriority = preferences.some(p => p.militaryId === m.id && p.date === dateStr && p.type === 'priority');
+                  return (
+                    <option
+                      key={m.id}
+                      value={m.id}
+                      className={`${hasRestriction ? "text-red-600 font-bold" : ""} ${hasPriority ? "bg-amber-100 font-bold" : ""}`}
+                      style={hasRestriction ? { color: '#dc2626' } : {}}
+                    >
+                      {m.rank} {m.name} {hasRestriction ? '(RESTRIÇÃO)' : ''} {hasPriority ? '★' : ''}
+                    </option>
+                  );
+                })}
+            </select>
           </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase">Tipo de Escala</label>
+            <select
+              value={formData.type}
+              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+              className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+            >
+              {Object.keys(SHIFT_TYPE_COLORS).map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+
+          {(formData.type === 'Comandante da Guarda') && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                {[11, 24].map(h => (
+                  <button
+                    key={h}
+                    onClick={() => setFormData(prev => ({ ...prev, duration: h }))}
+                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                      ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                      : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {h} Horas
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {formData.type === 'Estágio' && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                {[12, 24].map(h => (
+                  <button
+                    key={h}
+                    onClick={() => setFormData(prev => ({ ...prev, duration: h }))}
+                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                      ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                      : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {h} Horas
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {formData.type === 'Escala Diversa' && (
+            <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Descrição da Atividade</label>
+                <input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Ex: Reunião, Patrulhamento, etc."
+                  className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                    className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Término</label>
+                  <input
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                    className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          {formData.type === 'Barra' && (
+            <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Horário da Barra</label>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                {['09:40', '11:40', '15:40', '17:40'].map(time => (
+                  <button
+                    key={time}
+                    onClick={() => setFormData(prev => ({ ...prev, startTime: time, endTime: time }))}
+                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.startTime === time
+                      ? 'bg-white dark:bg-slate-700 text-pink-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                      : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </MainLayout>
+
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex gap-3">
+          {editingShift && (
+            <button
+              onClick={handleDeleteShift}
+              className="px-4 py-2 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-100 transition-colors flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">delete</span>
+              Excluir
+            </button>
+          )}
+          <button
+            onClick={handleSaveShift}
+            className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all ml-auto"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+    </MainLayout >
   );
 };
 

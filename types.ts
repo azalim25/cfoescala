@@ -62,3 +62,9 @@ export interface AcademicTimeSlot {
   endTime: string;
   active: boolean;
 }
+
+export interface Holiday {
+  id: string;
+  date: string;
+  description: string;
+}
