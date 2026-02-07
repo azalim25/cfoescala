@@ -326,15 +326,31 @@ const GenerateScalePage: React.FC = () => {
                                     <div className="space-y-1 overflow-y-auto flex-1 custom-scrollbar pr-1">
                                         {shifts.map(s => {
                                             const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
+                                            const military = militaries.find(m => m.id === s.militaryId) ||
+                                                militaries.find(m => m.name.toLowerCase().includes(s.militaryId.toLowerCase()));
+
+                                            const displayName = military
+                                                ? military.name
+                                                : (s.militaryId.length > 15 ? '???' : s.militaryId); // Show ID if name not found
+
                                             return (
                                                 <div
                                                     key={s.id}
                                                     onClick={(e) => handleEditShiftClick(e, s, day)}
-                                                    className={`text-[8px] sm:text-[9px] font-bold p-1 rounded-md ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer shadow-sm`}
-                                                    title={`${militaries.find(m => m.id === s.militaryId)?.name} - ${s.type}`}
+                                                    className={`text-[8px] sm:text-[9px] font-bold p-1 rounded-md ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer shadow-sm flex items-center justify-between min-h-[18px] sm:min-h-[22px]`}
+                                                    title={`${military?.name || 'Não Encontrado'} - ${s.type}`}
                                                 >
-                                                    <span className="hidden sm:inline">{militaries.find(m => m.id === s.militaryId)?.name.split(' ')[0]}</span>
-                                                    <span className="inline sm:hidden">{militaries.find(m => m.id === s.militaryId)?.name.charAt(0)}</span>
+                                                    <span className="truncate">
+                                                        {military ? (
+                                                            <>
+                                                                <span className="hidden sm:inline">{military.name.split(' ')[0]}</span>
+                                                                <span className="inline sm:hidden">{military.name.charAt(0)}</span>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-red-500 italic">{displayName}</span>
+                                                        )}
+                                                    </span>
+                                                    <span className="material-symbols-outlined text-[8px] sm:text-[10px] opacity-20 shrink-0 ml-1">edit</span>
                                                 </div>
                                             );
                                         })}

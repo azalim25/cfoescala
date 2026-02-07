@@ -101,15 +101,34 @@ export async function generateAIScale(
 ) {
   if (isPlaceholder) throw new Error("Chave API não configurada.");
 
-  const militarySummary = militaryData.map(m => `${m.rank} ${m.name}`).join(', ');
+  // Create a structured summary for the AI that includes IDs
+  const militarySummary = militaryData.map(m => `ID: ${m.id}, Nome: ${m.rank} ${m.name}`).join(' | ');
+
   const promptText = `
     Aja como um especialista em escalas militares.
     Contexto: Mês ${month + 1}/${year}. CFO (Bombeiros).
-    Militares: ${militarySummary}
-    Regras: 48h de descanso. Tipos: Escala Geral, Comandante da Guarda, Sobreaviso.
+    
+    MILITARES DISPONÍVEIS (Use EXATAMENTE o militaryId fornecido):
+    ${militarySummary}
+    
+    REGRAS: 
+    1. Respeite o interstício (descanso) de 48h entre serviços.
+    2. Tipos suportados: Comandante da Guarda, Faxina, Manutenção, Estágio, Sobreaviso, Escala Geral.
+    3. Distribua os serviços de forma justa entre os militares.
+    
     Instruções do Usuário: ${customPrompt || 'Nenhuma.'}
-    Saída: Retorne um array JSON com objetos contendo militaryId, date (YYYY-MM-DD), type, startTime, endTime, location, status.
-    Responda apenas o JSON.
+    
+    SAÍDA: 
+    Retorne UM ARRAY JSON com objetos contendo:
+    - militaryId: (O ID fornecido acima para o militar escolhido)
+    - date: (YYYY-MM-DD)
+    - type: (Um dos tipos suportados)
+    - startTime: (08:00 por padrão)
+    - endTime: (08:00 por padrão)
+    - location: (String)
+    - status: "Confirmado"
+    
+    IMPORTANTE: Responda APENAS o JSON, sem explicações.
   `;
 
   const payload = {
