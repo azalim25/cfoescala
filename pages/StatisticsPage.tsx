@@ -7,11 +7,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Filter, Calendar } from 'lucide-react';
 
 const StatisticsPage: React.FC = () => {
+    const { shifts, isLoading: shiftsLoading, holidays, removeHoliday } = useShift();
     const { militaries } = useMilitary();
-    const { shifts } = useShift();
 
-    // Filter State
-    const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+    const [monthFilter, setMonthFilter] = useState<number | 'all'>(new Date().getMonth());
 
     const months = [
         { value: '01', label: 'Janeiro' },
@@ -27,6 +26,13 @@ const StatisticsPage: React.FC = () => {
         { value: '11', label: 'Novembro' },
         { value: '12', label: 'Dezembro' }
     ];
+
+    const toggleMonth = (monthValue: string) => {
+        const monthIndex = parseInt(monthValue) - 1;
+        setMonthFilter(monthIndex === monthFilter ? 'all' : monthIndex);
+    };
+
+    const clearFilters = () => setMonthFilter('all');
 
     const statsData = useMemo(() => {
         if (!shifts.length || !militaries.length) return null;
@@ -57,6 +63,7 @@ const StatisticsPage: React.FC = () => {
                 const day = date.getDay();
                 const isHoliday = holidays.some(h => h.date === s.date);
                 const isWeekend = day === 0 || day === 6 || isHoliday;
+
                 if (data.comandante[s.militaryId]) {
                     if (isWeekend) data.comandante[s.militaryId].weekend++;
                     else data.comandante[s.militaryId].weekday++;
@@ -195,14 +202,12 @@ const StatisticsPage: React.FC = () => {
                             <Calendar className="w-4 h-4 text-slate-400" />
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Meses:</span>
                             <div className="flex gap-1">
-                                {selectedMonths.length === 0 ? (
+                                {monthFilter === 'all' ? (
                                     <span className="text-[10px] font-black text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md">TODOS</span>
                                 ) : (
-                                    selectedMonths.sort().map(m => (
-                                        <span key={m} className="text-[10px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">
-                                            {months.find(mon => mon.value === m)?.label.substring(0, 3).toUpperCase()}
-                                        </span>
-                                    ))
+                                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">
+                                        {months[monthFilter].label.substring(0, 3).toUpperCase()}
+                                    </span>
                                 )}
                             </div>
                         </div>
@@ -216,11 +221,11 @@ const StatisticsPage: React.FC = () => {
 
                             <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                                 <div className="grid grid-cols-2 gap-2">
-                                    {months.map(m => (
+                                    {months.map((m, idx) => (
                                         <button
                                             key={m.value}
-                                            onClick={() => toggleMonth(m.value)}
-                                            className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedMonths.includes(m.value)
+                                            onClick={() => setMonthFilter(idx)}
+                                            className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${monthFilter === idx
                                                 ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
                                                 : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-700'
                                                 }`}
@@ -229,7 +234,7 @@ const StatisticsPage: React.FC = () => {
                                         </button>
                                     ))}
                                 </div>
-                                {selectedMonths.length > 0 && (
+                                {monthFilter !== 'all' && (
                                     <button
                                         onClick={clearFilters}
                                         className="w-full mt-4 py-2 text-[10px] font-black text-rose-500 uppercase border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-900/20 rounded-xl hover:bg-rose-100 transition-colors"
