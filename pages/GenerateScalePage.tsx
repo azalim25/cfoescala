@@ -5,6 +5,8 @@ import { Military, Shift } from '../types';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../supabase';
+import { safeParseISO } from '../utils/dateUtils';
 import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { generateAIScale } from '../geminiService';
 
@@ -38,6 +40,7 @@ const GenerateScalePage: React.FC = () => {
         startTime: '08:00',
         endTime: '08:00'
     });
+    const [extraHours, setExtraHours] = useState<any[]>([]);
 
     // Confirm Modal State
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel?: () => void }>({
@@ -56,6 +59,14 @@ const GenerateScalePage: React.FC = () => {
         });
         setDraftShifts(existingShifts);
     }, [currentMonth, currentYear, shifts]);
+
+    useEffect(() => {
+        const fetchExtraHours = async () => {
+            const { data } = await supabase.from('extra_hours').select('*');
+            if (data) setExtraHours(data);
+        };
+        fetchExtraHours();
+    }, []);
 
     const months = [
         'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -76,6 +87,50 @@ const GenerateScalePage: React.FC = () => {
                 setDraftShifts([]);
             }
 
+            // Calculate historical stats for balance
+            const historicalStats: Record<string, any> = {};
+            militaries.forEach(mil => {
+                let totalHours = 0;
+                let lastCmdGuarda = '';
+                let lastEstagio = '';
+
+                // Calculate hours from existing shifts
+                shifts.forEach(s => {
+                    if (s.militaryId !== mil.id) return;
+
+                    const date = safeParseISO(s.date);
+                    const dayOfWeek = date.getDay();
+
+                    if (s.duration) {
+                        totalHours += s.duration;
+                    } else if (s.type === 'Comandante da Guarda') {
+                        if (dayOfWeek >= 1 && dayOfWeek <= 5) totalHours += 11;
+                        else totalHours += 24;
+                    } else if (s.type === 'Estágio') {
+                        if (dayOfWeek === 6) totalHours += 24;
+                        else if (dayOfWeek === 0) totalHours += 12;
+                    }
+
+                    // Track last service dates
+                    if (s.type === 'Comandante da Guarda') {
+                        if (!lastCmdGuarda || s.date > lastCmdGuarda) lastCmdGuarda = s.date;
+                    } else if (s.type === 'Estágio') {
+                        if (!lastEstagio || s.date > lastEstagio) lastEstagio = s.date;
+                    }
+                });
+
+                // Add extra hours
+                extraHours.filter(e => e.military_id === mil.id).forEach(e => {
+                    totalHours += e.hours + (e.minutes / 60 || 0);
+                });
+
+                historicalStats[mil.id] = {
+                    totalHours,
+                    lastCmdGuarda,
+                    lastEstagio
+                };
+            });
+
             try {
                 const aiShifts = await generateAIScale(
                     militaries,
@@ -83,7 +138,8 @@ const GenerateScalePage: React.FC = () => {
                     currentYear,
                     aiPrompt,
                     preferences,
-                    existingDraft
+                    existingDraft,
+                    historicalStats
                 );
 
                 // Add unique IDs to the generated shifts

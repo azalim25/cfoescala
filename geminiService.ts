@@ -99,12 +99,15 @@ export async function generateAIScale(
   year: number,
   customPrompt: string,
   preferencesData: any[],
-  existingShifts: any[] = []
+  existingShifts: any[] = [],
+  historicalStats: any = {}
 ) {
   if (isPlaceholder) throw new Error("Chave API não configurada.");
 
-  // Create a structured summary for the AI that includes IDs
-  const militarySummary = militaryData.map(m => `ID: ${m.id}, Nome: ${m.rank} ${m.name}`).join(' | ');
+  // Summary with IDs and historical workload
+  const militarySummary = militaryData.map(m =>
+    `- ${m.rank} ${m.name} (ID: ${m.id}) [Antiguidade: ${m.antiguidade || 'N/A'}] (Histórico: ${historicalStats[m.id]?.totalHours?.toFixed(1) || 0}h acumuladas)`
+  ).join('\n');
 
   // Summary of preferences (restrictions and priorities)
   const prefsSummary = preferencesData.map(p => {
@@ -118,11 +121,21 @@ export async function generateAIScale(
     return mil ? `${mil.rank} ${mil.name} (ID: ${s.militaryId}) já está escalado em ${s.date} para ${s.type}` : '';
   }).filter(t => t !== '').join('\n    ');
 
+  // Summary of last services for the 15-day rule
+  const lastServicesSummary = militaryData.map(m => {
+    const stats = historicalStats[m.id];
+    if (!stats) return '';
+    let text = `${m.rank} ${m.name} (ID: ${m.id}):`;
+    if (stats.lastCmdGuarda) text += ` Último Cmd. Guarda em ${stats.lastCmdGuarda}.`;
+    if (stats.lastEstagio) text += ` Último Estágio em ${stats.lastEstagio}.`;
+    return text === `${m.rank} ${m.name} (ID: ${m.id}):` ? '' : text;
+  }).filter(t => t !== '').join('\n    ');
+
   const promptText = `
     Aja como um especialista em escalas militares.
     Contexto: Mês ${month + 1}/${year}. CFO (Bombeiros).
     
-    MILITARES DISPONÍVEIS (Use EXATAMENTE o militaryId fornecido):
+    MILITARES DISPONÍVEIS (ID, Nome e Horas Acumuladas):
     ${militarySummary}
     
     RESTRIÇÕES E PREFERÊNCIAS (CRÍTICO):
@@ -130,15 +143,22 @@ export async function generateAIScale(
     
     ESCALAS JÁ DEFINIDAS (OBRIGATÓRIO MANTER - NÃO ALTERAR ESTAS ESCALAS):
     ${existingSummary || 'Nenhuma escala prévia definida.'}
+
+    DATAS DE ÚLTIMOS SERVIÇOS (Para regra de descanso de 15 dias):
+    ${lastServicesSummary || 'Nenhum registro prévio relevante.'}
     
-    REGRAS OBRIGATÓRIAS: 
+    REGRAS OBRIGATÓRIAS (Prio 1-3):
     1. JAMAIS escale um militar em uma data que ele possua uma restrição (PROIBIDO trabalhar).
-    2. Respeite o interstício (descanso) de 48h entre qualquer serviço.
-    3. Tipos suportados: Comandante da Guarda, Faxina, Manutenção, Estágio, Sobreaviso, Escala Geral.
-    4. DISTRIBUIÇÃO JUSTA: Tente equalizar a carga horária entre todos, exceto se houver restrições.
-    5. PRIORIDADE: Se houver "PREFERE trabalhar" em uma data, tente escalá-lo lá (se não quebrar as outras regras).
-    6. MANUTENÇÃO: Mantenha EXATAMENTE os militares nas datas/tipos listados em "ESCALAS JÁ DEFINIDAS".
+    2. Respeite o interstício (descanso) de 48h entre QUALQUER serviço.
+    3. REGRA DE 15 DIAS: Para os tipos "Comandante da Guarda" e "Estágio", o militar deve ter no MÍNIMO 15 DIAS de intervalo desde o seu último serviço do MESMO TIPO (consulte as DATAS DE ÚLTIMOS SERVIÇOS).
+
+    DIRETRIZES DE BALANCEAMENTO (Prio 4-6):
+    4. DISTRIBUIÇÃO JUSTA: Priorize escalar quem tem MENOS horas acumuladas (Histórico). Tente equalizar o total ao final do mês.
+    5. VARIEDADE: Para "Comandante da Guarda", tente não escalar a mesma pessoa sempre no mesmo dia da semana que ela já trabalhou no passado.
+    6. PRIORIDADE DE DESEJO: Se houver "PREFERE trabalhar", atenda se não quebrar regras 1-3.
     
+    Tipos suportados: Comandante da Guarda, Faxina, Manutenção, Estágio, Sobreaviso, Escala Geral.
+
     Instruções do Usuário: ${customPrompt || 'Nenhuma.'}
     
     SAÍDA: 
