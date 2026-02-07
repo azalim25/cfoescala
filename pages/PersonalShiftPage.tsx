@@ -181,7 +181,7 @@ const PersonalShiftPage: React.FC = () => {
       let location = s.location;
       if (['Comandante da Guarda', 'Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)) {
         location = 'ABM';
-      } else if (s.type === 'Escala Diversa') {
+      } else if (['Escala Diversa', 'Barra'].includes(s.type)) {
         location = '';
       } else if (s.type === 'Estágio') {
         const stageMatch = personalStages.find(ps => ps.date === s.date);
