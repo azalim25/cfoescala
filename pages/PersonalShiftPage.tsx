@@ -160,6 +160,21 @@ const PersonalShiftPage: React.FC = () => {
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [schedule, today]);
 
+  const groupByMonth = (shifts: any[]) => {
+    const result: { month: string, items: any[] }[] = [];
+    shifts.forEach(s => {
+      const date = safeParseISO(s.date);
+      const monthYear = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const lastGroup = result[result.length - 1];
+      if (lastGroup && lastGroup.month === monthYear) {
+        lastGroup.items.push(s);
+      } else {
+        result.push({ month: monthYear, items: [s] });
+      }
+    });
+    return result;
+  };
+
   // Robust Duplication Filter
   const combinedUpcoming = useMemo(() => {
     const list = [
@@ -264,6 +279,51 @@ const PersonalShiftPage: React.FC = () => {
       .filter(s => selectedPastTypes.includes(s.type))
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [personalShifts, personalStages, extraHours, today, selectedPastTypes]);
+
+  const todayShifts = useMemo(() => {
+    const all = [
+      ...personalShifts.map(s => {
+        if (s.type === 'Estágio') {
+          const stageMatch = personalStages.find(ps => ps.date === s.date);
+          return { ...s, location: stageMatch ? stageMatch.location : s.location, isStage: false };
+        }
+        return { ...s, isStage: false };
+      }),
+      ...personalStages
+        .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
+        .map(s => ({
+          id: s.id,
+          date: s.date,
+          type: 'Estágio',
+          location: s.location,
+          isStage: true,
+          startTime: '08:00',
+          endTime: '08:00',
+          status: 'Confirmado'
+        })),
+      ...extraHours
+        .filter(eh => {
+          if (eh.category !== 'CFO II - Registro de Horas') return false;
+          const ehDate = eh.date.split('T')[0];
+          return ehDate === today;
+        })
+        .map(eh => ({
+          id: eh.id,
+          date: eh.date,
+          type: 'Escala Diversa',
+          location: eh.description.replace('Escala Diversa: ', ''),
+          isStage: false,
+          isExtra: true,
+          startTime: '08:00',
+          endTime: '12:00',
+          status: 'Confirmado'
+        }))
+    ];
+    return all.filter(s => s.date === today);
+  }, [personalShifts, personalStages, extraHours, today]);
+
+  const upcomingGrouped = useMemo(() => groupByMonth(combinedUpcoming), [combinedUpcoming]);
+  const pastGrouped = useMemo(() => groupByMonth(combinedPast), [combinedPast]);
 
   const isExcludedActivity = (type: string) => {
     const excludedExact = ['CFO I - Faxina', 'CFO I - Manutenção', 'CFO I - Sobreaviso'];
@@ -427,6 +487,38 @@ const PersonalShiftPage: React.FC = () => {
 
             </div>
 
+            {/* Escalas de Hoje */}
+            {todayShifts.length > 0 && (
+              <section className="mb-8">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1 mb-4">
+                  <span className="material-symbols-outlined text-primary text-xl">today</span>
+                  Escalas de Hoje
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {todayShifts.map((s: any, idx: number) => (
+                    <div key={s.id || idx} className="bg-primary/5 dark:bg-primary/10 rounded-2xl border-2 border-primary/20 p-5 relative overflow-hidden group hover:shadow-lg transition-all">
+                      <div className="absolute top-0 right-0 p-3">
+                        <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest bg-primary text-white">Hoje</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="material-symbols-outlined text-primary text-xl">schedule</span>
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+                            {s.startTime} - {s.endTime}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mb-2">{s.type}</h3>
+                        <div className="flex items-center gap-2 pt-3 border-t border-primary/10">
+                          <span className="material-symbols-outlined text-slate-400 text-sm">location_on</span>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter truncate">{s.location || 'ABM'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <section className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
@@ -454,60 +546,62 @@ const PersonalShiftPage: React.FC = () => {
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="hidden sm:block">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
-                      <tr>
-                        <th className="px-6 py-4">Data</th>
-                        <th className="px-6 py-4">Tipo de Serviço</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {combinedUpcoming.map((s: any, idx: number) => (
-                        <tr key={s.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                                {safeParseISO(s.date).toLocaleDateString('pt-BR')}
-                              </span>
-                              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
-                                {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2.5 py-0.5 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[10px] font-bold uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
-                              {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
-                              {s.type === 'Escala Diversa' && ` - ${s.location} (${s.startTime} às ${s.endTime})`}
-                              {s.type === 'Barra' && ` (${s.startTime})`}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                  {combinedUpcoming.map((s: any, idx: number) => (
-                    <div key={s.id || idx} className="p-4 flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
-                        <span className="text-sm font-black text-slate-800 dark:text-white">
-                          {safeParseISO(s.date).toLocaleDateString('pt-BR')}
-                        </span>
-                        <span className="text-[10px] text-primary font-bold uppercase tracking-tighter">
-                          {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'short' })}
-                        </span>
-                      </div>
-                      <span className={`px-2 py-1 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[9px] font-black uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
-                        {s.type}
-                        {s.type === 'Escala Diversa' && ` - ${s.location} (${s.startTime} às ${s.endTime})`}
-                        {s.type === 'Barra' && ` (${s.startTime})`}
-                      </span>
+                {upcomingGrouped.map((group, gIdx) => (
+                  <div key={group.month}>
+                    <div className="bg-slate-50/80 dark:bg-slate-800/80 px-4 py-2 border-y border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-slate-400 text-sm">calendar_month</span>
+                      <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{group.month}</span>
                     </div>
-                  ))}
-                </div>
+                    <div className="hidden sm:block">
+                      <table className="w-full text-left">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {group.items.map((s: any, idx: number) => (
+                            <tr key={s.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                              <td className="px-6 py-4 w-40">
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                                    {safeParseISO(s.date).toLocaleDateString('pt-BR')}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter text-left">
+                                    {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2.5 py-0.5 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[10px] font-bold uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
+                                  {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
+                                  {s.type === 'Escala Diversa' && ` - ${s.location} (${s.startTime} às ${s.endTime})`}
+                                  {s.type === 'Barra' && ` (${s.startTime})`}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                      {group.items.map((s: any, idx: number) => (
+                        <div key={s.id || idx} className="p-4 flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
+                            <span className="text-sm font-black text-slate-800 dark:text-white">
+                              {safeParseISO(s.date).toLocaleDateString('pt-BR')}
+                            </span>
+                            <span className="text-[10px] text-primary font-bold uppercase tracking-tighter">
+                              {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'short' })}
+                            </span>
+                          </div>
+                          <span className={`px-2 py-1 rounded-md ${s.isStage ? 'bg-amber-100 text-amber-700 border-amber-200' : (SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50')} ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700')} text-[9px] font-black uppercase border ${s.isStage ? '' : (SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100')}`}>
+                            {s.type}
+                            {s.type === 'Escala Diversa' && ` - ${s.location} (${s.startTime} às ${s.endTime})`}
+                            {s.type === 'Barra' && ` (${s.startTime})`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
 
                 {combinedUpcoming.length === 0 && (
                   <div className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço ou estágio agendado.</div>
@@ -719,55 +813,57 @@ const PersonalShiftPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  <div className="hidden sm:block">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
-                        <tr>
-                          <th className="px-6 py-4">Data</th>
-                          <th className="px-6 py-4">Tipo de Serviço</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {combinedPast.map((s: any, idx: number) => (
-                          <tr key={s.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                            <td className="px-6 py-4">
-                              <div className="flex flex-col">
-                                <span className="text-sm font-extrabold text-slate-400 dark:text-slate-500">
-                                  {safeParseISO(s.date).toLocaleDateString('pt-BR')}
-                                </span>
-                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
-                                  {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={`px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border-slate-200 text-[10px] font-bold uppercase border`}>
-                                {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
-                                {s.type === 'Escala Diversa' && ` - ${s.location}`}
-                                {s.type === 'Barra' && ` (${s.startTime})`}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                    {combinedPast.map((s: any, idx: number) => (
-                      <div key={s.id || idx} className="p-4 flex items-center justify-between">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
-                          <span className="text-sm font-black text-slate-400 dark:text-slate-500">
-                            {safeParseISO(s.date).toLocaleDateString('pt-BR')}
-                          </span>
-                        </div>
-                        <span className={`px-2 py-1 rounded-md bg-slate-100 text-slate-500 border-slate-200 text-[9px] font-black uppercase border`}>
-                          {s.type}
-                        </span>
+                  {pastGrouped.map((group, gIdx) => (
+                    <div key={group.month}>
+                      <div className="bg-slate-50/80 dark:bg-slate-800/80 px-4 py-2 border-y border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-slate-400 text-sm">calendar_month</span>
+                        <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{group.month}</span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="hidden sm:block">
+                        <table className="w-full text-left">
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {group.items.map((s: any, idx: number) => (
+                              <tr key={s.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                                <td className="px-6 py-4 w-40">
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-extrabold text-slate-400 dark:text-slate-500">
+                                      {safeParseISO(s.date).toLocaleDateString('pt-BR')}
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter text-left">
+                                      {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border-slate-200 text-[10px] font-bold uppercase border`}>
+                                    {s.type} {s.isStage && `- ${s.location.split(' - ')[0]}`}
+                                    {s.type === 'Escala Diversa' && ` - ${s.location}`}
+                                    {s.type === 'Barra' && ` (${s.startTime})`}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                        {group.items.map((s: any, idx: number) => (
+                          <div key={s.id || idx} className="p-4 flex items-center justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
+                              <span className="text-sm font-black text-slate-400 dark:text-slate-500">
+                                {safeParseISO(s.date).toLocaleDateString('pt-BR')}
+                              </span>
+                            </div>
+                            <span className={`px-2 py-1 rounded-md bg-slate-100 text-slate-500 border-slate-200 text-[9px] font-black uppercase border`}>
+                              {s.type}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </section>
