@@ -117,7 +117,8 @@ const QtmPage: React.FC = () => {
             endTime: '09:40',
             disciplineId: disciplines[0]?.id || null,
             location: 'ABM',
-            description: ''
+            description: '',
+            examType: undefined
         });
         setIsModalOpen(true);
     };
@@ -138,7 +139,8 @@ const QtmPage: React.FC = () => {
             endTime: entry.endTime,
             disciplineId: entry.disciplineId,
             location: entry.location || 'ABM',
-            description: entry.description || ''
+            description: entry.description || '',
+            examType: entry.examType
         });
         setIsModalOpen(true);
     };
@@ -162,6 +164,7 @@ const QtmPage: React.FC = () => {
                 }
             } else {
                 dataToSave.description = isExam ? 'PROVA' : '';
+                dataToSave.examType = isExam ? formData.examType || 'Teórica' : undefined;
             }
 
             if (editingEntry) {
@@ -559,6 +562,37 @@ const QtmPage: React.FC = () => {
                                         </div>
                                         <span className={`text-xs font-bold transition-colors ${isExam ? 'text-pink-600 dark:text-pink-400' : 'text-slate-500'}`}>Avaliação / Prova</span>
                                     </label>
+
+                                    {isExam && (
+                                        <div className="flex gap-4 px-1 py-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="radio"
+                                                    name="examType"
+                                                    checked={formData.examType === 'Teórica' || !formData.examType}
+                                                    onChange={() => setFormData({ ...formData, examType: 'Teórica' })}
+                                                    className="peer hidden"
+                                                />
+                                                <div className="w-4 h-4 rounded-full border-2 border-slate-200 dark:border-slate-700 peer-checked:border-pink-500 peer-checked:bg-pink-500 flex items-center justify-center transition-all">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-white scale-0 peer-checked:scale-100 transition-transform"></div>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">Teórica</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="radio"
+                                                    name="examType"
+                                                    checked={formData.examType === 'Prática'}
+                                                    onChange={() => setFormData({ ...formData, examType: 'Prática' })}
+                                                    className="peer hidden"
+                                                />
+                                                <div className="w-4 h-4 rounded-full border-2 border-slate-200 dark:border-slate-700 peer-checked:border-pink-500 peer-checked:bg-pink-500 flex items-center justify-center transition-all">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-white scale-0 peer-checked:scale-100 transition-transform"></div>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">Prática</span>
+                                            </label>
+                                        </div>
+                                    )}
                                 </div>
                             ) : selectedType === 'Atividade Extra' ? (
                                 <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">

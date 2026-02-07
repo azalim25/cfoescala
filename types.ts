@@ -53,6 +53,7 @@ export interface AcademicSchedule {
   disciplineId: string | null;
   location?: string;
   description?: string;
+  examType?: 'Teórica' | 'Prática';
 }
 
 export interface AcademicTimeSlot {

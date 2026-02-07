@@ -14,6 +14,7 @@ import StageQuantityPage from './pages/StageQuantityPage';
 import ComandanteGuardaPage from './pages/ComandanteGuardaPage';
 import BarraFixaPage from './pages/BarraFixaPage';
 import HoursControlPage from './pages/HoursControlPage';
+import ExamsPage from './pages/ExamsPage';
 import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -121,6 +122,12 @@ const App: React.FC = () => {
                 <Route path="/barra-fixa" element={
                   <ProtectedRoute>
                     <BarraFixaPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/provas" element={
+                  <ProtectedRoute>
+                    <ExamsPage />
                   </ProtectedRoute>
                 } />
 

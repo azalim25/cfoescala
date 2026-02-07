@@ -52,8 +52,8 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
                     startTime: s.start_time,
                     endTime: s.end_time,
                     disciplineId: s.discipline_id,
-                    location: s.location,
-                    description: s.description
+                    description: s.description,
+                    examType: s.exam_type
                 })));
             }
 
@@ -105,7 +105,8 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
             end_time: entry.endTime,
             discipline_id: entry.disciplineId,
             location: entry.location,
-            description: entry.description
+            description: entry.description,
+            exam_type: entry.examType
         });
         if (!error) await fetchAcademicData();
     };
@@ -118,7 +119,8 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
                 end_time: entry.endTime,
                 discipline_id: entry.disciplineId,
                 location: entry.location,
-                description: entry.description
+                description: entry.description,
+                exam_type: entry.examType
             }))
         );
         if (!error) await fetchAcademicData();
@@ -132,6 +134,7 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
         if (updates.disciplineId !== undefined) dbUpdates.discipline_id = updates.disciplineId;
         if (updates.location !== undefined) dbUpdates.location = updates.location;
         if (updates.description !== undefined) dbUpdates.description = updates.description;
+        if (updates.examType !== undefined) dbUpdates.exam_type = updates.examType;
 
         const { error } = await supabase.from('academic_schedule').update(dbUpdates).eq('id', id);
         if (!error) await fetchAcademicData();

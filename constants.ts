@@ -84,10 +84,11 @@ export const SHIFT_TYPE_COLORS: Record<string, { bg: string; text: string; borde
   }
 };
 
-export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'qdch' | 'barra-fixa';
+export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'barra-fixa';
 
 export const NAV_LINKS = [
   { to: '/qtm', label: 'QTM', icon: 'event_note', id: 'qtm' as PageId },
+  { to: '/provas', label: 'Provas', icon: 'assignment_turned_in', id: 'provas' as PageId },
   { to: '/', label: 'Calendário', icon: 'calendar_month', id: 'dashboard' as PageId },
   { to: '/contacts', label: 'Contatos', icon: 'contact_page', id: 'contacts' as PageId },
   { to: '/personal', label: 'Minha Escala', icon: 'person_pin', id: 'personal' as PageId },
