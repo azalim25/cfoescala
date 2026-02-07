@@ -254,44 +254,15 @@ const StatisticsPage: React.FC = () => {
                     </div>
                 </div>
 
-                {holidays.length > 0 && (
-                    <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-2xl">
-                        <h3 className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-base">event_busy</span>
-                            Feriados Registrados
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                            {holidays
-                                .sort((a, b) => a.date.localeCompare(b.date))
-                                .map(h => (
-                                    <div key={h.id} className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 rounded-lg shadow-sm">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase leading-none">
-                                                {new Date(h.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                            </span>
-                                            <span className="text-[8px] font-bold text-slate-500 uppercase truncate max-w-[100px]">{h.description}</span>
-                                        </div>
-                                        <button
-                                            onClick={() => confirm(`Remover feriado: ${h.description}?`) && removeHoliday(h.id)}
-                                            className="text-red-300 hover:text-red-600 p-0.5 rounded-md hover:bg-red-50 transition-colors"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">close</span>
-                                        </button>
-                                    </div>
-                                ))}
-                        </div>
-                    </div>
-                )}
-
                 {/* Charts Grid */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-12">
-                    {/* Cmd Guarda */}
+                    {/* Comandante da Guarda */}
                     <ChartSection
-                        title="CMD. DA GUARDA"
+                        title="COMANDANTE DA GUARDA"
                         data={statsData.comandante}
                         color="bg-rose-500"
                         bars={[
-                            { key: 'weekday', label: 'Dia de Semana', color: '#3b82f6' },
+                            { key: 'weekday', label: 'Dia de Semana', color: '#fca5a5' },
                             { key: 'weekend', label: 'Fim de Semana / Feriado', color: '#ef4444' }
                         ]}
                     />
@@ -302,8 +273,8 @@ const StatisticsPage: React.FC = () => {
                         data={statsData.estagio}
                         color="bg-indigo-500"
                         bars={[
-                            { key: 'h12', label: '12 Horas', color: '#4338ca' },
-                            { key: 'h24', label: '24 Horas', color: '#818cf8' }
+                            { key: 'h12', label: '12 Horas', color: '#818cf8' },
+                            { key: 'h24', label: '24 Horas', color: '#4338ca' }
                         ]}
                     />
 
@@ -337,6 +308,35 @@ const StatisticsPage: React.FC = () => {
                         ]}
                     />
                 </div>
+
+                {holidays.length > 0 && (
+                    <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-2xl">
+                        <h3 className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-base">event_busy</span>
+                            Feriados Registrados
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            {holidays
+                                .sort((a, b) => a.date.localeCompare(b.date))
+                                .map(h => (
+                                    <div key={h.id} className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 rounded-lg shadow-sm">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase leading-none">
+                                                {new Date(h.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                            </span>
+                                            <span className="text-[8px] font-bold text-slate-500 uppercase truncate max-w-[100px]">{h.description}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => confirm(`Remover feriado: ${h.description}?`) && removeHoliday(h.id)}
+                                            className="text-red-300 hover:text-red-600 p-0.5 rounded-md hover:bg-red-50 transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                )}
             </MainLayout.Content>
         </MainLayout>
     );
