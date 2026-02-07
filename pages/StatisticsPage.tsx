@@ -255,7 +255,7 @@ const StatisticsPage: React.FC = () => {
                 </div>
 
                 {/* Charts Grid */}
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-12">
+                <div className="grid grid-cols-1 gap-6 mb-12">
                     {/* Comandante da Guarda */}
                     <ChartSection
                         title="COMANDANTE DA GUARDA"
