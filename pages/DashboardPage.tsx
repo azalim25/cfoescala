@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
-import { MOCK_SHIFTS, SHIFT_TYPE_COLORS } from '../constants';
+import { MOCK_SHIFTS, SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { useShift } from '../contexts/ShiftContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,7 +42,9 @@ const DashboardPage: React.FC = () => {
 
   // Filter State
   const allShiftTypes = useMemo(() =>
-    Object.keys(SHIFT_TYPE_COLORS).filter(type => !['Escala Geral', 'Escala Diversa'].includes(type)),
+    Object.keys(SHIFT_TYPE_COLORS)
+      .filter(type => !['Escala Geral', 'Escala Diversa'].includes(type))
+      .sort((a, b) => (SHIFT_TYPE_PRIORITY[a] || 99) - (SHIFT_TYPE_PRIORITY[b] || 99)),
     []);
   const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
 
@@ -416,16 +418,6 @@ const DashboardPage: React.FC = () => {
                   </div>
                   <div className="space-y-0.5 sm:space-y-1">
                     {(() => {
-                      const priority: Record<string, number> = {
-                        'Comandante da Guarda': 1,
-                        'Manutenção': 2,
-                        'Faxina': 3,
-                        'Estágio': 4,
-                        'Sobreaviso': 5,
-                        'Escala Diversa': 6,
-                        'Barra': 7
-                      };
-
                       const combined = [
                         ...dayStages
                           .filter(st => isShiftVisible('Estágio') && !shifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'))
@@ -446,8 +438,8 @@ const DashboardPage: React.FC = () => {
                             isExtra: true
                           }))
                       ].sort((a, b) => {
-                        const prioA = priority[a.type] || 99;
-                        const prioB = priority[b.type] || 99;
+                        const prioA = SHIFT_TYPE_PRIORITY[a.type] || 99;
+                        const prioB = SHIFT_TYPE_PRIORITY[b.type] || 99;
                         if (prioA !== prioB) return prioA - prioB;
 
                         const milA = militaries.find(m => m.id === a.militaryId || m.id === (a as any).military_id);
@@ -501,6 +493,7 @@ const DashboardPage: React.FC = () => {
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {Object.entries(SHIFT_TYPE_COLORS)
               .filter(([type]) => type !== 'Escala Geral')
+              .sort(([a], [b]) => (SHIFT_TYPE_PRIORITY[a] || 99) - (SHIFT_TYPE_PRIORITY[b] || 99))
               .map(([type, colors]) => (
                 <div key={type} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></div>
@@ -565,16 +558,6 @@ const DashboardPage: React.FC = () => {
               </div>
 
               {(() => {
-                const priority: Record<string, number> = {
-                  'Comandante da Guarda': 1,
-                  'Manutenção': 2,
-                  'Faxina': 3,
-                  'Estágio': 4,
-                  'Sobreaviso': 5,
-                  'Escala Diversa': 6,
-                  'Barra': 7
-                };
-
                 const dayShifts = allShifts.filter(s => s.date === selectedDateStr && isShiftVisible(s.type));
                 const dayStages = stages.filter(st => st.date === selectedDateStr && isShiftVisible('Estágio') && !allShifts.some(sh => sh.date === st.date && sh.militaryId === st.military_id && sh.type === 'Estágio'));
                 const dayExtraHours = extraHours.filter(eh => eh.date === selectedDateStr && isShiftVisible('Escala Diversa'));
@@ -594,8 +577,8 @@ const DashboardPage: React.FC = () => {
                     date: eh.date
                   }))
                 ].sort((a, b) => {
-                  const prioA = priority[a.type] || 99;
-                  const prioB = priority[b.type] || 99;
+                  const prioA = SHIFT_TYPE_PRIORITY[a.type] || 99;
+                  const prioB = SHIFT_TYPE_PRIORITY[b.type] || 99;
                   if (prioA !== prioB) return prioA - prioB;
 
                   const milA = militaries.find(m => m.id === a.militaryId);

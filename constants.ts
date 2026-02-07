@@ -84,6 +84,17 @@ export const SHIFT_TYPE_COLORS: Record<string, { bg: string; text: string; borde
   }
 };
 
+export const SHIFT_TYPE_PRIORITY: Record<string, number> = {
+  'Comandante da Guarda': 1,
+  'Manutenção': 2,
+  'Faxina': 3,
+  'Estágio': 4,
+  'Sobreaviso': 5,
+  'Escala Geral': 6,
+  'Escala Diversa': 7,
+  'Barra': 8
+};
+
 export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'barra-fixa' | 'statistics';
 
 export const NAV_LINKS = [

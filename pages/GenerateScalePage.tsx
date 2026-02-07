@@ -5,7 +5,7 @@ import { Military, Shift } from '../types';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
-import { SHIFT_TYPE_COLORS } from '../constants';
+import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { generateAIScale } from '../geminiService';
 
 const GenerateScalePage: React.FC = () => {
@@ -359,36 +359,51 @@ const GenerateScalePage: React.FC = () => {
                                         {isModerator && <span className="material-symbols-outlined text-xs text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">add_circle</span>}
                                     </div>
                                     <div className="space-y-1 overflow-y-auto flex-1 custom-scrollbar pr-1">
-                                        {shifts.map(s => {
-                                            const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
-                                            const military = militaries.find(m => m.id === s.militaryId) ||
-                                                militaries.find(m => m.name.toLowerCase().includes(s.militaryId.toLowerCase()));
+                                        {shifts
+                                            .sort((a, b) => {
+                                                const prioA = SHIFT_TYPE_PRIORITY[a.type] || 99;
+                                                const prioB = SHIFT_TYPE_PRIORITY[b.type] || 99;
+                                                if (prioA !== prioB) return prioA - prioB;
 
-                                            const displayName = military
-                                                ? military.name
-                                                : (s.militaryId.length > 15 ? '???' : s.militaryId); // Show ID if name not found
+                                                const milA = militaries.find(m => m.id === a.militaryId);
+                                                const milB = militaries.find(m => m.id === b.militaryId);
 
-                                            return (
-                                                <div
-                                                    key={s.id}
-                                                    onClick={(e) => handleEditShiftClick(e, s, day)}
-                                                    className={`text-[8px] sm:text-[9px] font-bold p-1 rounded-md ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer shadow-sm flex items-center justify-between min-h-[18px] sm:min-h-[22px]`}
-                                                    title={`${military?.name || 'Não Encontrado'} - ${s.type}`}
-                                                >
-                                                    <span className="truncate">
-                                                        {military ? (
-                                                            <>
-                                                                <span className="hidden sm:inline">{military.name.split(' ')[0]}</span>
-                                                                <span className="inline sm:hidden">{military.name.charAt(0)}</span>
-                                                            </>
-                                                        ) : (
-                                                            <span className="text-red-500 italic">{displayName}</span>
-                                                        )}
-                                                    </span>
-                                                    <span className="material-symbols-outlined text-[8px] sm:text-[10px] opacity-20 shrink-0 ml-1">edit</span>
-                                                </div>
-                                            );
-                                        })}
+                                                const antA = milA?.antiguidade ?? 999;
+                                                const antB = milB?.antiguidade ?? 999;
+                                                if (antA !== antB) return antA - antB;
+
+                                                return (milA?.name || '').localeCompare(milB?.name || '');
+                                            })
+                                            .map(s => {
+                                                const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
+                                                const military = militaries.find(m => m.id === s.militaryId) ||
+                                                    militaries.find(m => m.name.toLowerCase().includes(s.militaryId.toLowerCase()));
+
+                                                const displayName = military
+                                                    ? military.name
+                                                    : (s.militaryId.length > 15 ? '???' : s.militaryId); // Show ID if name not found
+
+                                                return (
+                                                    <div
+                                                        key={s.id}
+                                                        onClick={(e) => handleEditShiftClick(e, s, day)}
+                                                        className={`text-[8px] sm:text-[9px] font-bold p-1 rounded-md ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer shadow-sm flex items-center justify-between min-h-[18px] sm:min-h-[22px]`}
+                                                        title={`${military?.name || 'Não Encontrado'} - ${s.type}`}
+                                                    >
+                                                        <span className="truncate">
+                                                            {military ? (
+                                                                <>
+                                                                    <span className="hidden sm:inline">{military.name.split(' ')[0]}</span>
+                                                                    <span className="inline sm:hidden">{military.name.charAt(0)}</span>
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-red-500 italic">{displayName}</span>
+                                                            )}
+                                                        </span>
+                                                        <span className="material-symbols-outlined text-[8px] sm:text-[10px] opacity-20 shrink-0 ml-1">edit</span>
+                                                    </div>
+                                                );
+                                            })}
                                     </div>
                                 </button>
                             );
@@ -462,9 +477,11 @@ const GenerateScalePage: React.FC = () => {
                                         }}
                                         className="w-full h-9 px-2 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none text-xs font-bold"
                                     >
-                                        {Object.keys(SHIFT_TYPE_COLORS).map(t => (
-                                            <option key={t} value={t}>{t}</option>
-                                        ))}
+                                        {Object.keys(SHIFT_TYPE_COLORS)
+                                            .sort((a, b) => (SHIFT_TYPE_PRIORITY[a] || 99) - (SHIFT_TYPE_PRIORITY[b] || 99))
+                                            .map(t => (
+                                                <option key={t} value={t}>{t}</option>
+                                            ))}
                                     </select>
                                 </div>
 
