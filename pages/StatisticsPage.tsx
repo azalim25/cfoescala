@@ -10,7 +10,7 @@ const StatisticsPage: React.FC = () => {
     const { shifts, isLoading: shiftsLoading, holidays, removeHoliday } = useShift();
     const { militaries } = useMilitary();
 
-    const [monthFilter, setMonthFilter] = useState<number | 'all'>(new Date().getMonth());
+    const [selectedMonths, setSelectedMonths] = useState<number[]>([new Date().getMonth()]);
 
     const months = [
         { value: '01', label: 'Janeiro' },
@@ -27,19 +27,25 @@ const StatisticsPage: React.FC = () => {
         { value: '12', label: 'Dezembro' }
     ];
 
-    const toggleMonth = (monthValue: string) => {
-        const monthIndex = parseInt(monthValue) - 1;
-        setMonthFilter(monthIndex === monthFilter ? 'all' : monthIndex);
+    const toggleMonth = (monthIndex: number) => {
+        setSelectedMonths(prev =>
+            prev.includes(monthIndex)
+                ? prev.filter(m => m !== monthIndex)
+                : [...prev, monthIndex].sort((a, b) => a - b)
+        );
     };
 
-    const clearFilters = () => setMonthFilter('all');
+    const clearFilters = () => setSelectedMonths([]);
 
     const statsData = useMemo(() => {
         if (!shifts.length || !militaries.length) return null;
 
-        const filteredShifts = monthFilter === 'all'
+        const filteredShifts = selectedMonths.length === 0
             ? shifts
-            : shifts.filter(s => new Date(s.date + 'T12:00:00').getMonth() === monthFilter);
+            : shifts.filter(s => {
+                const shiftMonth = new Date(s.date + 'T12:00:00').getMonth();
+                return selectedMonths.includes(shiftMonth);
+            });
 
         const data: any = {
             comandante: {},
@@ -102,7 +108,7 @@ const StatisticsPage: React.FC = () => {
             faxina: Object.values(data.faxina).sort(sortBySeniority),
             sobreaviso: Object.values(data.sobreaviso).sort(sortBySeniority)
         };
-    }, [shifts, militaries, monthFilter, holidays]);
+    }, [shifts, militaries, selectedMonths, holidays]);
 
     const ChartSection = ({ title, data, bars, color }: { title: string, data: any[], bars: { key: string, label: string, color: string }[], color: string }) => {
         const chartHeight = Math.max(400, data.length * 25); // Dynamic height to fit labels
@@ -196,25 +202,26 @@ const StatisticsPage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Month Filter */}
+                    {/* Multi-Month Filter */}
                     <div className="flex flex-wrap items-center gap-2">
                         <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                             <Calendar className="w-4 h-4 text-slate-400" />
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Meses:</span>
-                            <div className="flex gap-1">
-                                {monthFilter === 'all' ? (
+                            <div className="flex flex-wrap gap-1 max-w-[300px]">
+                                {selectedMonths.length === 0 ? (
                                     <span className="text-[10px] font-black text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md">TODOS</span>
                                 ) : (
-                                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">
-                                        {months[monthFilter].label.substring(0, 3).toUpperCase()}
-                                    </span>
+                                    selectedMonths.map(m => (
+                                        <span key={m} className="text-[10px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800 whitespace-nowrap">
+                                            {months[m].label.substring(0, 3).toUpperCase()}
+                                        </span>
+                                    ))
                                 )}
                             </div>
                         </div>
 
                         <div className="relative group">
                             <button className="h-10 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
-                                {/* Re-use Filter icon */}
                                 <Filter className="w-4 h-4 text-slate-500" />
                                 <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Filtrar</span>
                             </button>
@@ -224,8 +231,8 @@ const StatisticsPage: React.FC = () => {
                                     {months.map((m, idx) => (
                                         <button
                                             key={m.value}
-                                            onClick={() => setMonthFilter(idx)}
-                                            className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${monthFilter === idx
+                                            onClick={() => toggleMonth(idx)}
+                                            className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedMonths.includes(idx)
                                                 ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
                                                 : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-700'
                                                 }`}
@@ -234,7 +241,7 @@ const StatisticsPage: React.FC = () => {
                                         </button>
                                     ))}
                                 </div>
-                                {monthFilter !== 'all' && (
+                                {selectedMonths.length > 0 && (
                                     <button
                                         onClick={clearFilters}
                                         className="w-full mt-4 py-2 text-[10px] font-black text-rose-500 uppercase border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-900/20 rounded-xl hover:bg-rose-100 transition-colors"
@@ -244,12 +251,6 @@ const StatisticsPage: React.FC = () => {
                                 )}
                             </div>
                         </div>
-                        <button
-                            onClick={() => setMonthFilter(monthFilter === 'all' ? new Date().getMonth() : 'all')}
-                            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-500 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-primary hover:text-white transition-all"
-                        >
-                            {monthFilter === 'all' ? 'Ver Mês Atual' : 'Ver Período Total'}
-                        </button>
                     </div>
                 </div>
 
