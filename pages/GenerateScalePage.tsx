@@ -11,12 +11,12 @@ import { generateAIScale } from '../geminiService';
 const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
     const { militaries } = useMilitary();
-    const { addShifts, preferences } = useShift();
+    const { addShifts, preferences, shifts } = useShift();
     const { isModerator } = useAuth();
 
     // Time State
-    const [currentMonth, setCurrentMonth] = useState(0);
-    const [currentYear, setCurrentYear] = useState(2026);
+    const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+    const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
     // Mode State
     const [generationMode, setGenerationMode] = useState<'auto' | 'manual'>('auto');
@@ -40,10 +40,13 @@ const GenerateScalePage: React.FC = () => {
     });
 
     useEffect(() => {
-        const today = new Date();
-        setCurrentMonth(today.getMonth());
-        setCurrentYear(today.getFullYear());
-    }, []);
+        // Automatically load existing shifts for the selected month/year into the draft
+        const existingShifts = shifts.filter(s => {
+            const shiftDate = new Date(s.date + 'T12:00:00');
+            return shiftDate.getMonth() === currentMonth && shiftDate.getFullYear() === currentYear;
+        });
+        setDraftShifts(existingShifts);
+    }, [currentMonth, currentYear, shifts]);
 
     const months = [
         'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -56,6 +59,12 @@ const GenerateScalePage: React.FC = () => {
     // --- Generation Logic ---
 
     const handleGenerate = async () => {
+        if (draftShifts.length > 0) {
+            if (!confirm('Deseja alterar os nomes que já estão incluídos nesta escala?')) {
+                return;
+            }
+        }
+
         if (generationMode === 'auto' && !aiPrompt.trim()) {
             if (!confirm('Nenhuma instrução foi digitada para a IA. Deseja gerar usando as regras padrão?')) {
                 return;
