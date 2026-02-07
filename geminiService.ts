@@ -98,7 +98,8 @@ export async function generateAIScale(
   month: number,
   year: number,
   customPrompt: string,
-  preferencesData: any[]
+  preferencesData: any[],
+  existingShifts: any[] = []
 ) {
   if (isPlaceholder) throw new Error("Chave API não configurada.");
 
@@ -111,6 +112,12 @@ export async function generateAIScale(
     return mil ? `${mil.rank} ${mil.name} (ID: ${p.militaryId}): ${p.type === 'restriction' ? 'PROIBIDO trabalhar' : 'PREFERE trabalhar'} em ${p.date}` : '';
   }).filter(t => t !== '').join('\n    ');
 
+  // Summary of existing shifts (mandatory fixed points)
+  const existingSummary = existingShifts.map(s => {
+    const mil = militaryData.find(m => m.id === s.militaryId);
+    return mil ? `${mil.rank} ${mil.name} (ID: ${s.militaryId}) já está escalado em ${s.date} para ${s.type}` : '';
+  }).filter(t => t !== '').join('\n    ');
+
   const promptText = `
     Aja como um especialista em escalas militares.
     Contexto: Mês ${month + 1}/${year}. CFO (Bombeiros).
@@ -121,17 +128,21 @@ export async function generateAIScale(
     RESTRIÇÕES E PREFERÊNCIAS (CRÍTICO):
     ${prefsSummary || 'Nenhuma restrição cadastrada.'}
     
+    ESCALAS JÁ DEFINIDAS (OBRIGATÓRIO MANTER - NÃO ALTERAR ESTAS ESCALAS):
+    ${existingSummary || 'Nenhuma escala prévia definida.'}
+    
     REGRAS OBRIGATÓRIAS: 
     1. JAMAIS escale um militar em uma data que ele possua uma restrição (PROIBIDO trabalhar).
     2. Respeite o interstício (descanso) de 48h entre qualquer serviço.
     3. Tipos suportados: Comandante da Guarda, Faxina, Manutenção, Estágio, Sobreaviso, Escala Geral.
     4. DISTRIBUIÇÃO JUSTA: Tente equalizar a carga horária entre todos, exceto se houver restrições.
     5. PRIORIDADE: Se houver "PREFERE trabalhar" em uma data, tente escalá-lo lá (se não quebrar as outras regras).
+    6. MANUTENÇÃO: Mantenha EXATAMENTE os militares nas datas/tipos listados em "ESCALAS JÁ DEFINIDAS".
     
     Instruções do Usuário: ${customPrompt || 'Nenhuma.'}
     
     SAÍDA: 
-    Retorne UM ARRAY JSON com objetos contendo:
+    Retorne UM ARRAY JSON COMPLETO (contendo tanto os nomes já escalados quanto os novos) com objetos contendo:
     - militaryId: (O ID fornecido acima para o militar escolhido)
     - date: (YYYY-MM-DD)
     - type: (Um dos tipos suportados)
@@ -140,7 +151,7 @@ export async function generateAIScale(
     - location: (String)
     - status: "Confirmado"
     
-    IMPORTANTE: Responda APENAS o JSON, sem explicações.
+    IMPORTANTE: Responda APENAS o JSON, sem explicações. Retorne a escala COMPLETA do mês.
   `;
 
   const payload = {

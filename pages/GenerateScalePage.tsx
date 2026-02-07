@@ -40,11 +40,12 @@ const GenerateScalePage: React.FC = () => {
     });
 
     // Confirm Modal State
-    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({
+    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel?: () => void }>({
         open: false,
         title: '',
         message: '',
-        onConfirm: () => { }
+        onConfirm: () => { },
+        onCancel: undefined
     });
 
     useEffect(() => {
@@ -67,12 +68,23 @@ const GenerateScalePage: React.FC = () => {
     // --- Generation Logic ---
 
     const handleGenerate = async () => {
-        const executeGeneration = async () => {
+        const executeGeneration = async (keepExisting: boolean = false) => {
             setIsGenerating(true);
-            setDraftShifts([]);
+            const existingDraft = keepExisting ? draftShifts : [];
+
+            if (!keepExisting) {
+                setDraftShifts([]);
+            }
 
             try {
-                const aiShifts = await generateAIScale(militaries, currentMonth, currentYear, aiPrompt, preferences);
+                const aiShifts = await generateAIScale(
+                    militaries,
+                    currentMonth,
+                    currentYear,
+                    aiPrompt,
+                    preferences,
+                    existingDraft
+                );
 
                 // Add unique IDs to the generated shifts
                 const processedShifts = aiShifts.map((s: any) => ({
@@ -80,6 +92,8 @@ const GenerateScalePage: React.FC = () => {
                     id: `draft-${Date.now()}-${Math.random()}`
                 }));
 
+                // If keeping existing, merge them (actually the AI should return full scale with them)
+                // But the instructions say "keep names", usually AI returns the whole thing.
                 setDraftShifts(processedShifts);
             } catch (error: any) {
                 console.error(error);
@@ -94,8 +108,9 @@ const GenerateScalePage: React.FC = () => {
             setConfirmDialog({
                 open: true,
                 title: 'Confirmar Alteração',
-                message: 'Deseja alterar os nomes que já estão incluídos nesta escala? Isso irá gerar uma nova escala do zero.',
-                onConfirm: executeGeneration
+                message: 'Deseja alterar os nomes que já estão incluídos nesta escala? Se SIM, geraremos uma nova do zero. Se NÃO, manteremos os atuais e a IA apenas completará/ajustará o restante.',
+                onConfirm: () => executeGeneration(false), // SIM = Alterar nomes (gerar do zero)
+                onCancel: () => executeGeneration(true)    // NÃO = Manter nomes
             });
             return;
         }
@@ -105,7 +120,7 @@ const GenerateScalePage: React.FC = () => {
                 open: true,
                 title: 'Instruções Padrão',
                 message: 'Nenhuma instrução foi digitada para a IA. Deseja gerar usando as regras padrão?',
-                onConfirm: executeGeneration
+                onConfirm: () => executeGeneration(false)
             });
             return;
         }
@@ -578,7 +593,10 @@ const GenerateScalePage: React.FC = () => {
                             </div>
                             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex gap-3">
                                 <button
-                                    onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+                                    onClick={() => {
+                                        if (confirmDialog.onCancel) confirmDialog.onCancel();
+                                        setConfirmDialog({ ...confirmDialog, open: false });
+                                    }}
                                     className="flex-1 h-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-colors"
                                 >
                                     Não
