@@ -15,6 +15,7 @@ import ComandanteGuardaPage from './pages/ComandanteGuardaPage';
 import BarraFixaPage from './pages/BarraFixaPage';
 import HoursControlPage from './pages/HoursControlPage';
 import ExamsPage from './pages/ExamsPage';
+import StatisticsPage from './pages/StatisticsPage';
 import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -128,6 +129,12 @@ const App: React.FC = () => {
                 <Route path="/provas" element={
                   <ProtectedRoute>
                     <ExamsPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/statistics" element={
+                  <ProtectedRoute>
+                    <StatisticsPage />
                   </ProtectedRoute>
                 } />
 
