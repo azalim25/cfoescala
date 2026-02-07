@@ -179,17 +179,28 @@ const PersonalShiftPage: React.FC = () => {
   const processedShifts = useMemo(() => {
     return personalShifts.map(s => {
       let location = s.location;
+      let description = (s as any).description;
+
       if (['Comandante da Guarda', 'Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)) {
         location = 'ABM';
       } else if (['Escala Diversa', 'Barra'].includes(s.type)) {
         location = '';
+        if (s.type === 'Escala Diversa' && !description) {
+          const extraMatch = extraHours.find(eh =>
+            eh.category === 'CFO II - Registro de Horas' &&
+            eh.date.split('T')[0] === s.date.split('T')[0]
+          );
+          if (extraMatch) {
+            description = extraMatch.description.replace('Escala Diversa: ', '');
+          }
+        }
       } else if (s.type === 'Estágio') {
         const stageMatch = personalStages.find(ps => ps.date === s.date);
         location = stageMatch ? stageMatch.location : s.location;
       }
-      return { ...s, location };
+      return { ...s, location, description };
     });
-  }, [personalShifts, personalStages]);
+  }, [personalShifts, personalStages, extraHours]);
 
   // Robust Duplication Filter
   const combinedUpcoming = useMemo(() => {
