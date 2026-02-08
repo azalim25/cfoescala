@@ -148,16 +148,15 @@ export async function generateAIScale(
     ${lastServicesSummary || 'Nenhum registro prévio relevante.'}
     
     REGRAS OBRIGATÓRIAS (Prio 1-3):
-    1. JAMAIS escale um militar em uma data que ele possua uma restrição (PROIBIDO trabalhar).
-    2. Respeite o interstício (descanso) de 48h entre QUALQUER serviço.
-    3. REGRA DE 15 DIAS: Para os tipos "Comandante da Guarda" e "Estágio", o militar deve ter no MÍNIMO 15 DIAS de intervalo desde o seu último serviço do MESMO TIPO (consulte as DATAS DE ÚLTIMOS SERVIÇOS).
-    4. REGRA DE SEMANA (CONFLITO): Um militar que for escalado para "Estágio" NÃO PODE ser escalado para "Comandante da Guarda" na mesma semana nem na semana seguinte ao estágio.
+    5. HORÁRIOS PADRÃO:
+       - Comandante da Guarda:
+         * Seg a Sex: 20:00 às 06:30
+         * Sáb, Dom e Feriado: 06:30 às 06:30 (24h)
+       - Estágio:
+         * Sábado: 08:00 às 08:00 (24h)
+         * Domingo: 08:00 às 20:00 (12h)
+       - Outros: 08:00 às 08:00 por padrão, exceto se especificado.
 
-    DIRETRIZES DE BALANCEAMENTO (Prio 4-6):
-    5. DISTRIBUIÇÃO JUSTA: Priorize escalar quem tem MENOS horas acumuladas (Histórico). Tente equalizar o total ao final do mês.
-    6. VARIEDADE: Para "Comandante da Guarda", tente não escalar a mesma pessoa sempre no mesmo dia da semana que ela já trabalhou no passado.
-    7. PRIORIDADE DE DESEJO: Se houver "PREFERE trabalhar", atenda se não quebrar regras 1-4.
-    
     Tipos suportados: Comandante da Guarda, Faxina, Manutenção, Estágio, Sobreaviso, Escala Geral.
 
     Instruções do Usuário: ${customPrompt || 'Nenhuma.'}

@@ -147,6 +147,10 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleOpenAddModal = () => {
+    const selectedDate = new Date(currentYear, currentMonth, selectedDay);
+    const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+    const isHoliday = holidays.some(h => h.date === selectedDateStr);
+
     setEditingShift(null);
     setFormData({
       militaryId: '',
@@ -155,7 +159,7 @@ const DashboardPage: React.FC = () => {
       duration: undefined,
       description: '',
       startTime: '08:00',
-      endTime: '12:00'
+      endTime: '08:00'
     });
     setIsModalOpen(true);
   };
@@ -165,11 +169,11 @@ const DashboardPage: React.FC = () => {
     setFormData({
       militaryId: shift.militaryId,
       type: shift.type,
-      location: (shift.type === 'Escala Diversa' || shift.type === 'Barra') ? shift.location || '' : shift.location || 'QCG',
+      location: (shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : shift.location || 'QCG',
       duration: shift.duration,
       description: shift.type === 'Escala Diversa' ? shift.location : '',
-      startTime: (shift.type === 'Escala Diversa' || shift.type === 'Barra') ? shift.startTime : '08:00',
-      endTime: (shift.type === 'Escala Diversa' || shift.type === 'Barra') ? shift.endTime : '12:00'
+      startTime: shift.startTime,
+      endTime: shift.endTime
     });
     setIsModalOpen(true);
   };
@@ -181,6 +185,36 @@ const DashboardPage: React.FC = () => {
     }
 
     const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+    const selectedDate = new Date(currentYear, currentMonth, selectedDay);
+    const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+    const isHoliday = holidays.some(h => h.date === dateStr);
+    const dayOfWeek = selectedDate.getDay(); // 0 is Sunday, 6 is Saturday
+
+    let finalStartTime = formData.startTime || '08:00';
+    let finalEndTime = formData.endTime || '08:00';
+
+    if (!editingShift) {
+      if (formData.type === 'Comandante da Guarda') {
+        if (isWeekend || isHoliday) {
+          finalStartTime = '06:30';
+          finalEndTime = '06:30';
+        } else {
+          finalStartTime = '20:00';
+          finalEndTime = '06:30';
+        }
+      } else if (formData.type === 'Estágio') {
+        if (dayOfWeek === 6) { // Saturday
+          finalStartTime = formData.startTime || '08:00';
+          finalEndTime = formData.endTime || '08:00';
+        } else if (dayOfWeek === 0) { // Sunday
+          finalStartTime = formData.startTime || '08:00';
+          finalEndTime = formData.endTime || '20:00';
+        } else {
+          finalStartTime = '08:00';
+          finalEndTime = '20:00';
+        }
+      }
+    }
 
     try {
       if (editingShift) {
@@ -189,21 +223,22 @@ const DashboardPage: React.FC = () => {
           type: formData.type,
           location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
           duration: formData.duration,
-          startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra') ? (formData.startTime || '08:00') : '08:00',
-          endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra') ? (formData.endTime || '12:00') : '08:00',
+          startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
+          endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
         });
       } else {
         await createShift({
           militaryId: formData.militaryId,
           date: dateStr,
           type: formData.type,
-          startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra') ? (formData.startTime || '08:00') : '08:00',
-          endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra') ? (formData.endTime || '12:00') : '08:00',
+          startTime: finalStartTime,
+          endTime: finalEndTime,
           location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
           status: 'Confirmado',
           duration: formData.duration
         });
       }
+      // ... rest of the function for Escala Diversa ...
 
       if (formData.type === 'Escala Diversa') {
         const start = formData.startTime || '08:00';
@@ -758,39 +793,89 @@ const DashboardPage: React.FC = () => {
                 </div>
 
                 {(formData.type === 'Comandante da Guarda') && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                      {[11, 24].map(h => (
-                        <button
-                          key={h}
-                          onClick={() => setFormData(prev => ({ ...prev, duration: h }))}
-                          className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
-                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                            : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                          {h} Horas
-                        </button>
-                      ))}
+                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Horário Previsto</p>
+                      {(() => {
+                        const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+                        const selectedDate = new Date(currentYear, currentMonth, selectedDay);
+                        const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+                        const isHoliday = holidays.some(h => h.date === dateStr);
+
+                        if (isWeekend || isHoliday) {
+                          return <div className="text-sm font-bold text-primary">06:30 - 06:30 (24h)</div>;
+                        }
+                        return <div className="text-sm font-bold text-primary">20:00 - 06:30</div>;
+                      })()}
                     </div>
                   </div>
                 )}
 
                 {formData.type === 'Estágio' && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                      {[12, 24].map(h => (
-                        <button
-                          key={h}
-                          onClick={() => setFormData(prev => ({ ...prev, duration: h }))}
-                          className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
-                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                            : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                          {h} Horas
-                        </button>
-                      ))}
+                  <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                    {(() => {
+                      const selectedDate = new Date(currentYear, currentMonth, selectedDay);
+                      const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+
+                      if (isWeekend) {
+                        return (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
+                              <input
+                                type="time"
+                                value={formData.startTime}
+                                onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                                className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Término</label>
+                              <input
+                                type="time"
+                                value={formData.endTime}
+                                onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                                className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                              />
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
+                          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                            {[12, 24].map(h => (
+                              <button
+                                key={h}
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  duration: h,
+                                  startTime: '08:00',
+                                  endTime: h === 12 ? '20:00' : '08:00'
+                                }))}
+                                className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                                  ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                                  : 'text-slate-500 hover:text-slate-700'}`}
+                              >
+                                {h} Horas
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Local do Estágio</label>
+                      <input
+                        type="text"
+                        value={formData.location}
+                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                        placeholder="Ex: 1º BBM, CTC, etc."
+                        className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
+                      />
                     </div>
                   </div>
                 )}
