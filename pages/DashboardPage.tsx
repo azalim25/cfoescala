@@ -30,6 +30,8 @@ const DashboardPage: React.FC = () => {
     description?: string;
     startTime?: string;
     endTime?: string;
+    manualHours?: number;
+    manualMinutes?: number;
   }>({
     militaryId: '',
     type: 'Escala Geral',
@@ -37,7 +39,9 @@ const DashboardPage: React.FC = () => {
     duration: undefined,
     description: '',
     startTime: '08:00',
-    endTime: '12:00'
+    endTime: '12:00',
+    manualHours: 0,
+    manualMinutes: 0
   });
 
   // Filter State
@@ -159,7 +163,9 @@ const DashboardPage: React.FC = () => {
       duration: undefined,
       description: '',
       startTime: '08:00',
-      endTime: '08:00'
+      endTime: '08:00',
+      manualHours: 0,
+      manualMinutes: 0
     });
     setIsModalOpen(true);
   };
@@ -173,7 +179,9 @@ const DashboardPage: React.FC = () => {
       duration: shift.duration,
       description: shift.type === 'Escala Diversa' ? shift.location : '',
       startTime: shift.startTime,
-      endTime: shift.endTime
+      endTime: shift.endTime,
+      manualHours: shift.duration ? Math.floor(shift.duration) : 0,
+      manualMinutes: shift.duration ? Math.round((shift.duration % 1) * 60) : 0
     });
     setIsModalOpen(true);
   };
@@ -192,26 +200,47 @@ const DashboardPage: React.FC = () => {
 
     let finalStartTime = formData.startTime || '08:00';
     let finalEndTime = formData.endTime || '08:00';
+    let finalDuration = formData.duration;
 
     if (!editingShift) {
       if (formData.type === 'Comandante da Guarda') {
         if (isWeekend || isHoliday) {
           finalStartTime = '06:30';
           finalEndTime = '06:30';
+          finalDuration = 24;
         } else {
           finalStartTime = '20:00';
           finalEndTime = '06:30';
+          finalDuration = 10.5;
         }
       } else if (formData.type === 'Estágio') {
         if (dayOfWeek === 6) { // Saturday
           finalStartTime = formData.startTime || '08:00';
           finalEndTime = formData.endTime || '08:00';
+          finalDuration = finalDuration || 24;
         } else if (dayOfWeek === 0) { // Sunday
           finalStartTime = formData.startTime || '08:00';
           finalEndTime = formData.endTime || '20:00';
+          finalDuration = finalDuration || 12;
         } else {
           finalStartTime = '08:00';
           finalEndTime = '20:00';
+          finalDuration = finalDuration || 12;
+        }
+
+        if (isHoliday && (formData.manualHours !== undefined || formData.manualMinutes !== undefined)) {
+          const totalHours = (formData.manualHours || 0) + (formData.manualMinutes || 0) / 60;
+          if (totalHours > 0) {
+            finalDuration = totalHours;
+          }
+        }
+      }
+    } else {
+      // For editing, if it's a holiday Estágio and manual fields are set, recalculate duration
+      if (isHoliday && formData.type === 'Estágio' && (formData.manualHours !== undefined || formData.manualMinutes !== undefined)) {
+        const totalHours = (formData.manualHours || 0) + (formData.manualMinutes || 0) / 60;
+        if (totalHours > 0) {
+          finalDuration = totalHours;
         }
       }
     }
@@ -222,7 +251,7 @@ const DashboardPage: React.FC = () => {
           militaryId: formData.militaryId,
           type: formData.type,
           location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
-          duration: formData.duration,
+          duration: finalDuration,
           startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
           endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
         });
@@ -235,7 +264,7 @@ const DashboardPage: React.FC = () => {
           endTime: finalEndTime,
           location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
           status: 'Confirmado',
-          duration: formData.duration
+          duration: finalDuration
         });
       }
       // ... rest of the function for Escala Diversa ...
@@ -816,6 +845,8 @@ const DashboardPage: React.FC = () => {
                     {(() => {
                       const selectedDate = new Date(currentYear, currentMonth, selectedDay);
                       const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+                      const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+                      const isHoliday = holidays.some(h => h.date === dateStr);
 
                       if (isWeekend) {
                         return (
@@ -843,26 +874,63 @@ const DashboardPage: React.FC = () => {
                       }
 
                       return (
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Horas)</label>
-                          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                            {[12, 24].map(h => (
-                              <button
-                                key={h}
-                                onClick={() => setFormData(prev => ({
-                                  ...prev,
-                                  duration: h,
-                                  startTime: '08:00',
-                                  endTime: h === 12 ? '20:00' : '08:00'
-                                }))}
-                                className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
-                                  ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                                  : 'text-slate-500 hover:text-slate-700'}`}
-                              >
-                                {h} Horas
-                              </button>
-                            ))}
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Predefinida)</label>
+                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                              {[12, 24].map(h => (
+                                <button
+                                  key={h}
+                                  onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    duration: h,
+                                    manualHours: h,
+                                    manualMinutes: 0,
+                                    startTime: '08:00',
+                                    endTime: h === 12 ? '20:00' : '08:00'
+                                  }))}
+                                  className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                                    ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                                    : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                  {h} Horas
+                                </button>
+                              ))}
+                            </div>
                           </div>
+
+                          {isHoliday && (
+                            <div className="space-y-1 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800 animate-in slide-in-from-top-2">
+                              <label className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1">
+                                <span className="material-symbols-outlined text-sm">event_busy</span>
+                                Ajuste Manual (Feriado)
+                              </label>
+                              <div className="grid grid-cols-2 gap-3 mt-2">
+                                <div className="space-y-1">
+                                  <label className="text-[8px] font-bold text-slate-400 uppercase">Horas</label>
+                                  <input
+                                    type="number"
+                                    value={formData.manualHours}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, manualHours: parseInt(e.target.value) || 0, duration: (parseInt(e.target.value) || 0) + (prev.manualMinutes || 0) / 60 }))}
+                                    className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 font-medium text-sm"
+                                    min="0"
+                                    max="24"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[8px] font-bold text-slate-400 uppercase">Minutos</label>
+                                  <input
+                                    type="number"
+                                    value={formData.manualMinutes}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, manualMinutes: parseInt(e.target.value) || 0, duration: (prev.manualHours || 0) + (parseInt(e.target.value) || 0) / 60 }))}
+                                    className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 font-medium text-sm"
+                                    min="0"
+                                    max="59"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })()}

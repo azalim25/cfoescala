@@ -13,7 +13,7 @@ import { generateAIScale } from '../geminiService';
 const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
     const { militaries } = useMilitary();
-    const { addShifts, preferences, shifts } = useShift();
+    const { addShifts, preferences, shifts, holidays } = useShift();
     const { isModerator } = useAuth();
 
     // Time State
@@ -32,11 +32,11 @@ const GenerateScalePage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDay, setEditingDay] = useState<number | null>(null);
     const [editingShiftId, setEditingShiftId] = useState<string | null>(null); // If editing specific shift
-    const [formData, setFormData] = useState<{ militaryId: string; type: Shift['type']; location: string; duration?: number; startTime?: string; endTime?: string }>({
-        militaryId: '',
+    const [formData, setFormData] = useState<Partial<Shift> & { manualHours?: number, manualMinutes?: number }>({
         type: 'Escala Geral',
         location: 'QCG',
-        duration: undefined,
+        manualHours: 0,
+        manualMinutes: 0,
         startTime: '08:00',
         endTime: '08:00'
     });
@@ -190,10 +190,11 @@ const GenerateScalePage: React.FC = () => {
         setEditingDay(day);
         setEditingShiftId(null); // New shift by default
         setFormData({
-            militaryId: '',
             type: 'Escala Geral',
             location: 'QCG',
-            duration: undefined,
+            militaryId: '',
+            manualHours: 0,
+            manualMinutes: 0,
             startTime: '08:00',
             endTime: '08:00'
         });
@@ -210,7 +211,9 @@ const GenerateScalePage: React.FC = () => {
             location: shift.location || 'QCG',
             duration: shift.duration,
             startTime: shift.startTime,
-            endTime: shift.endTime
+            endTime: shift.endTime,
+            manualHours: 0, // Reset for existing shifts unless specifically stored
+            manualMinutes: 0
         });
         setIsModalOpen(true);
     };
@@ -219,47 +222,57 @@ const GenerateScalePage: React.FC = () => {
         if (!editingDay || !formData.militaryId) return;
 
         const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${editingDay.toString().padStart(2, '0')}`;
+        const isHoliday = holidays.some(h => h.date === dateStr);
+
+        let finalStartTime = formData.startTime || '08:00';
+        let finalEndTime = formData.endTime || '08:00';
+        let finalDuration = formData.duration;
+
+        const date = new Date(currentYear, currentMonth, editingDay || 1);
+        const dayOfWeek = date.getDay();
+
+        if (formData.type === 'Comandante da Guarda') {
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                finalStartTime = '20:00';
+                finalEndTime = '06:30';
+            } else {
+                finalStartTime = '06:30';
+                finalEndTime = '06:30';
+            }
+        } else if (formData.type === 'Estágio') {
+            if (dayOfWeek === 0) { // Sunday
+                finalEndTime = '20:00';
+            }
+            // Apply manual hours for Estágio on holidays
+            if (isHoliday && (formData.manualHours !== undefined || formData.manualMinutes !== undefined)) {
+                const totalHours = (formData.manualHours || 0) + (formData.manualMinutes || 0) / 60;
+                if (totalHours > 0) {
+                    finalDuration = totalHours;
+                }
+            }
+        }
+
+        const newShift: Shift = {
+            id: editingShiftId || `draft-${Date.now()}-${Math.random()}`, // Use existing ID if editing, otherwise generate new
+            militaryId: formData.militaryId!,
+            date: dateStr,
+            type: formData.type!,
+            startTime: finalStartTime,
+            endTime: finalEndTime,
+            location: formData.location || 'QCG',
+            status: 'Confirmado',
+            duration: finalDuration
+        };
 
         if (editingShiftId) {
             // Update existing
             setDraftShifts(prev => prev.map(s =>
                 s.id === editingShiftId
-                    ? { ...s, militaryId: formData.militaryId, type: formData.type, location: formData.location, duration: formData.duration, startTime: formData.startTime || '08:00', endTime: formData.endTime || '08:00' }
+                    ? newShift // Replace with the updated newShift object
                     : s
             ));
         } else {
             // Create new
-            let finalStartTime = formData.startTime || '08:00';
-            let finalEndTime = formData.endTime || '08:00';
-
-            const date = new Date(currentYear, currentMonth, editingDay || 1);
-            const dayOfWeek = date.getDay();
-
-            if (formData.type === 'Comandante da Guarda') {
-                if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-                    finalStartTime = '20:00';
-                    finalEndTime = '06:30';
-                } else {
-                    finalStartTime = '06:30';
-                    finalEndTime = '06:30';
-                }
-            } else if (formData.type === 'Estágio') {
-                if (dayOfWeek === 0) { // Sunday
-                    finalEndTime = '20:00';
-                }
-            }
-
-            const newShift: Shift = {
-                id: `draft-${Date.now()}-${Math.random()}`,
-                militaryId: formData.militaryId,
-                date: dateStr,
-                type: formData.type,
-                startTime: finalStartTime,
-                endTime: finalEndTime,
-                location: formData.location,
-                status: 'Confirmado',
-                duration: formData.duration
-            };
             setDraftShifts(prev => [...prev, newShift]);
         }
         setIsModalOpen(false);
@@ -596,21 +609,77 @@ const GenerateScalePage: React.FC = () => {
                                 )}
 
                                 {formData.type === 'Estágio' && (
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Duração (Horas)</label>
-                                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                                            {[12, 24].map(h => (
-                                                <button
-                                                    key={h}
-                                                    onClick={() => setFormData({ ...formData, duration: h })}
-                                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
-                                                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                                                        : 'text-slate-500 hover:text-slate-700'}`}
-                                                >
-                                                    {h} Horas
-                                                </button>
-                                            ))}
+                                    <div className="space-y-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Duração (Predefinida)</label>
+                                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                                {[12, 24].map(h => (
+                                                    <button
+                                                        key={h}
+                                                        onClick={() => setFormData({
+                                                            ...formData,
+                                                            duration: h,
+                                                            manualHours: h,
+                                                            manualMinutes: 0
+                                                        })}
+                                                        className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                                                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                                                            : 'text-slate-500 hover:text-slate-700'}`}
+                                                    >
+                                                        {h} Horas
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
+
+                                        {(() => {
+                                            const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${(editingDay || 1).toString().padStart(2, '0')}`;
+                                            const isHoliday = holidays.some(h => h.date === dateStr);
+
+                                            if (isHoliday) {
+                                                return (
+                                                    <div className="space-y-1 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800 animate-in slide-in-from-top-2">
+                                                        <label className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1">
+                                                            <span className="material-symbols-outlined text-sm">event_busy</span>
+                                                            Ajuste Manual (Feriado)
+                                                        </label>
+                                                        <div className="grid grid-cols-2 gap-3 mt-2">
+                                                            <div className="space-y-1">
+                                                                <label className="text-[8px] font-bold text-slate-400 uppercase">Horas</label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={formData.manualHours}
+                                                                    onChange={(e) => setFormData({
+                                                                        ...formData,
+                                                                        manualHours: parseInt(e.target.value) || 0,
+                                                                        duration: (parseInt(e.target.value) || 0) + (formData.manualMinutes || 0) / 60
+                                                                    })}
+                                                                    className="w-full h-8 px-2 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 font-medium text-xs"
+                                                                    min="0"
+                                                                    max="24"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[8px] font-bold text-slate-400 uppercase">Minutos</label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={formData.manualMinutes}
+                                                                    onChange={(e) => setFormData({
+                                                                        ...formData,
+                                                                        manualMinutes: parseInt(e.target.value) || 0,
+                                                                        duration: (formData.manualHours || 0) + (parseInt(e.target.value) || 0) / 60
+                                                                    })}
+                                                                    className="w-full h-8 px-2 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 font-medium text-xs"
+                                                                    min="0"
+                                                                    max="59"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </div>
                                 )}
 
