@@ -81,7 +81,7 @@ const PersonalShiftPage: React.FC = () => {
 
       const matchedMilitary = militaries.find(m => {
         const milNameLower = m.name.toLowerCase();
-        return userNameParts.some(part => milNameLower.includes(part));
+        return userNameParts.some((part: string) => milNameLower.includes(part));
       });
 
       if (matchedMilitary) {
@@ -142,7 +142,7 @@ const PersonalShiftPage: React.FC = () => {
     const date = safeParseISO(shift.date);
     const dayOfWeek = date.getDay();
     if (shift.type === 'Comandante da Guarda') {
-      return (dayOfWeek >= 1 && dayOfWeek <= 5) ? 11 : 24;
+      return (dayOfWeek >= 1 && dayOfWeek <= 5) ? 10.5 : 24;
     }
     if (shift.type === 'Estágio') {
       if (dayOfWeek === 6) return 24;
@@ -215,7 +215,7 @@ const PersonalShiftPage: React.FC = () => {
           location: s.location,
           isStage: true,
           startTime: '08:00',
-          endTime: '08:00',
+          endTime: s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00',
           status: 'Confirmado'
         })),
       ...extraHours
@@ -259,7 +259,7 @@ const PersonalShiftPage: React.FC = () => {
           location: s.location,
           isStage: true,
           startTime: '08:00',
-          endTime: '08:00',
+          endTime: s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00',
           status: 'Confirmado'
         })),
       ...extraHours
@@ -304,7 +304,7 @@ const PersonalShiftPage: React.FC = () => {
           location: s.location,
           isStage: true,
           startTime: '08:00',
-          endTime: '08:00',
+          endTime: s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00',
           status: 'Confirmado'
         })),
       ...extraHours

@@ -104,7 +104,7 @@ const GenerateScalePage: React.FC = () => {
                     if (s.duration) {
                         totalHours += s.duration;
                     } else if (s.type === 'Comandante da Guarda') {
-                        if (dayOfWeek >= 1 && dayOfWeek <= 5) totalHours += 11;
+                        if (dayOfWeek >= 1 && dayOfWeek <= 5) totalHours += 10.5;
                         else totalHours += 24;
                     } else if (s.type === 'Estágio') {
                         if (dayOfWeek === 6) totalHours += 24;
@@ -229,13 +229,33 @@ const GenerateScalePage: React.FC = () => {
             ));
         } else {
             // Create new
+            let finalStartTime = formData.startTime || '08:00';
+            let finalEndTime = formData.endTime || '08:00';
+
+            const date = new Date(currentYear, currentMonth, editingDay || 1);
+            const dayOfWeek = date.getDay();
+
+            if (formData.type === 'Comandante da Guarda') {
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                    finalStartTime = '20:00';
+                    finalEndTime = '06:30';
+                } else {
+                    finalStartTime = '06:30';
+                    finalEndTime = '06:30';
+                }
+            } else if (formData.type === 'Estágio') {
+                if (dayOfWeek === 0) { // Sunday
+                    finalEndTime = '20:00';
+                }
+            }
+
             const newShift: Shift = {
                 id: `draft-${Date.now()}-${Math.random()}`,
                 militaryId: formData.militaryId,
                 date: dateStr,
                 type: formData.type,
-                startTime: formData.startTime || '08:00',
-                endTime: formData.endTime || '08:00',
+                startTime: finalStartTime,
+                endTime: finalEndTime,
                 location: formData.location,
                 status: 'Confirmado',
                 duration: formData.duration
@@ -535,7 +555,7 @@ const GenerateScalePage: React.FC = () => {
                                             if (newType === 'Comandante da Guarda') {
                                                 const date = new Date(currentYear, currentMonth, editingDay || 1);
                                                 const dayOfWeek = date.getDay();
-                                                newDuration = (dayOfWeek >= 1 && dayOfWeek <= 5) ? 11 : 24;
+                                                newDuration = (dayOfWeek >= 1 && dayOfWeek <= 5) ? 10.5 : 24;
                                             } else if (newType === 'Estágio') {
                                                 const date = new Date(currentYear, currentMonth, editingDay || 1);
                                                 const dayOfWeek = date.getDay();
@@ -560,7 +580,7 @@ const GenerateScalePage: React.FC = () => {
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-bold text-slate-400 uppercase">Duração (Horas)</label>
                                         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                                            {[11, 24].map(h => (
+                                            {[10.5, 24].map(h => (
                                                 <button
                                                     key={h}
                                                     onClick={() => setFormData({ ...formData, duration: h })}
