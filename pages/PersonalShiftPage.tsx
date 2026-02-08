@@ -327,14 +327,22 @@ const PersonalShiftPage: React.FC = () => {
         }))
     ];
 
-    return all.filter(s => s.date === today).map(s => {
+    return all.filter(s => {
+      const sDate = (s.date && typeof s.date === 'string') ? s.date.split('T')[0] : s.date;
+      return sDate === today;
+    }).map(s => {
       let startTime = s.startTime;
       let endTime = s.endTime;
       const date = safeParseISO(s.date);
       const dayOfWeek = date.getDay();
-      const isHoliday = holidays.some(h => h.date === s.date);
+      const sTypeLower = (s.type || '').trim().toLowerCase();
+      const isHoliday = holidays.some(h => {
+        const hDate = (h.date && typeof h.date === 'string') ? h.date.split('T')[0] : h.date;
+        const targetDate = (s.date && typeof s.date === 'string') ? s.date.split('T')[0] : s.date;
+        return hDate === targetDate;
+      });
 
-      if (s.type === 'Comandante da Guarda') {
+      if (sTypeLower === 'comandante da guarda') {
         if (dayOfWeek >= 1 && dayOfWeek <= 5 && !isHoliday) {
           startTime = '20:00';
           endTime = '06:30';
@@ -342,7 +350,7 @@ const PersonalShiftPage: React.FC = () => {
           startTime = '06:30';
           endTime = '06:30';
         }
-      } else if (s.type === 'Estágio') {
+      } else if (sTypeLower === 'estágio') {
         if (dayOfWeek === 6) { // Sábado
           startTime = '08:00';
           endTime = '08:00';
@@ -353,10 +361,10 @@ const PersonalShiftPage: React.FC = () => {
           startTime = '08:00';
           endTime = '20:00';
         }
-      } else if (s.type === 'Manutenção') {
+      } else if (sTypeLower === 'manutenção') {
         startTime = '06:00';
         endTime = '07:30';
-      } else if (s.type === 'Sobreaviso' || s.type === 'Faxina') {
+      } else if (sTypeLower === 'sobreaviso' || sTypeLower === 'faxina') {
         startTime = '';
         endTime = '';
       }
