@@ -353,6 +353,12 @@ const PersonalShiftPage: React.FC = () => {
           startTime = '08:00';
           endTime = '20:00';
         }
+      } else if (s.type === 'Manutenção') {
+        startTime = '06:00';
+        endTime = '07:30';
+      } else if (s.type === 'Sobreaviso' || s.type === 'Faxina') {
+        startTime = '';
+        endTime = '';
       }
 
       return { ...s, startTime, endTime };
@@ -540,12 +546,14 @@ const PersonalShiftPage: React.FC = () => {
                           <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${colors.text} ${colors.bg.replace('bg-', 'bg-').split(' ')[0]} border ${colors.border}`}>Hoje</span>
                         </div>
                         <div className="flex flex-col">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`material-symbols-outlined ${colors.text} text-xl`}>schedule</span>
-                            <span className={`text-xs font-bold ${colors.text} uppercase tracking-widest opacity-80`}>
-                              {s.startTime} - {s.endTime}
-                            </span>
-                          </div>
+                          {s.startTime && s.endTime && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`material-symbols-outlined ${colors.text} text-xl`}>schedule</span>
+                              <span className={`text-xs font-bold ${colors.text} uppercase tracking-widest opacity-80`}>
+                                {s.startTime} - {s.endTime}
+                              </span>
+                            </div>
+                          )}
                           <h3 className={`text-lg font-extrabold ${colors.text} mb-2`}>{s.type}</h3>
                           {s.type === 'Escala Diversa' && s.description && (
                             <p className={`text-xs font-bold ${colors.text} opacity-80 mb-3 -mt-1`}>{s.description}</p>
