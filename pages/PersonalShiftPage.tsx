@@ -23,7 +23,7 @@ interface ExtraHourRecord {
 
 const PersonalShiftPage: React.FC = () => {
   const { militaries } = useMilitary();
-  const { shifts: allShifts, preferences, addPreference, removePreference } = useShift();
+  const { shifts: allShifts, preferences, addPreference, removePreference, holidays } = useShift();
   const { schedule, disciplines } = useAcademic();
   const { isModerator, session } = useAuth();
   const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
@@ -304,7 +304,7 @@ const PersonalShiftPage: React.FC = () => {
           location: s.location,
           isStage: true,
           startTime: '08:00',
-          endTime: s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00',
+          endTime: s.date && safeParseISO(s.date).getDay() === 0 ? '20:00' : '08:00',
           status: 'Confirmado'
         })),
       ...extraHours
@@ -326,8 +326,38 @@ const PersonalShiftPage: React.FC = () => {
           status: 'Confirmado'
         }))
     ];
-    return all.filter(s => s.date === today);
-  }, [processedShifts, personalStages, extraHours, today]);
+
+    return all.filter(s => s.date === today).map(s => {
+      let startTime = s.startTime;
+      let endTime = s.endTime;
+      const date = safeParseISO(s.date);
+      const dayOfWeek = date.getDay();
+      const isHoliday = holidays.some(h => h.date === s.date);
+
+      if (s.type === 'Comandante da Guarda') {
+        if (dayOfWeek >= 1 && dayOfWeek <= 5 && !isHoliday) {
+          startTime = '20:00';
+          endTime = '06:30';
+        } else {
+          startTime = '06:30';
+          endTime = '06:30';
+        }
+      } else if (s.type === 'Estágio') {
+        if (dayOfWeek === 6) { // Sábado
+          startTime = '08:00';
+          endTime = '08:00';
+        } else if (dayOfWeek === 0) { // Domingo
+          startTime = '08:00';
+          endTime = '20:00';
+        } else { // Dia de semana (se houver estágio)
+          startTime = '08:00';
+          endTime = '20:00';
+        }
+      }
+
+      return { ...s, startTime, endTime };
+    });
+  }, [processedShifts, personalStages, extraHours, today, holidays]);
 
   const upcomingGrouped = useMemo(() => groupByMonth(combinedUpcoming), [combinedUpcoming]);
   const pastGrouped = useMemo(() => groupByMonth(combinedPast), [combinedPast]);

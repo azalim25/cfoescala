@@ -148,14 +148,14 @@ export async function generateAIScale(
     ${lastServicesSummary || 'Nenhum registro prévio relevante.'}
     
     REGRAS OBRIGATÓRIAS (Prio 1-3):
-    5. HORÁRIOS PADRÃO:
-       - Comandante da Guarda:
-         * Seg a Sex: 20:00 às 06:30
-         * Sáb, Dom e Feriado: 06:30 às 06:30 (24h)
-       - Estágio:
-         * Sábado: 08:00 às 08:00 (24h)
-         * Domingo: 08:00 às 20:00 (12h)
-       - Outros: 08:00 às 08:00 por padrão, exceto se especificado.
+     5. HORÁRIOS PADRÃO (MUITO IMPORTANTE):
+        - Comandante da Guarda:
+          * Segunda a Sexta (dias úteis): 20:00 às 06:30
+          * Sáb, Dom e Feriado: 06:30 às 06:30 (24h)
+        - Estágio:
+          * Sábado: 08:00 às 08:00 (24h)
+          * Domingo e Dias Úteis: 08:00 às 20:00 (12h)
+        - Outros: 08:00 às 08:00 por padrão, exceto se especificado.
 
     Tipos suportados: Comandante da Guarda, Faxina, Manutenção, Estágio, Sobreaviso, Escala Geral.
 

@@ -653,6 +653,35 @@ const DashboardPage: React.FC = () => {
                   if (antA !== antB) return antA - antB;
 
                   return (milA?.name || '').localeCompare(milB?.name || '');
+                }).map(s => {
+                  let startTime = s.startTime;
+                  let endTime = s.endTime;
+                  const date = safeParseISO(s.date);
+                  const dayOfWeek = date.getDay();
+                  const isHoliday = holidays.some(h => h.date === s.date);
+
+                  if (s.type === 'Comandante da Guarda') {
+                    if (dayOfWeek >= 1 && dayOfWeek <= 5 && !isHoliday) {
+                      startTime = '20:00';
+                      endTime = '06:30';
+                    } else {
+                      startTime = '06:30';
+                      endTime = '06:30';
+                    }
+                  } else if (s.type === 'Estágio') {
+                    if (dayOfWeek === 6) { // Sábado
+                      startTime = '08:00';
+                      endTime = '08:00';
+                    } else if (dayOfWeek === 0) { // Domingo
+                      startTime = '08:00';
+                      endTime = '20:00';
+                    } else { // Dia de semana
+                      startTime = '08:00';
+                      endTime = '20:00';
+                    }
+                  }
+
+                  return { ...s, startTime, endTime };
                 });
 
                 if (unifiedList.length === 0) {
