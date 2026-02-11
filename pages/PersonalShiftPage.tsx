@@ -197,6 +197,7 @@ const PersonalShiftPage: React.FC = () => {
       } else if (s.type === 'Estágio') {
         const stageMatch = personalStages.find(ps => ps.date === s.date);
         location = stageMatch ? stageMatch.location : s.location;
+        return { ...s, location, description, start_time: stageMatch?.start_time, end_time: stageMatch?.end_time };
       }
       return { ...s, location, description };
     });

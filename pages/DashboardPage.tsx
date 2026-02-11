@@ -632,7 +632,13 @@ const DashboardPage: React.FC = () => {
                 const dayExtraHours = extraHours.filter(eh => eh.date === selectedDateStr && isShiftVisible('Escala Diversa'));
 
                 const unifiedList = [
-                  ...dayShifts.map(s => ({ ...s, isStage: false, isExtra: false })),
+                  ...dayShifts.map(s => {
+                    if (s.type === 'Estágio') {
+                      const stageMatch = stages.find(st => st.date === s.date && st.military_id === s.militaryId);
+                      return { ...s, isStage: false, isExtra: false, start_time: stageMatch?.start_time, end_time: stageMatch?.end_time };
+                    }
+                    return { ...s, isStage: false, isExtra: false };
+                  }),
                   ...dayStages.map(s => ({ ...s, militaryId: s.military_id, type: 'Estágio' as const, isStage: true, isExtra: false, start_time: s.start_time, end_time: s.end_time })),
                   ...dayExtraHours.map(eh => ({
                     id: eh.id,
