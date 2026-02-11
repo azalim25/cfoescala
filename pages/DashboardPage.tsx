@@ -256,7 +256,7 @@ const DashboardPage: React.FC = () => {
           militaryId: formData.militaryId,
           type: formData.type,
           location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
-          duration: finalDuration,
+          duration: Math.round(finalDuration || 0),
           startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
           endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
         });
@@ -269,7 +269,7 @@ const DashboardPage: React.FC = () => {
           endTime: finalEndTime,
           location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
           status: 'Confirmado',
-          duration: finalDuration
+          duration: Math.round(finalDuration || 0)
         });
       }
       // ... rest of the function for Escala Diversa ...

@@ -145,7 +145,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 end_time: shift.endTime,
                 location: shift.location,
                 status: shift.status,
-                duration: shift.duration
+                duration: Math.round(shift.duration || 0)
             };
 
             console.log('Inserting shift:', dbShift);
