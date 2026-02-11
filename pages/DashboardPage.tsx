@@ -252,14 +252,39 @@ const DashboardPage: React.FC = () => {
 
     try {
       if (editingShift) {
-        await updateShift(editingShift.id, {
-          militaryId: formData.militaryId,
-          type: formData.type,
-          location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
-          duration: Math.round(finalDuration || 0),
-          startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
-          endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
-        });
+        if ((editingShift as any).isStage) {
+          // If it was a standalone stage and type is still Estágio, just update stage
+          if (formData.type === 'Estágio') {
+            await supabase.from('stages').update({
+              military_id: formData.militaryId,
+              location: formData.location,
+              start_time: formData.startTime,
+              end_time: formData.endTime
+            }).eq('id', editingShift.id);
+          } else {
+            // Type changed from Estágio to something else, delete stage and create shift
+            await supabase.from('stages').delete().eq('id', editingShift.id);
+            await createShift({
+              militaryId: formData.militaryId,
+              date: dateStr,
+              type: formData.type,
+              startTime: finalStartTime,
+              endTime: finalEndTime,
+              location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
+              status: 'Confirmado',
+              duration: Math.round(finalDuration || 0)
+            });
+          }
+        } else {
+          await updateShift(editingShift.id, {
+            militaryId: formData.militaryId,
+            type: formData.type,
+            location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
+            duration: Math.round(finalDuration || 0),
+            startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
+            endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
+          });
+        }
       } else {
         await createShift({
           militaryId: formData.militaryId,
@@ -314,7 +339,7 @@ const DashboardPage: React.FC = () => {
         }
       }
 
-      if (formData.type === 'Estágio') {
+      if (formData.type === 'Estágio' && !((editingShift as any)?.isStage)) {
         const stageData = {
           military_id: formData.militaryId,
           location: formData.location,
@@ -354,8 +379,16 @@ const DashboardPage: React.FC = () => {
       const militaryId = editingShift.militaryId;
       const shiftType = editingShift.type;
 
-      // Delete the shift
-      await removeShift(editingShift.id);
+      if ((editingShift as any).isStage) {
+        try {
+          await supabase.from('stages').delete().eq('id', editingShift.id);
+        } catch (error) {
+          console.error('Error deleting stage:', error);
+        }
+      } else {
+        // Delete the shift
+        await removeShift(editingShift.id);
+      }
 
       // If it's Escala Diversa, sync with extra_hours
       if (shiftType === 'Escala Diversa') {
@@ -798,24 +831,26 @@ const DashboardPage: React.FC = () => {
                   }
 
                   if (s.isStage) {
+                    const stageColors = SHIFT_TYPE_COLORS['Estágio'];
                     return (
-                      <div
+                      <button
                         key={s.id}
-                        className="w-full text-left bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden"
+                        onClick={() => isModerator && handleOpenEditModal(s)}
+                        className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${stageColors.border} dark:border-slate-700 p-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm relative overflow-hidden transition-all group ${isModerator ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'}`}
                       >
                         <div className="flex items-start justify-between relative z-10">
                           <div className="flex gap-2 sm:gap-3">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center text-amber-500 border border-amber-200 dark:border-amber-700 shrink-0">
+                            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${stageColors.bg} flex items-center justify-center ${stageColors.text} border ${stageColors.border} shrink-0`}>
                               <span className="material-symbols-outlined text-lg sm:text-xl">location_city</span>
                             </div>
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                <h3 className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-100 leading-none truncate">{m?.rank} {m?.name}</h3>
-                                <span className="text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500 text-white border border-amber-600">
+                                <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
+                                <span className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${stageColors.bg} ${stageColors.text} border ${stageColors.border}`}>
                                   ESTÁGIO
                                 </span>
                               </div>
-                              <p className="text-[9px] sm:text-[11px] text-amber-600 mt-1 uppercase font-bold">
+                              <p className={`text-[9px] sm:text-[11px] ${stageColors.text.replace('text-', 'text-opacity-70 text-')} mt-1 uppercase font-bold`}>
                                 {s.location?.split(' - ')[0]}
                                 {(() => {
                                   const shiftDate = safeParseISO(s.date);
@@ -827,7 +862,8 @@ const DashboardPage: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                      </div>
+                        <div className={`absolute top-0 right-0 w-1 h-full ${stageColors.bg.replace('bg-', 'bg-opacity-50 bg-')}`}></div>
+                      </button>
                     );
                   }
 

@@ -18,6 +18,7 @@ const RankingPage: React.FC = () => {
     const { militaries } = useMilitary();
     const { shifts } = useShift();
     const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
+    const [stages, setStages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
@@ -38,13 +39,17 @@ const RankingPage: React.FC = () => {
     }, [allShiftTypes]);
 
     useEffect(() => {
-        const fetchExtraHours = async () => {
+        const fetchData = async () => {
             setIsLoading(true);
-            const { data } = await supabase.from('extra_hours').select('*');
-            if (data) setExtraHours(data);
+            const [extraRes, stageRes] = await Promise.all([
+                supabase.from('extra_hours').select('*'),
+                supabase.from('stages').select('*')
+            ]);
+            if (extraRes.data) setExtraHours(extraRes.data);
+            if (stageRes.data) setStages(stageRes.data);
             setIsLoading(false);
         };
-        fetchExtraHours();
+        fetchData();
     }, []);
 
     const rankingData = useMemo(() => {
@@ -84,13 +89,36 @@ const RankingPage: React.FC = () => {
                 }
             });
 
+            // Add standalone stages hours if not already counted via shifts
+            if (selectedShiftTypes.includes('Estágio')) {
+                const milStages = stages.filter(st =>
+                    st.military_id === mil.id &&
+                    !shifts.some(sh => sh.militaryId === st.military_id && sh.date === st.date && sh.type === 'Estágio')
+                );
+                milStages.forEach(st => {
+                    if (st.start_time && st.end_time) {
+                        const [h1, m1] = st.start_time.split(':').map(Number);
+                        const [h2, m2] = st.end_time.split(':').map(Number);
+                        let totalMinutes = (h2 * 60 + (m2 || 0)) - (h1 * 60 + (m1 || 0));
+                        if (totalMinutes <= 0) totalMinutes += 24 * 60;
+                        totalHours += totalMinutes / 60;
+                    } else {
+                        const date = safeParseISO(st.date);
+                        const dayOfWeek = date.getDay();
+                        if (dayOfWeek === 6) totalHours += 24;
+                        else if (dayOfWeek === 0) totalHours += 12;
+                        else totalHours += 12;
+                    }
+                });
+            }
+
             return {
                 ...mil,
                 totalHours,
                 separateCounts
             };
         }).sort((a, b) => b.totalHours - a.totalHours);
-    }, [militaries, shifts, extraHours, selectedShiftTypes, selectedExtraCategories]);
+    }, [militaries, shifts, extraHours, stages, selectedShiftTypes, selectedExtraCategories]);
 
     const toggleShiftType = (type: string) => {
         setSelectedShiftTypes(prev =>

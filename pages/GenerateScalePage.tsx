@@ -41,6 +41,7 @@ const GenerateScalePage: React.FC = () => {
         endTime: '08:00'
     });
     const [extraHours, setExtraHours] = useState<any[]>([]);
+    const [stages, setStages] = useState<any[]>([]);
 
     // Confirm Modal State
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel?: () => void }>({
@@ -61,11 +62,15 @@ const GenerateScalePage: React.FC = () => {
     }, [currentMonth, currentYear, shifts]);
 
     useEffect(() => {
-        const fetchExtraHours = async () => {
-            const { data } = await supabase.from('extra_hours').select('*');
-            if (data) setExtraHours(data);
+        const fetchData = async () => {
+            const [{ data: extraData }, { data: stageData }] = await Promise.all([
+                supabase.from('extra_hours').select('*'),
+                supabase.from('stages').select('*')
+            ]);
+            if (extraData) setExtraHours(extraData);
+            if (stageData) setStages(stageData);
         };
-        fetchExtraHours();
+        fetchData();
     }, []);
 
     const months = [
@@ -122,6 +127,18 @@ const GenerateScalePage: React.FC = () => {
                 // Add extra hours
                 extraHours.filter(e => e.military_id === mil.id).forEach(e => {
                     totalHours += e.hours + (e.minutes / 60 || 0);
+                });
+
+                // Add standalone stages
+                stages.filter(st =>
+                    st.military_id === mil.id &&
+                    !shifts.some(sh => sh.militaryId === st.military_id && sh.date === st.date && sh.type === 'Estágio')
+                ).forEach(st => {
+                    const date = safeParseISO(st.date);
+                    const dayOfWeek = date.getDay();
+                    if (dayOfWeek === 6) totalHours += 24;
+                    else if (dayOfWeek === 0) totalHours += 12;
+                    else totalHours += 12;
                 });
 
                 historicalStats[mil.id] = {

@@ -137,8 +137,23 @@ const PersonalShiftPage: React.FC = () => {
     allShifts.filter(s => s.militaryId === selectedMilitaryId)
     , [allShifts, selectedMilitaryId]);
 
-  const calculateShiftHours = (shift: Shift) => {
+  const calculateShiftHours = (shift: any) => {
     if (shift.duration) return shift.duration;
+
+    // Case where we have explicit start/end times (especially for manual stages)
+    const st = shift.start_time || shift.startTime;
+    const et = shift.end_time || shift.endTime;
+
+    if (st && et && (st !== '08:00' || et !== '08:00')) {
+      const [h1, m1] = st.split(':').map(Number);
+      const [h2, m2] = et.split(':').map(Number);
+      if (!isNaN(h1) && !isNaN(h2)) {
+        let totalMinutes = (h2 * 60 + (m2 || 0)) - (h1 * 60 + (m1 || 0));
+        if (totalMinutes <= 0) totalMinutes += 24 * 60;
+        return totalMinutes / 60;
+      }
+    }
+
     const date = safeParseISO(shift.date);
     const dayOfWeek = date.getDay();
     if (shift.type === 'Comandante da Guarda') {
@@ -147,7 +162,7 @@ const PersonalShiftPage: React.FC = () => {
     if (shift.type === 'Estágio') {
       if (dayOfWeek === 6) return 24;
       if (dayOfWeek === 0) return 12;
-      return 0;
+      return 12; // Default for week-day stages
     }
     return 0;
   };
@@ -403,11 +418,17 @@ const PersonalShiftPage: React.FC = () => {
     return type.startsWith('CFO I - Estágio');
   };
 
-  const totalShiftHours = useMemo(() =>
-    personalShifts
+  const totalShiftHours = useMemo(() => {
+    const shiftHours = personalShifts
       .filter(s => !isExcludedActivity(s.type))
-      .reduce((acc, s) => acc + calculateShiftHours(s), 0)
-    , [personalShifts]);
+      .reduce((acc, s) => acc + calculateShiftHours(s), 0);
+
+    const standaloneStageHours = personalStages
+      .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
+      .reduce((acc, ps) => acc + calculateShiftHours({ ...ps, type: 'Estágio' }), 0);
+
+    return shiftHours + standaloneStageHours;
+  }, [personalShifts, personalStages]);
 
   const totalExtraHours = useMemo(() =>
     extraHours
@@ -432,6 +453,15 @@ const PersonalShiftPage: React.FC = () => {
       if (hours > 0) summary[s.type].totalHours += hours;
       else summary[s.type].totalServices += 1;
     });
+
+    personalStages.forEach(ps => {
+      if (personalShifts.some(s => s.date === ps.date && s.type === 'Estágio')) return;
+      const type = 'Estágio';
+      const hours = calculateShiftHours({ ...ps, type });
+      if (!summary[type]) summary[type] = { totalHours: 0, totalServices: 0, type };
+      summary[type].totalHours += hours;
+    });
+
     extraHours.forEach(e => {
       const type = e.category || 'Registro de Horas';
       if (isExcludedActivity(type)) return;
