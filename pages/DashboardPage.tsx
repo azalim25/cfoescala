@@ -314,6 +314,33 @@ const DashboardPage: React.FC = () => {
         }
       }
 
+      if (formData.type === 'Estágio') {
+        const stageData = {
+          military_id: formData.militaryId,
+          location: formData.location,
+          date: dateStr,
+          start_time: formData.startTime,
+          end_time: formData.endTime
+        };
+
+        const { data: existingStage } = await supabase
+          .from('stages')
+          .select('id')
+          .eq('military_id', formData.militaryId)
+          .eq('date', dateStr)
+          .limit(1)
+          .single();
+
+        if (existingStage) {
+          await supabase.from('stages').update(stageData).eq('id', existingStage.id);
+        } else {
+          await supabase.from('stages').insert(stageData);
+        }
+        // Fetch fresh stages to update local state
+        const { data: updatedStages } = await supabase.from('stages').select('*');
+        if (updatedStages) setStages(updatedStages);
+      }
+
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error saving shift/extra hours:', error);
@@ -341,6 +368,21 @@ const DashboardPage: React.FC = () => {
             .ilike('description', 'Escala Diversa:%');
         } catch (error) {
           console.error('Error syncing deletion with extra_hours:', error);
+        }
+      }
+
+      if (shiftType === 'Estágio') {
+        try {
+          await supabase
+            .from('stages')
+            .delete()
+            .eq('military_id', militaryId)
+            .eq('date', dateStr);
+          // Fetch fresh stages to update local state
+          const { data: updatedStages } = await supabase.from('stages').select('*');
+          if (updatedStages) setStages(updatedStages);
+        } catch (error) {
+          console.error('Error syncing deletion with stages:', error);
         }
       }
 
@@ -635,13 +677,17 @@ const DashboardPage: React.FC = () => {
                   ...dayShifts.map(s => {
                     if (s.type === 'Estágio') {
                       const stageMatch = stages.find(st => st.date === s.date && st.military_id === s.militaryId);
+                      const st = stageMatch?.start_time || (s as any).start_time;
+                      const et = stageMatch?.end_time || (s as any).end_time;
                       return {
                         ...s,
                         isStage: false,
                         isExtra: false,
                         location: stageMatch?.location || s.location,
-                        start_time: stageMatch?.start_time || (s as any).start_time,
-                        end_time: stageMatch?.end_time || (s as any).end_time
+                        start_time: st,
+                        end_time: et,
+                        startTime: st || s.startTime,
+                        endTime: et || s.endTime
                       };
                     }
                     return { ...s, isStage: false, isExtra: false };
@@ -653,7 +699,9 @@ const DashboardPage: React.FC = () => {
                     isStage: true,
                     isExtra: false,
                     start_time: s.start_time,
-                    end_time: s.end_time
+                    end_time: s.end_time,
+                    startTime: s.start_time || '08:00',
+                    endTime: s.end_time || '08:00'
                   })),
                   ...dayExtraHours.map(eh => ({
                     id: eh.id,
