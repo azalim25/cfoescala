@@ -653,6 +653,7 @@ const PersonalShiftPage: React.FC = () => {
                                   {s.location && ` - ${s.location}`}
                                   {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
                                   {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
+                                  {s.type === 'Estágio' && s.start_time && s.end_time && ` (${s.startTime} às ${s.endTime})`}
                                   {s.type === 'Barra' && ` (${s.startTime})`}
                                 </span>
                               </td>
@@ -679,6 +680,7 @@ const PersonalShiftPage: React.FC = () => {
                             {s.location && ` - ${s.location}`}
                             {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
                             {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
+                            {s.type === 'Estágio' && s.start_time && s.end_time && ` (${s.startTime} às ${s.endTime})`}
                             {s.type === 'Barra' && ` (${s.startTime})`}
                           </span>
                         </div>
@@ -924,6 +926,7 @@ const PersonalShiftPage: React.FC = () => {
                                     {s.location && ` - ${s.location}`}
                                     {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
                                     {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
+                                    {s.type === 'Estágio' && s.start_time && s.end_time && ` (${s.startTime} às ${s.endTime})`}
                                     {s.type === 'Barra' && ` (${s.startTime})`}
                                   </span>
                                 </td>
@@ -945,7 +948,8 @@ const PersonalShiftPage: React.FC = () => {
                             <span className={`px-2 py-1 rounded-md ${SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700'} text-[9px] font-black uppercase border ${SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100'}`}>
                               {s.type}
                               {s.location && ` - ${s.location}`}
-                              {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
+                              {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
+                              {s.type === 'Estágio' && s.start_time && s.end_time && ` (${s.startTime} às ${s.endTime})`}
                             </span>
                           </div>
                         ))}

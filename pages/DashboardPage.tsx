@@ -633,7 +633,7 @@ const DashboardPage: React.FC = () => {
 
                 const unifiedList = [
                   ...dayShifts.map(s => ({ ...s, isStage: false, isExtra: false })),
-                  ...dayStages.map(s => ({ ...s, militaryId: s.military_id, type: 'Estágio' as const, isStage: true, isExtra: false })),
+                  ...dayStages.map(s => ({ ...s, militaryId: s.military_id, type: 'Estágio' as const, isStage: true, isExtra: false, start_time: s.start_time, end_time: s.end_time })),
                   ...dayExtraHours.map(eh => ({
                     id: eh.id,
                     militaryId: eh.military_id,
@@ -674,7 +674,10 @@ const DashboardPage: React.FC = () => {
                       endTime = '06:30';
                     }
                   } else if (s.type === 'Estágio') {
-                    if (dayOfWeek === 6) { // Sábado
+                    if (s.start_time && s.end_time) {
+                      startTime = s.start_time;
+                      endTime = s.end_time;
+                    } else if (dayOfWeek === 6) { // Sábado
                       startTime = '08:00';
                       endTime = '08:00';
                     } else if (dayOfWeek === 0) { // Domingo
@@ -743,7 +746,10 @@ const DashboardPage: React.FC = () => {
                                   ESTÁGIO
                                 </span>
                               </div>
-                              <p className="text-[9px] sm:text-[11px] text-amber-600 mt-1 uppercase font-bold">{s.location.split(' - ')[0]}</p>
+                              <p className="text-[9px] sm:text-[11px] text-amber-600 mt-1 uppercase font-bold">
+                                {s.location.split(' - ')[0]}
+                                {s.start_time && s.end_time && ` • ${s.startTime} às ${s.endTime}`}
+                              </p>
                             </div>
                           </div>
                         </div>
