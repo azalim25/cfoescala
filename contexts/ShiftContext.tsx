@@ -148,12 +148,17 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 duration: shift.duration
             };
 
+            console.log('Inserting shift:', dbShift);
+
             const { error } = await supabase.from('shifts').insert(dbShift);
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase error inserting shift:', error);
+                throw error;
+            }
             await fetchShifts();
         } catch (error) {
             console.error('Error creating shift:', error);
-            alert('Erro ao adicionar serviço.');
+            alert(`Erro ao adicionar serviço: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
         }
     };
 
