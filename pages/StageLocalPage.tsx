@@ -3,18 +3,23 @@ import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useShift } from '../contexts/ShiftContext';
 import { safeParseISO } from '../utils/dateUtils';
+import { Holiday } from '../types';
 
 interface StageAssignment {
     id: string;
     military_id: string;
     date: string;
     location: string;
+    start_time?: string;
+    end_time?: string;
 }
 
 const StageLocalPage: React.FC = () => {
     const { militaries } = useMilitary();
     const { isModerator } = useAuth();
+    const { holidays } = useShift();
     const [stages, setStages] = useState<StageAssignment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
@@ -25,7 +30,9 @@ const StageLocalPage: React.FC = () => {
     const [formData, setFormData] = useState({
         militaryId: '',
         date: new Date().toISOString().split('T')[0],
-        location: '1°BBM - Batalhão Afonso Pena'
+        location: '1°BBM - Batalhão Afonso Pena',
+        startTime: '08:00',
+        endTime: '20:00'
     });
 
     const months = [
@@ -86,7 +93,9 @@ const StageLocalPage: React.FC = () => {
         const { error } = await supabase.from('stages').insert({
             military_id: formData.militaryId,
             date: formData.date,
-            location: formData.location
+            location: formData.location,
+            start_time: formData.startTime,
+            end_time: formData.endTime
         });
 
         if (error) {
@@ -96,7 +105,9 @@ const StageLocalPage: React.FC = () => {
             fetchStages();
             setFormData({
                 ...formData,
-                militaryId: ''
+                militaryId: '',
+                startTime: '08:00',
+                endTime: '20:00'
             });
         }
     };
@@ -259,6 +270,35 @@ const StageLocalPage: React.FC = () => {
                                         </select>
                                     </div>
                                 </div>
+
+                                {holidays.some((h: Holiday) => h.date === formData.date) && (
+                                    <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="material-symbols-outlined text-primary text-xl">event_upcoming</span>
+                                            <span className="text-xs font-black text-primary uppercase tracking-widest">Horário Especial (Feriado)</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Início</label>
+                                                <input
+                                                    type="time"
+                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-bold"
+                                                    value={formData.startTime}
+                                                    onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Término</label>
+                                                <input
+                                                    type="time"
+                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-bold"
+                                                    value={formData.endTime}
+                                                    onChange={e => setFormData({ ...formData, endTime: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="pt-4">
                                     <button
                                         type="submit"

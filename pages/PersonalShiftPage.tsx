@@ -205,7 +205,7 @@ const PersonalShiftPage: React.FC = () => {
   // Robust Duplication Filter
   const combinedUpcoming = useMemo(() => {
     const list = [
-      ...processedShifts.map(s => ({ ...s, isStage: false })),
+      ...processedShifts.map(s => ({ ...s, isStage: false, start_time: (s as any).start_time, end_time: (s as any).end_time })),
       ...personalStages
         .filter(ps => !processedShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
         .map(s => ({
@@ -214,8 +214,10 @@ const PersonalShiftPage: React.FC = () => {
           type: 'Estágio',
           location: s.location,
           isStage: true,
-          startTime: '08:00',
-          endTime: s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00',
+          startTime: s.start_time || '08:00',
+          endTime: s.end_time || (s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00'),
+          start_time: s.start_time,
+          end_time: s.end_time,
           status: 'Confirmado'
         })),
       ...extraHours
@@ -238,6 +240,8 @@ const PersonalShiftPage: React.FC = () => {
           isExtra: true,
           startTime: '08:00',
           endTime: '12:00',
+          start_time: undefined,
+          end_time: undefined,
           status: 'Confirmado'
         }))
     ];
@@ -249,7 +253,7 @@ const PersonalShiftPage: React.FC = () => {
 
   const combinedPast = useMemo(() => {
     const list = [
-      ...processedShifts.map(s => ({ ...s, isStage: false })),
+      ...processedShifts.map(s => ({ ...s, isStage: false, start_time: (s as any).start_time, end_time: (s as any).end_time })),
       ...personalStages
         .filter(ps => !processedShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
         .map(s => ({
@@ -258,8 +262,10 @@ const PersonalShiftPage: React.FC = () => {
           type: 'Estágio',
           location: s.location,
           isStage: true,
-          startTime: '08:00',
-          endTime: s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00',
+          startTime: s.start_time || '08:00',
+          endTime: s.end_time || (s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00'),
+          start_time: s.start_time,
+          end_time: s.end_time,
           status: 'Confirmado'
         })),
       ...extraHours
@@ -283,6 +289,8 @@ const PersonalShiftPage: React.FC = () => {
           isExtra: true,
           startTime: '08:00',
           endTime: '12:00',
+          start_time: undefined,
+          end_time: undefined,
           status: 'Confirmado'
         }))
     ];
@@ -294,7 +302,7 @@ const PersonalShiftPage: React.FC = () => {
 
   const todayShifts = useMemo(() => {
     const all = [
-      ...processedShifts.map(s => ({ ...s, isStage: false })),
+      ...processedShifts.map(s => ({ ...s, isStage: false, start_time: (s as any).start_time, end_time: (s as any).end_time })),
       ...personalStages
         .filter(ps => !processedShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
         .map(s => ({
@@ -303,8 +311,10 @@ const PersonalShiftPage: React.FC = () => {
           type: 'Estágio',
           location: s.location,
           isStage: true,
-          startTime: '08:00',
-          endTime: s.date && safeParseISO(s.date).getDay() === 0 ? '20:00' : '08:00',
+          startTime: s.start_time || '08:00',
+          endTime: s.end_time || (s.date && safeParseISO(s.date).getDay() === 0 ? '20:00' : '08:00'),
+          start_time: s.start_time,
+          end_time: s.end_time,
           status: 'Confirmado'
         })),
       ...extraHours
@@ -323,6 +333,8 @@ const PersonalShiftPage: React.FC = () => {
           isExtra: true,
           startTime: '08:00',
           endTime: '12:00',
+          start_time: undefined,
+          end_time: undefined,
           status: 'Confirmado'
         }))
     ];
@@ -351,7 +363,10 @@ const PersonalShiftPage: React.FC = () => {
           endTime = '06:30';
         }
       } else if (sTypeLower === 'estágio') {
-        if (dayOfWeek === 6) { // Sábado
+        if (s.start_time && s.end_time) {
+          startTime = s.start_time;
+          endTime = s.end_time;
+        } else if (dayOfWeek === 6) { // Sábado
           startTime = '08:00';
           endTime = '08:00';
         } else if (dayOfWeek === 0) { // Domingo
