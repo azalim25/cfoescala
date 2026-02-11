@@ -211,7 +211,7 @@ const DashboardPage: React.FC = () => {
         } else {
           finalStartTime = '20:00';
           finalEndTime = '06:30';
-          finalDuration = 10.5;
+          finalDuration = 11;
         }
       } else if (formData.type === 'Estágio') {
         const isManualTimeProvided = formData.startTime !== '08:00' || (dayOfWeek === 0 ? formData.endTime !== '20:00' : formData.endTime !== '08:00');

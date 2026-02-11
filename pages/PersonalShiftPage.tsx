@@ -142,7 +142,7 @@ const PersonalShiftPage: React.FC = () => {
     const date = safeParseISO(shift.date);
     const dayOfWeek = date.getDay();
     if (shift.type === 'Comandante da Guarda') {
-      return (dayOfWeek >= 1 && dayOfWeek <= 5) ? 10.5 : 24;
+      return (dayOfWeek >= 1 && dayOfWeek <= 5) ? 11 : 24;
     }
     if (shift.type === 'Estágio') {
       if (dayOfWeek === 6) return 24;

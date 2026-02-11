@@ -67,7 +67,7 @@ const RankingPage: React.FC = () => {
                 if (s.duration) {
                     totalHours += s.duration;
                 } else if (s.type === 'Comandante da Guarda') {
-                    if (dayOfWeek >= 1 && dayOfWeek <= 5) totalHours += 10.5;
+                    if (dayOfWeek >= 1 && dayOfWeek <= 5) totalHours += 11;
                     else totalHours += 24;
                 } else if (s.type === 'Estágio') {
                     if (dayOfWeek === 6) totalHours += 24;
