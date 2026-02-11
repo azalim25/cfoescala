@@ -196,8 +196,13 @@ const PersonalShiftPage: React.FC = () => {
         }
       } else if (s.type === 'Estágio') {
         const stageMatch = personalStages.find(ps => ps.date === s.date);
-        location = stageMatch ? stageMatch.location : s.location;
-        return { ...s, location, description, start_time: stageMatch?.start_time, end_time: stageMatch?.end_time };
+        return {
+          ...s,
+          location: stageMatch?.location || s.location,
+          description,
+          start_time: stageMatch?.start_time || (s as any).start_time,
+          end_time: stageMatch?.end_time || (s as any).end_time
+        };
       }
       return { ...s, location, description };
     });
@@ -654,7 +659,7 @@ const PersonalShiftPage: React.FC = () => {
                                   {s.location && ` - ${s.location}`}
                                   {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
                                   {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
-                                  {s.type === 'Estágio' && s.start_time && s.end_time && ` (${s.startTime} às ${s.endTime})`}
+                                  {s.type === 'Estágio' && (holidays.some(h => h.date === s.date) || safeParseISO(s.date).getDay() === 0 || safeParseISO(s.date).getDay() === 6 || (s.start_time && s.end_time)) && ` (${s.startTime} às ${s.endTime})`}
                                   {s.type === 'Barra' && ` (${s.startTime})`}
                                 </span>
                               </td>
@@ -681,7 +686,7 @@ const PersonalShiftPage: React.FC = () => {
                             {s.location && ` - ${s.location}`}
                             {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
                             {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
-                            {s.type === 'Estágio' && s.start_time && s.end_time && ` (${s.startTime} às ${s.endTime})`}
+                            {s.type === 'Estágio' && (holidays.some(h => h.date === s.date) || safeParseISO(s.date).getDay() === 0 || safeParseISO(s.date).getDay() === 6 || (s.start_time && s.end_time)) && ` (${s.startTime} às ${s.endTime})`}
                             {s.type === 'Barra' && ` (${s.startTime})`}
                           </span>
                         </div>
@@ -927,7 +932,7 @@ const PersonalShiftPage: React.FC = () => {
                                     {s.location && ` - ${s.location}`}
                                     {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
                                     {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
-                                    {s.type === 'Estágio' && s.start_time && s.end_time && ` (${s.startTime} às ${s.endTime})`}
+                                    {s.type === 'Estágio' && (holidays.some(h => h.date === s.date) || safeParseISO(s.date).getDay() === 0 || safeParseISO(s.date).getDay() === 6 || (s.start_time && s.end_time)) && ` (${s.startTime} às ${s.endTime})`}
                                     {s.type === 'Barra' && ` (${s.startTime})`}
                                   </span>
                                 </td>
@@ -950,7 +955,7 @@ const PersonalShiftPage: React.FC = () => {
                               {s.type}
                               {s.location && ` - ${s.location}`}
                               {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
-                              {s.type === 'Estágio' && s.start_time && s.end_time && ` (${s.startTime} às ${s.endTime})`}
+                              {s.type === 'Estágio' && (holidays.some(h => h.date === s.date) || safeParseISO(s.date).getDay() === 0 || safeParseISO(s.date).getDay() === 6 || (s.start_time && s.end_time)) && ` (${s.startTime} às ${s.endTime})`}
                             </span>
                           </div>
                         ))}

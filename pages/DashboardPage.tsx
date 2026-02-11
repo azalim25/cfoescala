@@ -635,11 +635,26 @@ const DashboardPage: React.FC = () => {
                   ...dayShifts.map(s => {
                     if (s.type === 'Estágio') {
                       const stageMatch = stages.find(st => st.date === s.date && st.military_id === s.militaryId);
-                      return { ...s, isStage: false, isExtra: false, start_time: stageMatch?.start_time, end_time: stageMatch?.end_time };
+                      return {
+                        ...s,
+                        isStage: false,
+                        isExtra: false,
+                        location: stageMatch?.location || s.location,
+                        start_time: stageMatch?.start_time || (s as any).start_time,
+                        end_time: stageMatch?.end_time || (s as any).end_time
+                      };
                     }
                     return { ...s, isStage: false, isExtra: false };
                   }),
-                  ...dayStages.map(s => ({ ...s, militaryId: s.military_id, type: 'Estágio' as const, isStage: true, isExtra: false, start_time: s.start_time, end_time: s.end_time })),
+                  ...dayStages.map(s => ({
+                    ...s,
+                    militaryId: s.military_id,
+                    type: 'Estágio' as const,
+                    isStage: true,
+                    isExtra: false,
+                    start_time: s.start_time,
+                    end_time: s.end_time
+                  })),
                   ...dayExtraHours.map(eh => ({
                     id: eh.id,
                     militaryId: eh.military_id,
@@ -753,8 +768,13 @@ const DashboardPage: React.FC = () => {
                                 </span>
                               </div>
                               <p className="text-[9px] sm:text-[11px] text-amber-600 mt-1 uppercase font-bold">
-                                {s.location.split(' - ')[0]}
-                                {s.start_time && s.end_time && ` • ${s.startTime} às ${s.endTime}`}
+                                {s.location?.split(' - ')[0]}
+                                {(() => {
+                                  const shiftDate = safeParseISO(s.date);
+                                  const hDay = holidays.some(h => h.date === s.date);
+                                  const wEnd = shiftDate.getDay() === 0 || shiftDate.getDay() === 6;
+                                  return (hDay || wEnd || (s.start_time && s.end_time)) ? ` • ${s.startTime} às ${s.endTime}` : '';
+                                })()}
                               </p>
                             </div>
                           </div>
