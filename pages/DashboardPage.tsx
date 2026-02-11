@@ -214,6 +214,8 @@ const DashboardPage: React.FC = () => {
           finalDuration = 10.5;
         }
       } else if (formData.type === 'Estágio') {
+        const isManualTimeProvided = formData.startTime !== '08:00' || (dayOfWeek === 0 ? formData.endTime !== '20:00' : formData.endTime !== '08:00');
+
         if (dayOfWeek === 6) { // Saturday
           finalStartTime = formData.startTime || '08:00';
           finalEndTime = formData.endTime || '08:00';
@@ -223,25 +225,28 @@ const DashboardPage: React.FC = () => {
           finalEndTime = formData.endTime || '20:00';
           finalDuration = finalDuration || 12;
         } else {
-          finalStartTime = '08:00';
-          finalEndTime = '20:00';
+          finalStartTime = formData.startTime || '08:00';
+          finalEndTime = formData.endTime || '20:00';
           finalDuration = finalDuration || 12;
         }
 
-        if (isHoliday && (formData.manualHours !== undefined || formData.manualMinutes !== undefined)) {
-          const totalHours = (formData.manualHours || 0) + (formData.manualMinutes || 0) / 60;
-          if (totalHours > 0) {
-            finalDuration = totalHours;
-          }
+        // If manual times are provided (especially on holidays), recalculate duration
+        if (isHoliday || isManualTimeProvided) {
+          const [h1, m1] = finalStartTime.split(':').map(Number);
+          const [h2, m2] = finalEndTime.split(':').map(Number);
+          let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+          if (totalMinutes <= 0) totalMinutes += 24 * 60;
+          finalDuration = totalMinutes / 60;
         }
       }
     } else {
-      // For editing, if it's a holiday Estágio and manual fields are set, recalculate duration
-      if (isHoliday && formData.type === 'Estágio' && (formData.manualHours !== undefined || formData.manualMinutes !== undefined)) {
-        const totalHours = (formData.manualHours || 0) + (formData.manualMinutes || 0) / 60;
-        if (totalHours > 0) {
-          finalDuration = totalHours;
-        }
+      // For editing, if it's a holiday Estágio, recalculate duration from times
+      if (isHoliday && formData.type === 'Estágio') {
+        const [h1, m1] = (formData.startTime || '08:00').split(':').map(Number);
+        const [h2, m2] = (formData.endTime || '08:00').split(':').map(Number);
+        let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (totalMinutes <= 0) totalMinutes += 24 * 60;
+        finalDuration = totalMinutes / 60;
       }
     }
 
@@ -877,91 +882,60 @@ const DashboardPage: React.FC = () => {
                       const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
                       const isHoliday = holidays.some(h => h.date === dateStr);
 
-                      if (isWeekend) {
+                      if (isWeekend || isHoliday) {
                         return (
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
-                              <input
-                                type="time"
-                                value={formData.startTime}
-                                onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                                className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">Término</label>
-                              <input
-                                type="time"
-                                value={formData.endTime}
-                                onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-                                className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-sm"
-                              />
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="space-y-4">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Predefinida)</label>
-                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                              {[12, 24].map(h => (
-                                <button
-                                  key={h}
-                                  onClick={() => setFormData(prev => ({
-                                    ...prev,
-                                    duration: h,
-                                    manualHours: h,
-                                    manualMinutes: 0,
-                                    startTime: '08:00',
-                                    endTime: h === 12 ? '20:00' : '08:00'
-                                  }))}
-                                  className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
-                                    ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
-                                    : 'text-slate-500 hover:text-slate-700'}`}
-                                >
-                                  {h} Horas
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {isHoliday && (
-                            <div className="space-y-1 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800 animate-in slide-in-from-top-2">
-                              <label className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1">
+                          <div className="space-y-4">
+                            <div className="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800 animate-in slide-in-from-top-2">
+                              <label className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1 mb-2">
                                 <span className="material-symbols-outlined text-sm">event_busy</span>
-                                Ajuste Manual (Feriado)
+                                Ajuste Manual (Feriado/Final de Semana)
                               </label>
-                              <div className="grid grid-cols-2 gap-3 mt-2">
+                              <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                  <label className="text-[8px] font-bold text-slate-400 uppercase">Horas</label>
+                                  <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
                                   <input
-                                    type="number"
-                                    value={formData.manualHours}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, manualHours: parseInt(e.target.value) || 0, duration: (parseInt(e.target.value) || 0) + (prev.manualMinutes || 0) / 60 }))}
-                                    className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 font-medium text-sm"
-                                    min="0"
-                                    max="24"
+                                    type="time"
+                                    value={formData.startTime}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                                    className="w-full h-10 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 font-medium text-sm"
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <label className="text-[8px] font-bold text-slate-400 uppercase">Minutos</label>
+                                  <label className="text-[10px] font-bold text-slate-500 uppercase">Término</label>
                                   <input
-                                    type="number"
-                                    value={formData.manualMinutes}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, manualMinutes: parseInt(e.target.value) || 0, duration: (prev.manualHours || 0) + (parseInt(e.target.value) || 0) / 60 }))}
-                                    className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 font-medium text-sm"
-                                    min="0"
-                                    max="59"
+                                    type="time"
+                                    value={formData.endTime}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                                    className="w-full h-10 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 font-medium text-sm"
                                   />
                                 </div>
                               </div>
                             </div>
-                          )}
-                        </div>
-                      );
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Duração (Predefinida)</label>
+                              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                {[12, 24].map(h => (
+                                  <button
+                                    key={h}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({
+                                      ...prev,
+                                      duration: h,
+                                      startTime: '08:00',
+                                      endTime: h === 12 ? '20:00' : '08:00'
+                                    }))}
+                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
+                                      ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
+                                      : 'text-slate-500 hover:text-slate-700'}`}
+                                  >
+                                    {h} Horas
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
                     })()}
 
                     <div className="space-y-1">
