@@ -805,7 +805,15 @@ const DashboardPage: React.FC = () => {
                             </div>
                             <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
                               {s.type === 'Estágio'
-                                ? (stages.find(st => st.date === s.date && st.military_id === s.militaryId)?.location.split(' - ')[0] || s.location)
+                                ? (() => {
+                                  const stageMatch = stages.find(st => st.date === s.date && st.military_id === s.militaryId);
+                                  const loc = stageMatch?.location.split(' - ')[0] || s.location;
+                                  const shiftDate = safeParseISO(s.date);
+                                  const hDay = holidays.some(h => h.date === s.date);
+                                  const wEnd = shiftDate.getDay() === 0 || shiftDate.getDay() === 6;
+                                  const showTime = hDay || wEnd || (s.start_time && s.end_time);
+                                  return `${loc}${showTime ? ` • ${s.startTime} às ${s.endTime}` : ''}`;
+                                })()
                                 : s.type === 'Escala Diversa'
                                   ? `${s.location} • ${s.startTime} às ${s.endTime}`
                                   : s.type === 'Barra'
