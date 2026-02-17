@@ -981,6 +981,47 @@ const PersonalShiftPage: React.FC = () => {
             </section>
 
             <section className="mb-8">
+              <div className="flex items-center justify-between mb-4 px-1">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-indigo-500 text-xl">progress_activity</span>
+                  Progresso de Estágio
+                </h2>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">Cota: 140h</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Acumulado</p>
+                      <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{totalStageHours.toFixed(1)}h <span className="text-sm text-slate-400">/ 140h</span></h3>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Porcentagem</p>
+                      <h3 className="text-2xl font-black text-slate-800 dark:text-white">{Math.min(100, (totalStageHours / 140) * 100).toFixed(1)}%</h3>
+                    </div>
+                  </div>
+
+                  <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-200 dark:border-slate-700">
+                    <div
+                      className="h-full bg-indigo-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                      style={{ width: `${Math.min(100, (totalStageHours / 140) * 100)}%` }}
+                    ></div>
+                  </div>
+
+                  <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800/50">
+                    <span className="material-symbols-outlined text-indigo-500 text-sm">info</span>
+                    <p className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-tight">
+                      {totalStageHours >= 140
+                        ? "Parabéns! Requisito de estágio cumprido com sucesso."
+                        : `Faltam ${Math.max(0, 140 - totalStageHours).toFixed(1)} horas para completar o requisito de 140h.`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
                   <span className="material-symbols-outlined text-primary text-xl">event_busy</span>
