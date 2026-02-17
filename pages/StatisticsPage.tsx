@@ -58,11 +58,11 @@ const StatisticsPage: React.FC = () => {
         };
 
         militaries.forEach(m => {
-            data.comandante[m.id] = { name: m.warName, weekday: 0, weekend: 0, total: 0, antiguidade: m.antiguidade };
-            data.estagio[m.id] = { name: m.warName, h12: 0, h24: 0, total: 0, antiguidade: m.antiguidade };
-            data.manutencao[m.id] = { name: m.warName, count: 0, total: 0, antiguidade: m.antiguidade };
-            data.faxina[m.id] = { name: m.warName, count: 0, total: 0, antiguidade: m.antiguidade };
-            data.sobreaviso[m.id] = { name: m.warName, count: 0, total: 0, antiguidade: m.antiguidade };
+            data.comandante[m.id] = { name: m.name, weekday: 0, weekend: 0, total: 0, antiguidade: m.antiguidade };
+            data.estagio[m.id] = { name: m.name, h12: 0, h24: 0, total: 0, antiguidade: m.antiguidade };
+            data.manutencao[m.id] = { name: m.name, count: 0, total: 0, antiguidade: m.antiguidade };
+            data.faxina[m.id] = { name: m.name, count: 0, total: 0, antiguidade: m.antiguidade };
+            data.sobreaviso[m.id] = { name: m.name, count: 0, total: 0, antiguidade: m.antiguidade };
         });
 
         filteredShifts.forEach(s => {

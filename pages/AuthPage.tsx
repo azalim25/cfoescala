@@ -10,7 +10,7 @@ const AuthPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [isSignUp, setIsSignUp] = useState(false);
-    const [fullName, setFullName] = useState('');
+    const [name, setFullName] = useState('');
     const [firefighterNumber, setFirefighterNumber] = useState('');
 
     const [error, setError] = useState<string | null>(null);
@@ -22,7 +22,7 @@ const AuthPage: React.FC = () => {
         setError(null);
 
         // Normalize inputs: trim spaces and remove non-digits from firefighter number for the email
-        const cleanName = fullName.trim();
+        const cleanName = name.trim();
         const cleanNumber = firefighterNumber.trim();
         const internalEmail = `${cleanNumber.replace(/\D/g, '')}@guarani.mil`;
         const internalPassword = 'guarani2026'; // Standard internal password for all users
@@ -32,7 +32,7 @@ const AuthPage: React.FC = () => {
                 // Validate against militaries list (Contacts)
                 const { data: militaries, error: militariesError } = await supabase
                     .from('militaries')
-                    .select('fullName:full_name, warName:war_name, firefighterNumber:firefighter_number');
+                    .select('name, firefighter_number');
 
                 if (militariesError) throw militariesError;
 
@@ -40,14 +40,11 @@ const AuthPage: React.FC = () => {
                 const inputNameWords = cleanName.toLowerCase().split(/\s+/).filter(w => w.length > 0);
 
                 const isValidMilitary = militaries?.some(m => {
-                    const normalizedMilNumber = m.firefighterNumber.replace(/\D/g, '');
-                    const milWarNameStr = m.warName.toLowerCase();
-                    const milFullNameStr = m.fullName?.toLowerCase() || '';
+                    const normalizedMilNumber = m.firefighter_number.replace(/\D/g, '');
+                    const milNameStr = m.name.toLowerCase();
 
                     const numberMatch = normalizedMilNumber === normalizedInputNumber;
-                    const nameMatch = inputNameWords.some(word =>
-                        milWarNameStr.includes(word) || milFullNameStr.includes(word)
-                    );
+                    const nameMatch = inputNameWords.some(word => milNameStr.includes(word));
 
                     return numberMatch && nameMatch;
                 });
@@ -140,7 +137,7 @@ const AuthPage: React.FC = () => {
                             <input
                                 type="text"
                                 required
-                                value={fullName}
+                                value={name}
                                 onChange={(e) => setFullName(e.target.value)}
                                 placeholder="Ex: Sgt. Smith"
                                 className="w-full bg-slate-800/40 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"

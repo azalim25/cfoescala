@@ -593,7 +593,7 @@ const DashboardPage: React.FC = () => {
                         const antB = milB?.antiguidade ?? 999;
                         if (antA !== antB) return antA - antB;
 
-                        return (milA?.warName || '').localeCompare(milB?.warName || '');
+                        return (milA?.name || '').localeCompare(milB?.name || '');
                       });
 
                       return combined.map(s => {
@@ -603,7 +603,7 @@ const DashboardPage: React.FC = () => {
                               key={s.id}
                               className="text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
                             >
-                              📌 {militaries.find(m => m.id === s.military_id)?.warName}
+                              📌 {militaries.find(m => m.id === s.military_id)?.name}
                             </div>
                           );
                         }
@@ -620,7 +620,7 @@ const DashboardPage: React.FC = () => {
                             }}
                             className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
                           >
-                            {militaries.find(m => m.id === s.militaryId || m.id === (s as any).military_id)?.warName}
+                            {militaries.find(m => m.id === s.militaryId || m.id === (s as any).military_id)?.name}
                           </div>
                         );
                       });
@@ -759,7 +759,7 @@ const DashboardPage: React.FC = () => {
                   const antB = milB?.antiguidade ?? 999;
                   if (antA !== antB) return antA - antB;
 
-                  return (milA?.warName || '').localeCompare(milB?.warName || '');
+                  return (milA?.name || '').localeCompare(milB?.name || '');
                 }).map(s => {
                   let startTime = s.startTime;
                   let endTime = s.endTime;
@@ -814,7 +814,7 @@ const DashboardPage: React.FC = () => {
                             </div>
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.warName}</h3>
+                                <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
                                 <span className="text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
                                   ESCALA DIVERSA
                                 </span>
@@ -845,7 +845,7 @@ const DashboardPage: React.FC = () => {
                             </div>
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.warName}</h3>
+                                <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
                                 <span className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${stageColors.bg} ${stageColors.text} border ${stageColors.border}`}>
                                   ESTÁGIO
                                 </span>
@@ -882,7 +882,7 @@ const DashboardPage: React.FC = () => {
                           </div>
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.warName}</h3>
+                              <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
                               <span className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} border ${colors.border}`}>
                                 {s.type}
                               </span>
@@ -959,7 +959,7 @@ const DashboardPage: React.FC = () => {
                             className={`${hasRestriction ? "text-red-600 font-bold" : ""} ${hasPriority ? "bg-amber-100 font-bold" : ""}`}
                             style={hasRestriction ? { color: '#dc2626' } : {}}
                           >
-                            {m.rank} {m.warName} {hasRestriction ? '(RESTRIÇÃO)' : ''} {hasPriority ? '★' : ''}
+                            {m.rank} {m.name} {hasRestriction ? '(RESTRIÇÃO)' : ''} {hasPriority ? '★' : ''}
                           </option>
                         );
                       })}

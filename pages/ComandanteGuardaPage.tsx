@@ -63,7 +63,7 @@ const ComandanteGuardaPage: React.FC = () => {
             const aAnt = a.antiguidade || 999999;
             const bAnt = b.antiguidade || 999999;
             if (aAnt !== bAnt) return aAnt - bAnt;
-            return a.warName.localeCompare(b.warName);
+            return a.name.localeCompare(b.name);
         });
     }, [militaries]);
 
@@ -115,7 +115,7 @@ const ComandanteGuardaPage: React.FC = () => {
                                             <tr key={mil.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                                 <td className="px-6 py-4 border-b border-slate-50 dark:border-slate-800">
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-slate-700 dark:text-slate-200 text-sm whitespace-nowrap">{mil.rank} {mil.warName}</span>
+                                                        <span className="font-bold text-slate-700 dark:text-slate-200 text-sm whitespace-nowrap">{mil.rank} {mil.name}</span>
                                                         <span className="text-[10px] text-slate-500">{mil.firefighterNumber}</span>
                                                     </div>
                                                 </td>

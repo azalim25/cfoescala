@@ -55,7 +55,7 @@ const HoursControlPage: React.FC = () => {
             const aAnt = a.antiguidade || 999999;
             const bAnt = b.antiguidade || 999999;
             if (aAnt !== bAnt) return aAnt - bAnt;
-            return a.warName.localeCompare(b.warName);
+            return a.name.localeCompare(b.name);
         });
     }, [militaries]);
 
@@ -143,7 +143,7 @@ const HoursControlPage: React.FC = () => {
                                 <tr key={mil.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-50 dark:border-slate-800/50">
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm whitespace-nowrap">{mil.rank} {mil.warName}</span>
+                                            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm whitespace-nowrap">{mil.rank} {mil.name}</span>
                                             <span className="text-[10px] text-slate-500">Antiguidade: {mil.antiguidade || '-'}</span>
                                         </div>
                                     </td>
@@ -220,7 +220,7 @@ const HoursControlPage: React.FC = () => {
                                 <div className="text-center">
                                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Militar</p>
                                     <p className="text-sm font-black text-slate-800 dark:text-white uppercase">
-                                        {militaries.find(m => m.id === editingData.militaryId)?.warName}
+                                        {militaries.find(m => m.id === editingData.militaryId)?.name}
                                     </p>
                                 </div>
                                 <div className="space-y-2">

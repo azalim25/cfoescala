@@ -207,7 +207,7 @@ const FuncoesTurmaPage: React.FC = () => {
             const aAnt = a.antiguidade || 999999;
             const bAnt = b.antiguidade || 999999;
             if (aAnt !== bAnt) return aAnt - bAnt;
-            return a.warName.localeCompare(b.warName);
+            return a.name.localeCompare(b.name);
         });
     }, [militaries]);
 
@@ -300,7 +300,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                                             <span className="material-symbols-outlined text-sm">person</span>
                                                         </div>
                                                         <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
-                                                            {military.rank} {military.warName}
+                                                            {military.rank} {military.name}
                                                         </p>
                                                     </div>
                                                 </td>
@@ -336,7 +336,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                                     <span className="material-symbols-outlined text-base">person</span>
                                                 </div>
                                                 <p className="font-black text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight">
-                                                    {military.rank} {military.warName}
+                                                    {military.rank} {military.name}
                                                 </p>
                                             </div>
                                             <div className="grid grid-cols-1 gap-2">
@@ -433,7 +433,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                                 >
                                                     <option value="">Selecione um militar...</option>
                                                     {sortedMilitaries.map(m => (
-                                                        <option key={m.id} value={m.id}>{m.rank} {m.warName}</option>
+                                                        <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
                                                     ))}
                                                 </select>
                                                 <input

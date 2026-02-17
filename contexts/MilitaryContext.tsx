@@ -25,16 +25,14 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
             .from('militaries')
             .select('*')
             .order('antiguidade', { ascending: true, nullsFirst: false })
-            .order('war_name', { ascending: true });
+            .order('name', { ascending: true });
 
         if (error) {
             console.error('Erro ao buscar militares:', error);
         } else if (data) {
-            // Map firefighter_number to firefighterNumber if necessary or update type
             const mappedData: Military[] = data.map(m => ({
                 id: m.id,
-                fullName: m.full_name || '',
-                warName: m.war_name || m.name || '',
+                name: m.name,
                 rank: m.rank,
                 firefighterNumber: m.firefighter_number,
                 contact: m.contact || '',
@@ -50,8 +48,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
         const { data, error } = await supabase
             .from('militaries')
             .insert([{
-                full_name: military.fullName,
-                war_name: military.warName,
+                name: military.name,
                 rank: military.rank,
                 firefighter_number: military.firefighterNumber,
                 contact: military.contact,
@@ -72,8 +69,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
         const { error } = await supabase
             .from('militaries')
             .update({
-                full_name: military.fullName,
-                war_name: military.warName,
+                name: military.name,
                 rank: military.rank,
                 firefighter_number: military.firefighterNumber,
                 contact: military.contact,

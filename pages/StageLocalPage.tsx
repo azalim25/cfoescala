@@ -189,7 +189,7 @@ const StageLocalPage: React.FC = () => {
                                                 <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group hover:ring-1 hover:ring-primary/30 transition-all border border-transparent dark:border-slate-700/50">
                                                     <div className="flex flex-col">
                                                         <span className="text-slate-800 dark:text-slate-100 font-bold text-sm">
-                                                            {military ? `${military.rank} ${military.warName}` : 'Militar desconhecido'}
+                                                            {military ? `${military.rank} ${military.name}` : 'Militar desconhecido'}
                                                         </span>
                                                         <span className="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1 mt-1 font-medium">
                                                             <span className="material-symbols-outlined text-[14px]">calendar_today</span>
@@ -238,9 +238,9 @@ const StageLocalPage: React.FC = () => {
                                     >
                                         <option value="">Selecione um militar...</option>
                                         {[...militaries]
-                                            .sort((a, b) => a.warName.localeCompare(b.warName))
+                                            .sort((a, b) => a.name.localeCompare(b.name))
                                             .map(m => (
-                                                <option key={m.id} value={m.id}>{m.rank} {m.warName}</option>
+                                                <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
                                             ))
                                         }
                                     </select>

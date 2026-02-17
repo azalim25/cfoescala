@@ -324,7 +324,7 @@ const RankingPage: React.FC = () => {
                                                     <span className="material-symbols-outlined">person</span>
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">{mil.rank} {mil.warName}</h3>
+                                                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">{mil.rank} {mil.name}</h3>
                                                     <p className="text-[10px] text-slate-500 font-bold uppercase">{mil.battalion} • {mil.firefighterNumber}</p>
                                                 </div>
                                             </div>
@@ -387,7 +387,7 @@ const RankingPage: React.FC = () => {
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-sm text-slate-900 dark:text-white">{mil.rank} {mil.warName.split(' ')[0]}</h3>
+                                        <h3 className="font-bold text-sm text-slate-900 dark:text-white">{mil.rank} {mil.name.split(' ')[0]}</h3>
                                         <div className="flex items-center gap-2 mt-0.5">
                                             {mil.separateCounts['Sobreaviso'] > 0 && (
                                                 <span className="text-[9px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1 rounded">S:{mil.separateCounts['Sobreaviso']}</span>

@@ -104,10 +104,10 @@ const PersonalShiftPage: React.FC = () => {
   useEffect(() => {
     if (userProfile && militaries.length > 0 && !selectedMilitaryId) {
       // Find military by smart name matching first (for everyone)
-      const userNameParts = userProfile.warName.toLowerCase().split(/\s+/).filter((part: string) => part.length >= 3);
+      const userNameParts = userProfile.name.toLowerCase().split(/\s+/).filter((part: string) => part.length >= 3);
 
       const matchedMilitary = militaries.find(m => {
-        const milNameLower = m.warName.toLowerCase();
+        const milNameLower = m.name.toLowerCase();
         return userNameParts.some((part: string) => milNameLower.includes(part));
       });
 
@@ -155,7 +155,7 @@ const PersonalShiftPage: React.FC = () => {
 
   const filteredMilitary = useMemo(() =>
     militaries.filter(m =>
-      m.warName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.rank.toLowerCase().includes(searchTerm.toLowerCase())
     )
     , [militaries, searchTerm]);
@@ -624,7 +624,7 @@ const PersonalShiftPage: React.FC = () => {
                       {m.antiguidade || '-'}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.warName}</p>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.name}</p>
                       <p className="text-[10px] text-slate-500 uppercase">{m.battalion}</p>
                     </div>
                   </button>
@@ -666,7 +666,7 @@ const PersonalShiftPage: React.FC = () => {
                           {m.antiguidade || '-'}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.warName}</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.name}</p>
                           <p className="text-[10px] text-slate-500 uppercase font-medium">{m.battalion}</p>
                         </div>
                       </button>
@@ -690,7 +690,7 @@ const PersonalShiftPage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-none truncate max-w-[180px] sm:max-w-none">
-                      {selectedMilitary.rank} {selectedMilitary.warName}
+                      {selectedMilitary.rank} {selectedMilitary.name}
                     </h1>
                     <span className="material-symbols-outlined text-primary text-base sm:text-lg">verified</span>
                   </div>
@@ -1229,7 +1229,7 @@ const PersonalShiftPage: React.FC = () => {
                         <span className="material-symbols-outlined text-sm">person</span>
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.warName}</p>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.rank} {m.name}</p>
                         <p className="text-[10px] text-slate-500 uppercase">{m.battalion}</p>
                       </div>
                     </button>

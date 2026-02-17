@@ -10,8 +10,7 @@ const ContactsPage: React.FC = () => {
   const [editingMilitary, setEditingMilitary] = useState<Military | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newMilitary, setNewMilitary] = useState<Partial<Military>>({
-    fullName: '',
-    warName: '',
+    name: '',
     rank: Rank.CADETE,
     firefighterNumber: '',
     contact: '',
@@ -37,8 +36,7 @@ const ContactsPage: React.FC = () => {
       return;
     }
     const military = {
-      fullName: newMilitary.fullName as string,
-      warName: newMilitary.warName as string,
+      name: newMilitary.name as string,
       rank: newMilitary.rank as Rank,
       firefighterNumber: newMilitary.firefighterNumber as string,
       contact: newMilitary.contact as string,
@@ -49,8 +47,7 @@ const ContactsPage: React.FC = () => {
     setIsAdding(false);
     setAuthCode('');
     setNewMilitary({
-      fullName: '',
-      warName: '',
+      name: '',
       rank: Rank.CADETE,
       firefighterNumber: '',
       contact: '',
@@ -132,8 +129,7 @@ const ContactsPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {militaries
                   .filter((m: Military) =>
-                    m.warName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    m.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     m.firefighterNumber.includes(searchTerm)
                   )
                   .sort((a, b) => {
@@ -142,7 +138,7 @@ const ContactsPage: React.FC = () => {
                       const bAnt = b.antiguidade || 999999;
                       return aAnt - bAnt;
                     }
-                    return a.warName.localeCompare(b.warName);
+                    return a.name.localeCompare(b.name);
                   })
                   .map((m: Military) => (
                     <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
@@ -152,8 +148,7 @@ const ContactsPage: React.FC = () => {
                             <span className="material-symbols-outlined text-xl">person</span>
                           </div>
                           <div>
-                            <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{m.warName}</p>
-                            <p className="text-[10px] text-slate-500 font-medium truncate max-w-[150px]">{m.fullName}</p>
+                            <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{m.name}</p>
                           </div>
                         </div>
                       </td>
@@ -195,8 +190,7 @@ const ContactsPage: React.FC = () => {
           <div className="block lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
             {militaries
               .filter((m: Military) =>
-                m.warName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                m.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 m.firefighterNumber.includes(searchTerm)
               )
               .sort((a, b) => {
@@ -205,7 +199,7 @@ const ContactsPage: React.FC = () => {
                   const bAnt = b.antiguidade || 999999;
                   return aAnt - bAnt;
                 }
-                return a.warName.localeCompare(b.warName);
+                return a.name.localeCompare(b.name);
               })
               .map((m: Military) => (
                 <div key={m.id} className="p-4 space-y-3">
@@ -215,8 +209,8 @@ const ContactsPage: React.FC = () => {
                         <span className="material-symbols-outlined text-xl">person</span>
                       </div>
                       <div>
-                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{m.warName}</p>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">{m.rank} • {m.fullName}</p>
+                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{m.name}</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">{m.rank} • {m.firefighterNumber}</p>
                       </div>
                     </div>
                     {isModerator && (
@@ -291,21 +285,11 @@ const ContactsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nome Completo</label>
-                <input
-                  type="text"
-                  value={editingMilitary.fullName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingMilitary({ ...editingMilitary, fullName: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none dark:text-white"
-                />
-              </div>
-
-              <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nome de Guerra</label>
                 <input
                   type="text"
-                  value={editingMilitary.warName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingMilitary({ ...editingMilitary, warName: e.target.value })}
+                  value={editingMilitary.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingMilitary({ ...editingMilitary, name: e.target.value })}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none dark:text-white"
                 />
               </div>
@@ -381,24 +365,12 @@ const ContactsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nome Completo</label>
-                <input
-                  type="text"
-                  required
-                  value={newMilitary.fullName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMilitary({ ...newMilitary, fullName: e.target.value })}
-                  placeholder="Ex: ALEXANDRE BRAIT"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none dark:text-white"
-                />
-              </div>
-
-              <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nome de Guerra</label>
                 <input
                   type="text"
                   required
-                  value={newMilitary.warName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMilitary({ ...newMilitary, warName: e.target.value })}
+                  value={newMilitary.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMilitary({ ...newMilitary, name: e.target.value })}
                   placeholder="Ex: BRAIT"
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none dark:text-white"
                 />
