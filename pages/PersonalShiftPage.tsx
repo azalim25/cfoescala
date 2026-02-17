@@ -499,6 +499,18 @@ const PersonalShiftPage: React.FC = () => {
     ).length;
   }, [personalShifts, workloadSelectedMonths]);
 
+  const totalStageHours = useMemo(() => {
+    const shiftHours = personalShifts
+      .filter(s => s.type === 'Estágio')
+      .reduce((acc, s) => acc + calculateShiftHours(s), 0);
+
+    const standaloneStageHours = personalStages
+      .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
+      .reduce((acc, ps) => acc + calculateShiftHours({ ...ps, type: 'Estágio' }), 0);
+
+    return shiftHours + standaloneStageHours;
+  }, [personalShifts, personalStages]);
+
   const groupedSummary = useMemo(() => {
     const summary: Record<string, { totalHours: number, totalServices: number, type: string }> = {};
 
