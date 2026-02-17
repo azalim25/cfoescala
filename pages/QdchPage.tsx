@@ -62,25 +62,40 @@ const QdchPage: React.FC = () => {
     };
 
     const stats = useMemo(() => {
+        const todayStr = new Date().toISOString().split('T')[0];
+
         return disciplines.map(disc => {
-            const completedHours = schedule
-                .filter(s => s.disciplineId === disc.id)
+            const discSchedule = schedule.filter(s => s.disciplineId === disc.id);
+
+            // Total marked hours (total scheduled classes * 2h each)
+            const markedHours = discSchedule.length * 2;
+
+            // Concluded hours (classes occurred until today * 2h each)
+            const concludedHours = discSchedule
+                .filter(s => s.date <= todayStr)
                 .length * 2;
-            const remainingHours = Math.max(0, disc.totalHours - completedHours);
-            const percentage = disc.totalHours > 0 ? (completedHours / disc.totalHours) * 100 : 0;
+
+            const remainingHours = Math.max(0, disc.totalHours - concludedHours);
+            const concludedPercentage = disc.totalHours > 0 ? (concludedHours / disc.totalHours) * 100 : 0;
+            const markedPercentage = disc.totalHours > 0 ? (markedHours / disc.totalHours) * 100 : 0;
 
             return {
                 ...disc,
-                completedHours,
+                concludedHours,
+                markedHours,
                 remainingHours,
-                percentage
+                concludedPercentage,
+                markedPercentage
             };
         });
     }, [disciplines, schedule]);
 
     const totalPrevista = disciplines.reduce((acc, d) => acc + d.totalHours, 0);
-    const totalCumprida = stats.reduce((acc, s) => acc + s.completedHours, 0);
-    const totalPercentage = totalPrevista > 0 ? (totalCumprida / totalPrevista) * 100 : 0;
+    const totalConcluida = stats.reduce((acc, s) => acc + s.concludedHours, 0);
+    const totalMarcada = stats.reduce((acc, s) => acc + s.markedHours, 0);
+
+    const totalConcluidaPercentage = totalPrevista > 0 ? (totalConcluida / totalPrevista) * 100 : 0;
+    const totalMarcadaPercentage = totalPrevista > 0 ? (totalMarcada / totalPrevista) * 100 : 0;
 
     return (
         <MainLayout activePage="qdch">
@@ -115,19 +130,23 @@ const QdchPage: React.FC = () => {
                         </div>
                     </div>
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">C.H. Total Cumprida</p>
-                        <h3 className="text-2xl font-black text-primary">{totalCumprida.toFixed(1)}h</h3>
+                        <div className="flex justify-between items-end mb-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">C.H. Total Concluída</p>
+                            <span className="text-[10px] font-black text-primary">{totalConcluidaPercentage.toFixed(1)}%</span>
+                        </div>
+                        <h3 className="text-2xl font-black text-primary">{totalConcluida.toFixed(1)}h</h3>
                         <div className="mt-4 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${totalPercentage}%` }}></div>
+                            <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${totalConcluidaPercentage}%` }}></div>
                         </div>
                     </div>
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Progresso Geral</p>
-                        <h3 className="text-2xl font-black text-slate-800 dark:text-white">{totalPercentage.toFixed(1)}%</h3>
-                        <div className="mt-4 flex items-center gap-1">
-                            {[...Array(10)].map((_, i) => (
-                                <div key={i} className={`h-2 flex-1 rounded-sm ${i < totalPercentage / 10 ? 'bg-primary' : 'bg-slate-100 dark:bg-slate-800'}`}></div>
-                            ))}
+                        <div className="flex justify-between items-end mb-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">C.H. Total Marcada</p>
+                            <span className="text-[10px] font-black text-indigo-500">{totalMarcadaPercentage.toFixed(1)}%</span>
+                        </div>
+                        <h3 className="text-2xl font-black text-indigo-500">{totalMarcada.toFixed(1)}h</h3>
+                        <div className="mt-4 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${totalMarcadaPercentage}%` }}></div>
                         </div>
                     </div>
                 </div>
@@ -139,7 +158,8 @@ const QdchPage: React.FC = () => {
                                 <tr className="bg-slate-50 dark:bg-slate-800/50">
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">Disciplina</th>
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 text-center">Prevista</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 text-center">Cumprida</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 text-center">Concluída</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 text-center">Marcada</th>
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 text-center">Restante</th>
                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">Progresso</th>
                                     {isModerator && <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 text-right">Ações</th>}
@@ -163,20 +183,34 @@ const QdchPage: React.FC = () => {
                                             <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{s.totalHours}h</span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="text-xs font-black text-primary">{s.completedHours.toFixed(1)}h</span>
+                                            <span className="text-xs font-black text-primary">{s.concludedHours.toFixed(1)}h</span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="text-xs font-black text-indigo-500">{s.markedHours.toFixed(1)}h</span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span className="text-xs font-bold text-slate-500">{s.remainingHours.toFixed(1)}h</span>
                                         </td>
-                                        <td className="px-6 py-4 min-w-[180px]">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full transition-all duration-500 ${s.percentage >= 100 ? 'bg-green-500' : 'bg-primary'}`}
-                                                        style={{ width: `${Math.min(100, s.percentage)}%` }}
-                                                    ></div>
+                                        <td className="px-6 py-4 min-w-[200px]">
+                                            <div className="flex flex-col gap-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full transition-all duration-500 ${s.concludedPercentage >= 100 ? 'bg-green-500' : 'bg-primary'}`}
+                                                            style={{ width: `${Math.min(100, s.concludedPercentage)}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-primary w-8 text-right">{s.concludedPercentage.toFixed(0)}%</span>
                                                 </div>
-                                                <span className="text-[10px] font-black text-slate-400 w-8 text-right">{s.percentage.toFixed(0)}%</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full rounded-full transition-all duration-500 bg-indigo-500"
+                                                            style={{ width: `${Math.min(100, s.markedPercentage)}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-indigo-500 w-8 text-right">{s.markedPercentage.toFixed(0)}%</span>
+                                                </div>
                                             </div>
                                         </td>
                                         {isModerator && (
