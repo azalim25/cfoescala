@@ -157,10 +157,11 @@ const StageQuantityPage: React.FC = () => {
 
         const findBaseLocKey = (locationName: string | null | undefined) => {
             if (!locationName) return null;
-            const normalized = locationName.replace('º', '°');
+            const normalized = locationName.toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
             for (const loc of STAGE_LOCATIONS) {
-                const base = loc.split(' - ')[0].replace('º', '°');
-                if (normalized.includes(base)) return loc.split(' - ')[0];
+                const baseRaw = loc.split(' - ')[0];
+                const baseNorm = baseRaw.toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
+                if (normalized.includes(baseNorm)) return baseRaw;
             }
             return null;
         };

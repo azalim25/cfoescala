@@ -100,7 +100,7 @@ export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra
 export const STAGE_LOCATIONS = [
   '1° BBM - Batalhão Afonso Pena',
   '2° BBM - Batalhão Contagem',
-  '3° BBM - Batalhão Afonso Pena'
+  '3° BBM - Batalhão Antônio Carlos'
 ];
 
 export const NAV_LINKS = [

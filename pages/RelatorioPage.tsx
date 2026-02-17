@@ -108,8 +108,12 @@ const RelatorioPage: React.FC = () => {
 
         const filteredShifts = allRelevantShifts.filter((s: Shift) => {
             const matchesType = typeArray.includes(s.type);
+
+            const normalize = (v: string | undefined | null) =>
+                (v || '').toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
+
             const matchesLocation = filterByLocation
-                ? s.location?.toLowerCase().includes(filterByLocation.toLowerCase().replace('º', '°'))
+                ? normalize(s.location).includes(normalize(filterByLocation))
                 : true;
             return matchesType && matchesLocation;
         });

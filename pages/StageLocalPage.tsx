@@ -111,13 +111,17 @@ const StageLocalPage: React.FC = () => {
     const allStages = useMemo(() => {
         const combined = [...stages];
 
+        const normalize = (val: string | null | undefined) =>
+            (val || '').toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
+
+        const officialPrefixes = STAGE_LOCATIONS.map(loc => normalize(loc.split(' - ')[0]));
+
         shifts.forEach(s => {
             if (s.type === 'Estágio' && s.location) {
-                // Determine if it matches one of our official 3 locations
-                const isOfficial = STAGE_LOCATIONS.some(loc => s.location?.includes(loc.split(' - ')[0]));
+                const normLoc = normalize(s.location);
+                const isOfficial = officialPrefixes.some(prefix => normLoc.includes(prefix));
 
                 if (isOfficial) {
-                    // Check if already in stages to avoid double counting
                     const alreadyExists = stages.some(st => st.military_id === s.militaryId && st.date === s.date);
                     if (!alreadyExists) {
                         combined.push({
@@ -136,7 +140,8 @@ const StageLocalPage: React.FC = () => {
         return combined.filter(s => {
             const d = safeParseISO(s.date);
             const matchesMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-            const isOfficial = STAGE_LOCATIONS.some(loc => s.location?.includes(loc.split(' - ')[0]));
+            const normLoc = normalize(s.location);
+            const isOfficial = officialPrefixes.some(prefix => normLoc.includes(prefix));
             return matchesMonth && isOfficial;
         });
     }, [stages, shifts, currentMonth, currentYear]);
@@ -198,7 +203,12 @@ const StageLocalPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {STAGE_LOCATIONS.map(loc => {
                         const locPrefix = loc.split(' - ')[0];
-                        const locStages = allStages.filter(s => s.location?.includes(locPrefix));
+                        const normPrefix = locPrefix.toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
+
+                        const locStages = allStages.filter(s => {
+                            const ns = (s.location || '').toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
+                            return ns.includes(normPrefix);
+                        });
                         return (
                             <div key={loc} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
                                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 border-b border-slate-200 dark:border-slate-800 text-center">
