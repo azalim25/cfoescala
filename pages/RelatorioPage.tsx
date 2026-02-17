@@ -11,6 +11,7 @@ const RelatorioPage: React.FC = () => {
     const { shifts } = useShift();
     const { militaries } = useMilitary();
     const [extraStages, setExtraStages] = useState<any[]>([]);
+    const [extraHoursStages, setExtraHoursStages] = useState<any[]>([]);
     const [isLoadingStages, setIsLoadingStages] = useState(true);
 
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -24,9 +25,18 @@ const RelatorioPage: React.FC = () => {
     const fetchStages = async () => {
         try {
             setIsLoadingStages(true);
-            const { data, error } = await supabase.from('stages').select('*');
-            if (error) throw error;
-            if (data) setExtraStages(data);
+
+            // 1. Fetch CFO II stages
+            const { data: stagesData, error: stagesError } = await supabase.from('stages').select('*');
+            if (!stagesError && stagesData) setExtraStages(stagesData);
+
+            // 2. Fetch CFO I stages (from extra_hours)
+            const { data: ehData, error: ehError } = await supabase
+                .from('extra_hours')
+                .select('*')
+                .filter('category', 'like', 'CFO I - Estágio - %');
+            if (!ehError && ehData) setExtraHoursStages(ehData);
+
         } catch (error) {
             console.error('Error fetching extra stages:', error);
         } finally {
@@ -42,7 +52,7 @@ const RelatorioPage: React.FC = () => {
         // 1. Base shifts from context
         const combined: Shift[] = [...shifts.map(s => ({ ...s, location: s.location || '' }))];
 
-        // 2. Extra stages logic: merge or update location
+        // 2. Extra stages logic (CFO II)
         extraStages.forEach(es => {
             const cs = {
                 id: es.id,
@@ -52,7 +62,8 @@ const RelatorioPage: React.FC = () => {
                 location: es.location || '',
                 startTime: es.start_time || '08:00',
                 endTime: es.end_time || '20:00',
-                status: 'Confirmado' as any
+                status: 'Confirmado' as any,
+                isFromStages: true
             };
 
             const existingIndex = combined.findIndex(bs =>
@@ -62,8 +73,8 @@ const RelatorioPage: React.FC = () => {
             );
 
             if (existingIndex !== -1) {
-                // If it exists but has no location, update it
-                if (!combined[existingIndex].location && cs.location) {
+                // ALWAYS prefer location from stages table if it exists
+                if (cs.location) {
                     combined[existingIndex].location = cs.location;
                 }
             } else {
@@ -71,12 +82,29 @@ const RelatorioPage: React.FC = () => {
             }
         });
 
-        // 3. Filter by month/year using safeParseISO
+        // 3. Extra hours logic (CFO I)
+        extraHoursStages.forEach(eh => {
+            const parts = eh.category.split(' - ');
+            const loc = parts.length >= 3 ? parts[2] : '';
+            const cs = {
+                id: eh.id,
+                date: eh.date || new Date().toISOString().split('T')[0],
+                type: 'Estágio' as any,
+                militaryId: eh.military_id,
+                location: loc,
+                startTime: '08:00',
+                endTime: '20:00',
+                status: 'Confirmado' as any
+            };
+            combined.push(cs as any);
+        });
+
+        // 4. Filter by month/year using safeParseISO
         return combined.filter((s: Shift) => {
             const d = safeParseISO(s.date);
             return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
         }).sort((a, b) => a.date.localeCompare(b.date));
-    }, [shifts, extraStages, selectedMonth, selectedYear]);
+    }, [shifts, extraStages, extraHoursStages, selectedMonth, selectedYear]);
 
     const formatMilitaryName = (mil: Military | undefined) => {
         if (!mil) return "Militar não encontrado";
@@ -110,16 +138,21 @@ const RelatorioPage: React.FC = () => {
             const matchesType = typeArray.includes(s.type);
 
             const normalize = (v: string | undefined | null) =>
-                (v || '').toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+                (v || '').toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[º°]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
 
-            const locationKey = filterByLocation ? filterByLocation.toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim() : '';
+            const locationKey = filterByLocation ? normalize(filterByLocation.split(' - ')[0]) : '';
 
             // Try to find the full location template to get the subtitle/keyword
             const fullLoc = STAGE_LOCATIONS.find(l => l.includes(filterByLocation || ''));
-            const extraKeyword = fullLoc && fullLoc.includes(' - ') ? fullLoc.split(' - ')[1].toLowerCase().replace(/\s+/g, ' ').trim() : '';
+            const extraKeyword = fullLoc && fullLoc.includes(' - ') ? normalize(fullLoc.split(' - ')[1]) : '';
 
+            const normSLoc = normalize(s.location);
             const matchesLocation = filterByLocation
-                ? normalize(s.location).includes(locationKey) || (extraKeyword && normalize(s.location).includes(extraKeyword))
+                ? normSLoc.includes(locationKey) || (extraKeyword && normSLoc.includes(extraKeyword))
                 : true;
             return matchesType && matchesLocation;
         });

@@ -112,12 +112,16 @@ const StageLocalPage: React.FC = () => {
         STAGE_LOCATIONS.filter(loc => !loc.toLowerCase().includes('pel abm')),
         []);
 
+    const normalize = (val: string | null | undefined) =>
+        (val || '').toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[º°]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
     // Aggregate stages from both 'stages' table AND 'shifts' table (type: 'Estágio')
     const allStages = useMemo(() => {
-        const combined = [...stages];
-
-        const normalize = (val: string | null | undefined) =>
-            (val || '').toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+        const combined = [...stages.map(s => ({ ...s, isFromStages: true }))];
 
         const officialPrefixes = activeLocations.map(loc => normalize(loc.split(' - ')[0]));
         const extraKeywords = activeLocations.map(loc => {
@@ -132,16 +136,20 @@ const StageLocalPage: React.FC = () => {
                     extraKeywords.some(keyword => normLoc.includes(keyword));
 
                 if (isOfficial) {
-                    const alreadyExists = stages.some(st => st.military_id === s.militaryId && st.date === s.date);
-                    if (!alreadyExists) {
+                    const alreadyExistsIndex = combined.findIndex(st => st.military_id === s.militaryId && st.date === s.date);
+                    if (alreadyExistsIndex === -1) {
                         combined.push({
                             id: s.id,
                             military_id: s.militaryId,
                             date: s.date,
-                            location: s.location,
+                            location: s.location || '',
                             start_time: s.startTime,
-                            end_time: s.endTime
-                        });
+                            end_time: s.endTime,
+                            isFromStages: false
+                        } as any);
+                    } else if (!(combined[alreadyExistsIndex] as any).isFromStages) {
+                        // If it's not from stages table, update location if missing
+                        combined[alreadyExistsIndex].location = s.location || combined[alreadyExistsIndex].location;
                     }
                 }
             }
@@ -218,7 +226,7 @@ const StageLocalPage: React.FC = () => {
                         const locSubtitle = loc.includes(' - ') ? loc.split(' - ')[1].toLowerCase().replace(/\s+/g, ' ').trim() : '';
 
                         const locStages = allStages.filter(s => {
-                            const ns = (s.location || '').toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+                            const ns = normalize(s.location);
                             return ns.includes(normPrefix) || (locSubtitle && ns.includes(locSubtitle));
                         });
                         return (

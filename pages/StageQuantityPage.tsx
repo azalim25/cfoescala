@@ -157,13 +157,21 @@ const StageQuantityPage: React.FC = () => {
 
         const findBaseLocKey = (locationName: string | null | undefined) => {
             if (!locationName) return null;
-            const normalized = locationName.toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+            const normalized = locationName.toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[º°]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
             for (const loc of STAGE_LOCATIONS) {
                 const baseRaw = loc.split(' - ')[0];
-                const baseNorm = baseRaw.toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+                const baseNorm = baseRaw.toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[º°]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
 
                 // Also check for battalion names/keywords
-                const extraKeyword = loc.includes(' - ') ? loc.split(' - ')[1].toLowerCase().replace(/\s+/g, ' ').trim() : '';
+                const extraKeyword = loc.includes(' - ') ? loc.split(' - ')[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim() : '';
 
                 if (normalized.includes(baseNorm) || (extraKeyword && normalized.includes(extraKeyword))) {
                     return baseRaw;
@@ -174,17 +182,20 @@ const StageQuantityPage: React.FC = () => {
 
         // 1. Process shifts of type 'Estágio' (CFO II)
         shifts.forEach(s => {
-            if (s.type === 'Estágio' && s.location && stats[s.militaryId]) {
-                const baseLoc = findBaseLocKey(s.location);
+            if (s.type === 'Estágio' && stats[s.militaryId]) {
+                const stageInTable = stages.find(st => st.military_id === s.militaryId && st.date === s.date);
+                const locToUse = stageInTable ? stageInTable.location : s.location;
+                const baseLoc = findBaseLocKey(locToUse);
+
                 if (baseLoc && stats[s.militaryId][baseLoc]) {
-                    const duration = getDuration(s.date, s.duration);
+                    const duration = getDuration(s.date, (s as any).duration || (stageInTable as any)?.duration);
                     if (duration === 24) stats[s.militaryId][baseLoc].p24.cfo2++;
                     else stats[s.militaryId][baseLoc].p12.cfo2++;
                 }
             }
         });
 
-        // 2. Process stages from 'stages' table (CFO II) - DEDUPLICATED
+        // 2. Process stages from 'stages' table (CFO II) - ONLY if not already in shifts
         stages.forEach(s => {
             if (stats[s.military_id]) {
                 const isAlreadyInShifts = shifts.some(sh =>
@@ -196,7 +207,7 @@ const StageQuantityPage: React.FC = () => {
                 if (!isAlreadyInShifts) {
                     const baseLoc = findBaseLocKey(s.location);
                     if (baseLoc && stats[s.military_id][baseLoc]) {
-                        const duration = getDuration(s.date, s.duration);
+                        const duration = getDuration(s.date, (s as any).duration);
                         if (duration === 24) stats[s.military_id][baseLoc].p24.cfo2++;
                         else stats[s.military_id][baseLoc].p12.cfo2++;
                     }
