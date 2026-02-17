@@ -26,7 +26,6 @@ const ComandanteGuardaPage: React.FC = () => {
             weeklyCounts: number[];
             weekdayTotal: number;
             weekendHolidayTotal: number;
-            specificHolidayTotal: number;
         }> = {};
 
         // Initialize stats for each military
@@ -34,8 +33,7 @@ const ComandanteGuardaPage: React.FC = () => {
             stats[m.id] = {
                 weeklyCounts: [0, 0, 0, 0, 0, 0, 0],
                 weekdayTotal: 0,
-                weekendHolidayTotal: 0,
-                specificHolidayTotal: 0
+                weekendHolidayTotal: 0
             };
         });
 
@@ -47,10 +45,6 @@ const ComandanteGuardaPage: React.FC = () => {
 
                 const isHoliday = holidays.some(h => h.date === s.date);
                 const isWeekend = dayIdx === 5 || dayIdx === 6; // Sat or Sun
-
-                if (isHoliday) {
-                    stats[s.militaryId].specificHolidayTotal++;
-                }
 
                 if (isHoliday || isWeekend) {
                     stats[s.militaryId].weekendHolidayTotal++;
@@ -103,18 +97,17 @@ const ComandanteGuardaPage: React.FC = () => {
                                     ))}
                                     <th className="px-4 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 text-center bg-blue-50/50 dark:bg-blue-900/20">Dias Semana</th>
                                     <th className="px-4 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 text-center bg-rose-50/50 dark:bg-rose-900/20">FDS / Feriado</th>
-                                    <th className="px-4 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 text-center bg-amber-50/50 dark:bg-amber-900/20">Feriados</th>
                                     <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 text-center bg-slate-100/50 dark:bg-slate-700/50 font-black">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {sortedMilitaries.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} className="px-6 py-12 text-center text-slate-400 text-sm italic">Nenhum militar encontrado na lista de contatos.</td>
+                                        <td colSpan={8} className="px-6 py-12 text-center text-slate-400 text-sm italic">Nenhum militar encontrado na lista de contatos.</td>
                                     </tr>
                                 ) : (
                                     sortedMilitaries.map(mil => {
-                                        const stats = shiftStats[mil.id] || { weeklyCounts: [0, 0, 0, 0, 0, 0, 0], weekdayTotal: 0, weekendHolidayTotal: 0, specificHolidayTotal: 0 };
+                                        const stats = shiftStats[mil.id] || { weeklyCounts: [0, 0, 0, 0, 0, 0, 0], weekdayTotal: 0, weekendHolidayTotal: 0 };
                                         const counts = stats.weeklyCounts;
                                         const total = counts.reduce((acc, curr) => acc + curr, 0);
 
@@ -142,9 +135,6 @@ const ComandanteGuardaPage: React.FC = () => {
                                                 </td>
                                                 <td className="px-4 py-4 border-b border-slate-50 dark:border-slate-800 text-center bg-rose-50/20 dark:bg-rose-900/10">
                                                     <span className="text-xs font-black text-rose-600 dark:text-rose-400">{stats.weekendHolidayTotal}</span>
-                                                </td>
-                                                <td className="px-4 py-4 border-b border-slate-50 dark:border-slate-800 text-center bg-amber-50/20 dark:bg-amber-900/10">
-                                                    <span className="text-xs font-black text-amber-600 dark:text-amber-400">{stats.specificHolidayTotal}</span>
                                                 </td>
                                                 <td className="px-6 py-4 border-b border-slate-50 dark:border-slate-800 text-center bg-slate-50/30 dark:bg-slate-800/20">
                                                     <span className={`inline-flex items-center justify-center px-2 py-1 ${total > 0 ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'} rounded-md text-xs font-black min-w-[28px]`}>
