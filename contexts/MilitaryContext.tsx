@@ -33,6 +33,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
             const mappedData: Military[] = data.map(m => ({
                 id: m.id,
                 name: m.name,
+                fullName: m.full_name || '',
                 rank: m.rank,
                 firefighterNumber: m.firefighter_number,
                 contact: m.contact || '',
@@ -49,6 +50,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
             .from('militaries')
             .insert([{
                 name: military.name,
+                full_name: military.fullName,
                 rank: military.rank,
                 firefighter_number: military.firefighterNumber,
                 contact: military.contact,
@@ -70,6 +72,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
             .from('militaries')
             .update({
                 name: military.name,
+                full_name: military.fullName,
                 rank: military.rank,
                 firefighter_number: military.firefighterNumber,
                 contact: military.contact,

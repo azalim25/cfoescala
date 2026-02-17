@@ -11,6 +11,7 @@ const ContactsPage: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [newMilitary, setNewMilitary] = useState<Partial<Military>>({
     name: '',
+    fullName: '',
     rank: Rank.CADETE,
     firefighterNumber: '',
     contact: '',
@@ -37,6 +38,7 @@ const ContactsPage: React.FC = () => {
     }
     const military = {
       name: newMilitary.name as string,
+      fullName: newMilitary.fullName as string,
       rank: newMilitary.rank as Rank,
       firefighterNumber: newMilitary.firefighterNumber as string,
       contact: newMilitary.contact as string,
@@ -48,6 +50,7 @@ const ContactsPage: React.FC = () => {
     setAuthCode('');
     setNewMilitary({
       name: '',
+      fullName: '',
       rank: Rank.CADETE,
       firefighterNumber: '',
       contact: '',
@@ -111,7 +114,8 @@ const ContactsPage: React.FC = () => {
                       {sortBy === 'name' && <span className="material-symbols-outlined text-xs">arrow_downward</span>}
                     </button>
                   </th>
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nº Bombeiro</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Nome Completo</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Nº Bombeiro</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Posto</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     <button
@@ -152,6 +156,7 @@ const ContactsPage: React.FC = () => {
                           </div>
                         </div>
                       </td>
+                      <td className="p-4 text-sm text-slate-600 dark:text-slate-400">{m.fullName || '-'}</td>
                       <td className="p-4 text-sm text-slate-600 dark:text-slate-400 font-bold">{m.firefighterNumber}</td>
                       <td className="p-4">
                         <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200 text-[10px] font-bold rounded uppercase border border-blue-200 dark:border-blue-800">
@@ -211,6 +216,7 @@ const ContactsPage: React.FC = () => {
                       <div>
                         <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{m.name}</p>
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">{m.rank} • {m.firefighterNumber}</p>
+                        {m.fullName && <p className="text-[10px] text-slate-400 mt-0.5">{m.fullName}</p>}
                       </div>
                     </div>
                     {isModerator && (
@@ -294,6 +300,16 @@ const ContactsPage: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nome Completo</label>
+                <input
+                  type="text"
+                  value={editingMilitary.fullName || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingMilitary({ ...editingMilitary, fullName: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none dark:text-white"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Posto</label>
@@ -372,6 +388,17 @@ const ContactsPage: React.FC = () => {
                   value={newMilitary.name}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMilitary({ ...newMilitary, name: e.target.value })}
                   placeholder="Ex: BRAIT"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nome Completo</label>
+                <input
+                  type="text"
+                  value={newMilitary.fullName || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMilitary({ ...newMilitary, fullName: e.target.value })}
+                  placeholder="Ex: ALEXANDRE BRAIT"
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none dark:text-white"
                 />
               </div>

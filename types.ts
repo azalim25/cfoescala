@@ -6,6 +6,7 @@ export enum Rank {
 export interface Military {
   id: string;
   name: string;
+  fullName?: string;
   rank: Rank;
   firefighterNumber: string;
   contact: string;
