@@ -1,12 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useShift } from '../contexts/ShiftContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { Shift, Military } from '../types';
+import { supabase } from '../supabase';
 
 const RelatorioPage: React.FC = () => {
     const { shifts } = useShift();
     const { militaries } = useMilitary();
+    const [extraStages, setExtraStages] = useState<any[]>([]);
+    const [isLoadingStages, setIsLoadingStages] = useState(true);
 
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -16,12 +19,60 @@ const RelatorioPage: React.FC = () => {
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
     ];
 
-    const currentShifts = useMemo(() => {
-        return shifts.filter((s: Shift) => {
-            const date = new Date(s.date + 'T12:00:00'); // Use fixed time to avoid TZ issues
+    const fetchStages = async () => {
+        try {
+            setIsLoadingStages(true);
+            const { data, error } = await supabase.from('stages').select('*');
+            if (error) throw error;
+            if (data) setExtraStages(data);
+        } catch (error) {
+            console.error('Error fetching extra stages:', error);
+        } finally {
+            setIsLoadingStages(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStages();
+    }, []);
+
+    const allRelevantShifts = useMemo(() => {
+        // 1. Regular shifts
+        const baseShifts = shifts.map(s => ({
+            ...s,
+            location: s.location || ''
+        }));
+
+        // 2. Extra stages from 'stages' table converted to Shift format
+        const convertedStages = extraStages.map(es => ({
+            id: es.id,
+            date: es.date,
+            type: 'Estágio' as any,
+            militaryId: es.military_id,
+            location: es.location || '',
+            startTime: es.start_time || '08:00',
+            endTime: es.end_time || '20:00',
+            status: 'Confirmado' as any
+        }));
+
+        // Combine and deduplicate if same military, date, and type 'Estágio'
+        const combined = [...baseShifts];
+        convertedStages.forEach(cs => {
+            const isDuplicate = baseShifts.some(bs =>
+                bs.militaryId === cs.militaryId &&
+                bs.date === cs.date &&
+                bs.type === 'Estágio'
+            );
+            if (!isDuplicate) {
+                combined.push(cs as any);
+            }
+        });
+
+        return combined.filter((s: Shift) => {
+            const date = new Date(s.date + 'T12:00:00');
             return date.getMonth() === selectedMonth && date.getFullYear() === selectedYear;
         }).sort((a: Shift, b: Shift) => a.date.localeCompare(b.date));
-    }, [shifts, selectedMonth, selectedYear]);
+    }, [shifts, extraStages, selectedMonth, selectedYear]);
 
     const formatMilitaryName = (mil: Military | undefined) => {
         if (!mil) return "Militar não encontrado";
@@ -34,6 +85,7 @@ const RelatorioPage: React.FC = () => {
             <span>
                 {words.map((word, idx) => {
                     const cleanWord = word.replace(/[.,]/g, '').toUpperCase();
+                    // Robust check: war name could be part of a composite name
                     const isWarName = cleanWord === warName;
 
                     return (
@@ -51,8 +103,9 @@ const RelatorioPage: React.FC = () => {
         const typeArray = Array.isArray(type) ? type : [type];
         const isStage = typeArray.includes("Estágio");
 
-        const filteredShifts = currentShifts.filter((s: Shift) => {
+        const filteredShifts = allRelevantShifts.filter((s: Shift) => {
             const matchesType = typeArray.includes(s.type);
+            // Use a more flexible location match
             const matchesLocation = filterByLocation ? s.location?.includes(filterByLocation) : true;
             return matchesType && matchesLocation;
         });
@@ -102,7 +155,7 @@ const RelatorioPage: React.FC = () => {
                                     const mil = militaries.find(m => m.id === s.militaryId);
                                     const dateObj = new Date(s.date + 'T12:00:00');
 
-                                    const fullDate = dateObj.toLocaleDateString('pt-BR'); // 02/02/2026
+                                    const fullDate = dateObj.toLocaleDateString('pt-BR');
                                     const dayOfWeekFull = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
                                     const formattedDayOfWeek = dayOfWeekFull.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('-');
 
@@ -190,9 +243,10 @@ const RelatorioPage: React.FC = () => {
                             <span className="material-symbols-outlined text-primary">analytics</span>
                             Tabelas de Estágio
                         </h2>
-                        {renderShiftTable("1º BBM - Batalhão Afonso Pena", "Estágio", "1º BBM")}
-                        {renderShiftTable("2º BBM - Batalhão Contagem", "Estágio", "2º BBM")}
-                        {renderShiftTable("3º BBM - Batalhão Afonso Pena", "Estágio", "3º BBM")}
+                        {/* Using '1°BBM' because that's what's in the DB strings based on StageQuantityPage */}
+                        {renderShiftTable("1º BBM - Batalhão Afonso Pena", "Estágio", "1°BBM")}
+                        {renderShiftTable("2º BBM - Batalhão Contagem", "Estágio", "2°BBM")}
+                        {renderShiftTable("3º BBM - Batalhão Antônio Carlos", "Estágio", "3°BBM")}
                     </div>
                 </div>
             </MainLayout.Content>
