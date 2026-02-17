@@ -11,7 +11,6 @@ const RelatorioPage: React.FC = () => {
     const { shifts } = useShift();
     const { militaries } = useMilitary();
     const [extraStages, setExtraStages] = useState<any[]>([]);
-    const [extraHoursStages, setExtraHoursStages] = useState<any[]>([]);
     const [isLoadingStages, setIsLoadingStages] = useState(true);
 
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -29,13 +28,6 @@ const RelatorioPage: React.FC = () => {
             // 1. Fetch CFO II stages
             const { data: stagesData, error: stagesError } = await supabase.from('stages').select('*');
             if (!stagesError && stagesData) setExtraStages(stagesData);
-
-            // 2. Fetch CFO I stages (from extra_hours)
-            const { data: ehData, error: ehError } = await supabase
-                .from('extra_hours')
-                .select('*')
-                .filter('category', 'like', 'CFO I - Estágio - %');
-            if (!ehError && ehData) setExtraHoursStages(ehData);
 
         } catch (error) {
             console.error('Error fetching extra stages:', error);
@@ -82,29 +74,12 @@ const RelatorioPage: React.FC = () => {
             }
         });
 
-        // 3. Extra hours logic (CFO I)
-        extraHoursStages.forEach(eh => {
-            const parts = eh.category.split(' - ');
-            const loc = parts.length >= 3 ? parts[2] : '';
-            const cs = {
-                id: eh.id,
-                date: eh.date || new Date().toISOString().split('T')[0],
-                type: 'Estágio' as any,
-                militaryId: eh.military_id,
-                location: loc,
-                startTime: '08:00',
-                endTime: '20:00',
-                status: 'Confirmado' as any
-            };
-            combined.push(cs as any);
-        });
-
-        // 4. Filter by month/year using safeParseISO
+        // 3. Filter by month/year using safeParseISO
         return combined.filter((s: Shift) => {
             const d = safeParseISO(s.date);
             return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
         }).sort((a, b) => a.date.localeCompare(b.date));
-    }, [shifts, extraStages, extraHoursStages, selectedMonth, selectedYear]);
+    }, [shifts, extraStages, selectedMonth, selectedYear]);
 
     const formatMilitaryName = (mil: Military | undefined) => {
         if (!mil) return "Militar não encontrado";
@@ -298,7 +273,7 @@ const RelatorioPage: React.FC = () => {
                             )}
                         </div>
 
-                        {STAGE_LOCATIONS.map(loc => (
+                        {STAGE_LOCATIONS.filter(loc => !loc.toLowerCase().includes('pel abm')).map(loc => (
                             <React.Fragment key={loc}>
                                 {renderShiftTable(loc, "Estágio", loc.split(' - ')[0])}
                             </React.Fragment>
