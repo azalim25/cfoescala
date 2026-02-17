@@ -142,6 +142,17 @@ const RelatorioPage: React.FC = () => {
 
         const sortedDates = Object.keys(groupedByDate).sort();
 
+        // Sort shifts on each date by seniority
+        sortedDates.forEach(date => {
+            groupedByDate[date].sort((a, b) => {
+                const milA = militaries.find(m => m.id === a.militaryId);
+                const milB = militaries.find(m => m.id === b.militaryId);
+                const antA = milA?.antiguidade ?? 999;
+                const antB = milB?.antiguidade ?? 999;
+                return antA - antB;
+            });
+        });
+
         return (
             <div className={`mb-12 overflow-hidden bg-white dark:bg-slate-900 rounded-xl ${isStage ? 'border-2 border-slate-300 dark:border-slate-700' : 'border border-slate-200 dark:border-slate-800'} shadow-sm`}>
                 {!isStage && (
