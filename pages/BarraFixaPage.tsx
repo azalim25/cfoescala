@@ -134,7 +134,7 @@ const BarraFixaPage: React.FC = () => {
                 const military = militaries.find(m => m.id === s.militaryId);
                 const searchLower = searchTerm.toLowerCase();
                 return (
-                    military?.name.toLowerCase().includes(searchLower) ||
+                    military?.warName.toLowerCase().includes(searchLower) ||
                     military?.rank.toLowerCase().includes(searchLower) ||
                     military?.firefighterNumber.includes(searchTerm)
                 );
@@ -160,7 +160,7 @@ const BarraFixaPage: React.FC = () => {
                     const antA = milA?.antiguidade ?? 999999;
                     const antB = milB?.antiguidade ?? 999999;
                     if (antA !== antB) return antA - antB;
-                    return (milA?.name || "").localeCompare(milB?.name || "");
+                    return (milA?.warName || "").localeCompare(milB?.warName || "");
                 });
             });
         });
@@ -298,7 +298,7 @@ const BarraFixaPage: React.FC = () => {
                                                                         </div>
                                                                         <div className="min-w-0">
                                                                             <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate">
-                                                                                {military?.rank} {military?.name}
+                                                                                {military?.rank} {military?.warName}
                                                                             </h4>
                                                                             <div className="flex items-center gap-2 mt-1">
                                                                                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
@@ -465,7 +465,7 @@ const BarraFixaPage: React.FC = () => {
                                             .sort((a, b) => (a.antiguidade || 999) - (b.antiguidade || 999))
                                             .map(m => (
                                                 <option key={m.id} value={m.id}>
-                                                    {m.rank} {m.name}
+                                                    {m.rank} {m.warName}
                                                 </option>
                                             ))}
                                     </select>

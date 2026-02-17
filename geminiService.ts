@@ -106,29 +106,29 @@ export async function generateAIScale(
 
   // Summary with IDs and historical workload
   const militarySummary = militaryData.map(m =>
-    `- ${m.rank} ${m.name} (ID: ${m.id}) [Antiguidade: ${m.antiguidade || 'N/A'}] (Histórico: ${historicalStats[m.id]?.totalHours?.toFixed(1) || 0}h acumuladas)`
+    `- ${m.rank} ${m.warName} (ID: ${m.id}) [Antiguidade: ${m.antiguidade || 'N/A'}] (Histórico: ${historicalStats[m.id]?.totalHours?.toFixed(1) || 0}h acumuladas)`
   ).join('\n');
 
   // Summary of preferences (restrictions and priorities)
   const prefsSummary = preferencesData.map(p => {
     const mil = militaryData.find(m => m.id === p.militaryId);
-    return mil ? `${mil.rank} ${mil.name} (ID: ${p.militaryId}): ${p.type === 'restriction' ? 'PROIBIDO trabalhar' : 'PREFERE trabalhar'} em ${p.date}` : '';
+    return mil ? `${mil.rank} ${mil.warName} (ID: ${p.militaryId}): ${p.type === 'restriction' ? 'PROIBIDO trabalhar' : 'PREFERE trabalhar'} em ${p.date}` : '';
   }).filter(t => t !== '').join('\n    ');
 
   // Summary of existing shifts (mandatory fixed points)
   const existingSummary = existingShifts.map(s => {
     const mil = militaryData.find(m => m.id === s.militaryId);
-    return mil ? `${mil.rank} ${mil.name} (ID: ${s.militaryId}) já está escalado em ${s.date} para ${s.type}` : '';
+    return mil ? `${mil.rank} ${mil.warName} (ID: ${s.militaryId}) já está escalado em ${s.date} para ${s.type}` : '';
   }).filter(t => t !== '').join('\n    ');
 
   // Summary of last services for the 15-day rule
   const lastServicesSummary = militaryData.map(m => {
     const stats = historicalStats[m.id];
     if (!stats) return '';
-    let text = `${m.rank} ${m.name} (ID: ${m.id}):`;
+    let text = `${m.rank} ${m.warName} (ID: ${m.id}):`;
     if (stats.lastCmdGuarda) text += ` Último Cmd. Guarda em ${stats.lastCmdGuarda}.`;
     if (stats.lastEstagio) text += ` Último Estágio em ${stats.lastEstagio}.`;
-    return text === `${m.rank} ${m.name} (ID: ${m.id}):` ? '' : text;
+    return text === `${m.rank} ${m.warName} (ID: ${m.id}):` ? '' : text;
   }).filter(t => t !== '').join('\n    ');
 
   const promptText = `

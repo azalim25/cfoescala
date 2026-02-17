@@ -292,7 +292,7 @@ const EstadoMaiorPage: React.FC = () => {
                                             // Check if any assigned military name matches
                                             return em.assignments.some(assignment => {
                                                 const military = militaries.find(m => m.id === assignment.militaryId);
-                                                return military?.name.toLowerCase().includes(searchLower);
+                                                return military?.warName.toLowerCase().includes(searchLower);
                                             });
                                         })
                                         .map(em => {
@@ -333,7 +333,7 @@ const EstadoMaiorPage: React.FC = () => {
                                                                 if (!isSearchingMilitary) return true;
                                                                 // If searching by military name, only show matching military's assignments
                                                                 const military = militaries.find(m => m.id === assignment.militaryId);
-                                                                return military?.name.toLowerCase().includes(searchLower);
+                                                                return military?.warName.toLowerCase().includes(searchLower);
                                                             })
                                                             .map((assignment, idx) => {
                                                                 const military = militaries.find(m => m.id === assignment.militaryId);
@@ -344,7 +344,7 @@ const EstadoMaiorPage: React.FC = () => {
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
                                                                             <p className="text-[11px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
-                                                                                {military?.rank} {military?.name}
+                                                                                {military?.rank} {military?.warName}
                                                                             </p>
                                                                             <p className="text-[9px] sm:text-xs text-primary font-bold uppercase truncate">{assignment.role}</p>
                                                                         </div>
@@ -386,7 +386,7 @@ const EstadoMaiorPage: React.FC = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-[11px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
-                                                    {item.military.rank} {item.military.name}
+                                                    {item.military.rank} {item.military.warName}
                                                 </p>
                                                 <p className="text-[10px] sm:text-xs text-slate-500">
                                                     {item.roleCount} {item.roleCount === 1 ? 'função' : 'funções'}
@@ -465,7 +465,7 @@ const EstadoMaiorPage: React.FC = () => {
                                                 >
                                                     <option value="">Selecione um militar...</option>
                                                     {militaries.map(m => (
-                                                        <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
+                                                        <option key={m.id} value={m.id}>{m.rank} {m.warName}</option>
                                                     ))}
                                                 </select>
                                                 <input

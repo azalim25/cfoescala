@@ -158,7 +158,7 @@ const ExtraHoursPage: React.FC = () => {
                                         >
                                             <option value="">Selecione um militar...</option>
                                             {militaries.map(m => (
-                                                <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
+                                                <option key={m.id} value={m.id}>{m.rank} {m.warName}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -280,7 +280,7 @@ const ExtraHoursPage: React.FC = () => {
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                                                                        {record.militaries?.rank} {record.militaries?.name}
+                                                                        {record.militaries?.rank} {record.militaries?.warName}
                                                                     </p>
                                                                     <p className="text-[10px] text-slate-400 uppercase font-black">
                                                                         {safeParseISO(record.date || record.created_at).toLocaleDateString('pt-BR')}
@@ -335,7 +335,7 @@ const ExtraHoursPage: React.FC = () => {
                                                             </div>
                                                             <div>
                                                                 <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                                                                    {record.militaries?.rank} {record.militaries?.name}
+                                                                    {record.militaries?.rank} {record.militaries?.warName}
                                                                 </p>
                                                                 <p className="text-[10px] text-slate-400 uppercase font-black">
                                                                     {safeParseISO(record.date || record.created_at).toLocaleDateString('pt-BR')}

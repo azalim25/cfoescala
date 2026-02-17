@@ -493,15 +493,15 @@ const GenerateScalePage: React.FC = () => {
                                                 const antB = milB?.antiguidade ?? 999;
                                                 if (antA !== antB) return antA - antB;
 
-                                                return (milA?.name || '').localeCompare(milB?.name || '');
+                                                return (milA?.warName || '').localeCompare(milB?.warName || '');
                                             })
                                             .map(s => {
                                                 const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
                                                 const military = militaries.find(m => m.id === s.militaryId) ||
-                                                    militaries.find(m => m.name.toLowerCase().includes(s.militaryId.toLowerCase()));
+                                                    militaries.find(m => m.warName.toLowerCase().includes(s.militaryId.toLowerCase()));
 
                                                 const displayName = military
-                                                    ? military.name
+                                                    ? military.warName
                                                     : (s.militaryId.length > 15 ? '???' : s.militaryId); // Show ID if name not found
 
                                                 return (
@@ -509,13 +509,13 @@ const GenerateScalePage: React.FC = () => {
                                                         key={s.id}
                                                         onClick={(e) => handleEditShiftClick(e, s, day)}
                                                         className={`text-[8px] sm:text-[9px] font-bold p-1 rounded-md ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer shadow-sm flex items-center justify-between min-h-[18px] sm:min-h-[22px]`}
-                                                        title={`${military?.name || 'Não Encontrado'} - ${s.type}`}
+                                                        title={`${military?.warName || 'Não Encontrado'} - ${s.type}`}
                                                     >
                                                         <span className="truncate">
                                                             {military ? (
                                                                 <>
-                                                                    <span className="hidden sm:inline">{military.name.split(' ')[0]}</span>
-                                                                    <span className="inline sm:hidden">{military.name.charAt(0)}</span>
+                                                                    <span className="hidden sm:inline">{military.warName.split(' ')[0]}</span>
+                                                                    <span className="inline sm:hidden">{military.warName.charAt(0)}</span>
                                                                 </>
                                                             ) : (
                                                                 <span className="text-red-500 italic">{displayName}</span>
@@ -567,7 +567,7 @@ const GenerateScalePage: React.FC = () => {
                                                     className={hasRestriction ? "text-red-600 font-bold" : ""}
                                                     style={hasRestriction ? { color: '#dc2626' } : {}}
                                                 >
-                                                    {m.rank} {m.name} {hasRestriction ? '(RESTRIÇÃO)' : ''}
+                                                    {m.rank} {m.warName} {hasRestriction ? '(RESTRIÇÃO)' : ''}
                                                 </option>
                                             );
                                         })}

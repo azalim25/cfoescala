@@ -32,7 +32,7 @@ const AuthPage: React.FC = () => {
                 // Validate against militaries list (Contacts)
                 const { data: militaries, error: militariesError } = await supabase
                     .from('militaries')
-                    .select('name, firefighter_number');
+                    .select('fullName:full_name, warName:war_name, firefighterNumber:firefighter_number');
 
                 if (militariesError) throw militariesError;
 
@@ -40,11 +40,14 @@ const AuthPage: React.FC = () => {
                 const inputNameWords = cleanName.toLowerCase().split(/\s+/).filter(w => w.length > 0);
 
                 const isValidMilitary = militaries?.some(m => {
-                    const normalizedMilNumber = m.firefighter_number.replace(/\D/g, '');
-                    const milNameWords = m.name.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+                    const normalizedMilNumber = m.firefighterNumber.replace(/\D/g, '');
+                    const milWarNameStr = m.warName.toLowerCase();
+                    const milFullNameStr = m.fullName?.toLowerCase() || '';
 
                     const numberMatch = normalizedMilNumber === normalizedInputNumber;
-                    const nameMatch = inputNameWords.some(word => milNameWords.includes(word));
+                    const nameMatch = inputNameWords.some(word =>
+                        milWarNameStr.includes(word) || milFullNameStr.includes(word)
+                    );
 
                     return numberMatch && nameMatch;
                 });
