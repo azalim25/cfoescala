@@ -49,9 +49,11 @@ const RelatorioPage: React.FC = () => {
 
     const renderShiftTable = (title: string, type: string | string[], filterByLocation?: string) => {
         const typeArray = Array.isArray(type) ? type : [type];
+        const isStage = typeArray.includes("Estágio");
+
         const filteredShifts = currentShifts.filter((s: Shift) => {
             const matchesType = typeArray.includes(s.type);
-            const matchesLocation = filterByLocation ? s.location === filterByLocation : true;
+            const matchesLocation = filterByLocation ? s.location?.includes(filterByLocation) : true;
             return matchesType && matchesLocation;
         });
 
@@ -67,19 +69,30 @@ const RelatorioPage: React.FC = () => {
         const sortedDates = Object.keys(groupedByDate).sort();
 
         return (
-            <div className="mb-8 overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                    <h3 className="font-bold text-slate-800 dark:text-white uppercase text-sm tracking-wider">{title}</h3>
-                </div>
+            <div className={`mb-12 overflow-hidden bg-white dark:bg-slate-900 rounded-xl ${isStage ? 'border-2 border-slate-300 dark:border-slate-700' : 'border border-slate-200 dark:border-slate-800'} shadow-sm`}>
+                {!isStage && (
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                        <h3 className="font-bold text-slate-800 dark:text-white uppercase text-sm tracking-wider">{title}</h3>
+                    </div>
+                )}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className={`w-full text-left border-collapse ${isStage ? 'table-fixed' : ''}`}>
                         <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                <th className="p-3 border-b border-slate-200 dark:border-slate-800">Dia/Mês/Ano</th>
-                                <th className="p-3 border-b border-slate-200 dark:border-slate-800">Dia da Semana</th>
-                                <th className="p-3 border-b border-slate-200 dark:border-slate-800">Nº BM</th>
-                                <th className="p-3 border-b border-slate-200 dark:border-slate-800">Nome Completo</th>
-                                <th className="p-3 border-b border-slate-200 dark:border-slate-800">Telefone</th>
+                            {isStage && (
+                                <tr>
+                                    <th colSpan={5} className="p-3 bg-slate-50 dark:bg-slate-800 text-center font-bold text-slate-800 dark:text-white border-b-2 border-slate-300 dark:border-slate-700 uppercase tracking-widest text-base">
+                                        {title}
+                                    </th>
+                                </tr>
+                            )}
+                            <tr className="bg-slate-50 dark:bg-slate-800/50 text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+                                <th className={`p-3 border-b border-r ${isStage ? 'border-slate-300 dark:border-slate-700 w-[120px]' : 'border-slate-200 dark:border-slate-800 w-[140px]'}`}>Data</th>
+                                <th className={`p-3 border-b border-r ${isStage ? 'border-slate-300 dark:border-slate-700 w-[140px]' : 'border-slate-200 dark:border-slate-800'}`}>Dia da Semana</th>
+                                <th className={`p-3 border-b border-r ${isStage ? 'border-slate-300 dark:border-slate-700 w-[120px]' : 'border-slate-200 dark:border-slate-800'}`}>Nº BM</th>
+                                <th className={`p-3 border-b border-r ${isStage ? 'border-slate-300 dark:border-slate-700' : 'border-slate-200 dark:border-slate-800'}`}>
+                                    {isStage ? 'Cadete - CFO II' : 'Nome Completo'}
+                                </th>
+                                <th className={`p-3 border-b ${isStage ? 'border-slate-300 dark:border-slate-700 w-[160px]' : 'border-slate-200 dark:border-slate-800'}`}>Telefone</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -97,17 +110,23 @@ const RelatorioPage: React.FC = () => {
                                         <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                             {idx === 0 && (
                                                 <>
-                                                    <td rowSpan={shiftsOnDate.length} className="p-3 text-sm font-bold text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800">
+                                                    <td rowSpan={shiftsOnDate.length} className={`p-3 text-sm font-bold text-slate-700 dark:text-slate-300 border-r ${isStage ? 'border-slate-300 dark:border-slate-700' : 'border-slate-100 dark:border-slate-800 text-center'}`}>
                                                         {fullDate}
                                                     </td>
-                                                    <td rowSpan={shiftsOnDate.length} className="p-3 text-xs text-slate-500 font-bold border-r border-slate-100 dark:border-slate-800">
+                                                    <td rowSpan={shiftsOnDate.length} className={`p-3 text-xs text-slate-600 font-bold border-r ${isStage ? 'border-slate-300 dark:border-slate-700' : 'border-slate-100 dark:border-slate-800'}`}>
                                                         {formattedDayOfWeek}
                                                     </td>
                                                 </>
                                             )}
-                                            <td className="p-3 text-xs font-bold text-slate-600 dark:text-slate-400">{mil?.firefighterNumber || '-'}</td>
-                                            <td className="p-3 text-sm text-slate-800 dark:text-slate-100">{formatMilitaryName(mil)}</td>
-                                            <td className="p-3 text-xs text-slate-500">{mil?.contact || '-'}</td>
+                                            <td className={`p-3 text-xs font-bold text-slate-600 dark:text-slate-400 border-r ${isStage ? 'border-slate-300 dark:border-slate-700' : 'border-slate-100 dark:border-slate-800'}`}>
+                                                {mil?.firefighterNumber || '-'}
+                                            </td>
+                                            <td className={`p-3 text-sm text-slate-800 dark:text-slate-100 border-r ${isStage ? 'border-slate-300 dark:border-slate-700' : 'border-slate-100 dark:border-slate-800'}`}>
+                                                {formatMilitaryName(mil)}
+                                            </td>
+                                            <td className="p-3 text-xs text-slate-600 font-medium">
+                                                {mil?.contact || '-'}
+                                            </td>
                                         </tr>
                                     );
                                 });
@@ -122,7 +141,7 @@ const RelatorioPage: React.FC = () => {
     return (
         <MainLayout activePage="relatorio">
             <MainLayout.Content>
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4 mb-6 print:hidden">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-inner">
                             <span className="material-symbols-outlined text-3xl">description</span>
@@ -148,17 +167,26 @@ const RelatorioPage: React.FC = () => {
                         >
                             {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
+                        <button
+                            onClick={() => window.print()}
+                            className="flex items-center gap-2 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-700 dark:hover:bg-white transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">print</span>
+                            Imprimir
+                        </button>
                     </div>
                 </div>
 
-                <div className="space-y-6">
-                    {renderShiftTable("Comandante da Guarda", "Comandante da Guarda")}
-                    {renderShiftTable("Faxina", "Faxina")}
-                    {renderShiftTable("Sobreaviso", "Sobreaviso")}
-                    {renderShiftTable("Manutenção", "Manutenção")}
+                <div className="space-y-12">
+                    <div className="space-y-6">
+                        {renderShiftTable("Comandante da Guarda", "Comandante da Guarda")}
+                        {renderShiftTable("Faxina", "Faxina")}
+                        {renderShiftTable("Sobreaviso", "Sobreaviso")}
+                        {renderShiftTable("Manutenção", "Manutenção")}
+                    </div>
 
-                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                        <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase mb-4 flex items-center gap-2">
+                    <div className="pt-8 border-t border-slate-200 dark:border-slate-800">
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase mb-8 flex items-center gap-2 print:hidden">
                             <span className="material-symbols-outlined text-primary">analytics</span>
                             Tabelas de Estágio
                         </h2>
