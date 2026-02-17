@@ -79,9 +79,13 @@ const StatisticsPage: React.FC = () => {
                 }
             } else if (s.type === 'Estágio') {
                 if (data.estagio[s.militaryId]) {
-                    if (s.duration === 24) data.estagio[s.militaryId].h24++;
-                    else data.estagio[s.militaryId].h12++;
-                    data.estagio[s.militaryId].total++;
+                    if (s.duration === 24) {
+                        data.estagio[s.militaryId].h24++;
+                        data.estagio[s.militaryId].total++;
+                    } else if (s.duration === 12) {
+                        data.estagio[s.militaryId].h12++;
+                        data.estagio[s.militaryId].total++;
+                    }
                 }
             } else if (s.type === 'Manutenção') {
                 if (data.manutencao[s.militaryId]) {
@@ -257,59 +261,61 @@ const StatisticsPage: React.FC = () => {
                 </div>
 
                 {/* Charts Grid */}
-                <div className="grid grid-cols-1 gap-6 mb-12">
-                    {/* Comandante da Guarda */}
-                    <ChartSection
-                        title="COMANDANTE DA GUARDA"
-                        data={statsData.comandante}
-                        color="bg-rose-500"
-                        bars={[
-                            { key: 'weekday', label: 'Dia de Semana', color: '#fca5a5' },
-                            { key: 'weekend', label: 'Fim de Semana / Feriado', color: '#ef4444' }
-                        ]}
-                    />
+                {statsData && (
+                    <div className="grid grid-cols-1 gap-6 mb-12">
+                        {/* Comandante da Guarda */}
+                        <ChartSection
+                            title="COMANDANTE DA GUARDA"
+                            data={statsData.comandante}
+                            color="bg-rose-500"
+                            bars={[
+                                { key: 'weekday', label: 'Dia de Semana', color: '#fca5a5' },
+                                { key: 'weekend', label: 'Fim de Semana / Feriado', color: '#ef4444' }
+                            ]}
+                        />
 
-                    {/* Estágio */}
-                    <ChartSection
-                        title="ESTÁGIO"
-                        data={statsData.estagio}
-                        color="bg-indigo-500"
-                        bars={[
-                            { key: 'h12', label: '12 Horas', color: '#818cf8' },
-                            { key: 'h24', label: '24 Horas', color: '#4338ca' }
-                        ]}
-                    />
+                        {/* Estágio */}
+                        <ChartSection
+                            title="ESTÁGIO"
+                            data={statsData.estagio}
+                            color="bg-indigo-500"
+                            bars={[
+                                { key: 'h12', label: '12 Horas', color: '#818cf8' },
+                                { key: 'h24', label: '24 Horas', color: '#4338ca' }
+                            ]}
+                        />
 
-                    {/* Manutenção */}
-                    <ChartSection
-                        title="MANUTENÇÃO"
-                        data={statsData.manutencao}
-                        color="bg-emerald-500"
-                        bars={[
-                            { key: 'count', label: 'Total de Serviços', color: '#10b981' }
-                        ]}
-                    />
+                        {/* Manutenção */}
+                        <ChartSection
+                            title="MANUTENÇÃO"
+                            data={statsData.manutencao}
+                            color="bg-emerald-500"
+                            bars={[
+                                { key: 'count', label: 'Total de Serviços', color: '#10b981' }
+                            ]}
+                        />
 
-                    {/* Faxina */}
-                    <ChartSection
-                        title="FAXINA"
-                        data={statsData.faxina}
-                        color="bg-cyan-500"
-                        bars={[
-                            { key: 'count', label: 'Total de Serviços', color: '#06b6d4' }
-                        ]}
-                    />
+                        {/* Faxina */}
+                        <ChartSection
+                            title="FAXINA"
+                            data={statsData.faxina}
+                            color="bg-cyan-500"
+                            bars={[
+                                { key: 'count', label: 'Total de Serviços', color: '#06b6d4' }
+                            ]}
+                        />
 
-                    {/* Sobreaviso */}
-                    <ChartSection
-                        title="SOBREAVISO"
-                        data={statsData.sobreaviso}
-                        color="bg-amber-500"
-                        bars={[
-                            { key: 'count', label: 'Total de Serviços', color: '#f59e0b' }
-                        ]}
-                    />
-                </div>
+                        {/* Sobreaviso */}
+                        <ChartSection
+                            title="SOBREAVISO"
+                            data={statsData.sobreaviso}
+                            color="bg-amber-500"
+                            bars={[
+                                { key: 'count', label: 'Total de Serviços', color: '#f59e0b' }
+                            ]}
+                        />
+                    </div>
+                )}
 
                 {holidays.length > 0 && (
                     <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-2xl">
