@@ -4,6 +4,7 @@ import { useShift } from '../contexts/ShiftContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { Shift, Military } from '../types';
 import { supabase } from '../supabase';
+import { safeParseISO } from '../utils/dateUtils';
 
 const RelatorioPage: React.FC = () => {
     const { shifts } = useShift();
@@ -37,41 +38,43 @@ const RelatorioPage: React.FC = () => {
     }, []);
 
     const allRelevantShifts = useMemo(() => {
-        // 1. Regular shifts
-        const baseShifts = shifts.map(s => ({
-            ...s,
-            location: s.location || ''
-        }));
+        // 1. Base shifts from context
+        const combined: Shift[] = [...shifts.map(s => ({ ...s, location: s.location || '' }))];
 
-        // 2. Extra stages from 'stages' table converted to Shift format
-        const convertedStages = extraStages.map(es => ({
-            id: es.id,
-            date: es.date,
-            type: 'Estágio' as any,
-            militaryId: es.military_id,
-            location: es.location || '',
-            startTime: es.start_time || '08:00',
-            endTime: es.end_time || '20:00',
-            status: 'Confirmado' as any
-        }));
+        // 2. Extra stages logic: merge or update location
+        extraStages.forEach(es => {
+            const cs = {
+                id: es.id,
+                date: es.date,
+                type: 'Estágio' as any,
+                militaryId: es.military_id,
+                location: es.location || '',
+                startTime: es.start_time || '08:00',
+                endTime: es.end_time || '20:00',
+                status: 'Confirmado' as any
+            };
 
-        // Combine and deduplicate if same military, date, and type 'Estágio'
-        const combined = [...baseShifts];
-        convertedStages.forEach(cs => {
-            const isDuplicate = baseShifts.some(bs =>
+            const existingIndex = combined.findIndex(bs =>
                 bs.militaryId === cs.militaryId &&
                 bs.date === cs.date &&
                 bs.type === 'Estágio'
             );
-            if (!isDuplicate) {
+
+            if (existingIndex !== -1) {
+                // If it exists but has no location, update it
+                if (!combined[existingIndex].location && cs.location) {
+                    combined[existingIndex].location = cs.location;
+                }
+            } else {
                 combined.push(cs as any);
             }
         });
 
+        // 3. Filter by month/year using safeParseISO
         return combined.filter((s: Shift) => {
-            const date = new Date(s.date + 'T12:00:00');
-            return date.getMonth() === selectedMonth && date.getFullYear() === selectedYear;
-        }).sort((a: Shift, b: Shift) => a.date.localeCompare(b.date));
+            const d = safeParseISO(s.date);
+            return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+        }).sort((a, b) => a.date.localeCompare(b.date));
     }, [shifts, extraStages, selectedMonth, selectedYear]);
 
     const formatMilitaryName = (mil: Military | undefined) => {
@@ -85,7 +88,6 @@ const RelatorioPage: React.FC = () => {
             <span>
                 {words.map((word, idx) => {
                     const cleanWord = word.replace(/[.,]/g, '').toUpperCase();
-                    // Robust check: war name could be part of a composite name
                     const isWarName = cleanWord === warName;
 
                     return (
@@ -105,14 +107,14 @@ const RelatorioPage: React.FC = () => {
 
         const filteredShifts = allRelevantShifts.filter((s: Shift) => {
             const matchesType = typeArray.includes(s.type);
-            // Use a more flexible location match
-            const matchesLocation = filterByLocation ? s.location?.includes(filterByLocation) : true;
+            const matchesLocation = filterByLocation
+                ? s.location?.toLowerCase().includes(filterByLocation.toLowerCase().replace('º', '°'))
+                : true;
             return matchesType && matchesLocation;
         });
 
         if (filteredShifts.length === 0) return null;
 
-        // Group by date for row merging
         const groupedByDate: Record<string, Shift[]> = {};
         filteredShifts.forEach(s => {
             if (!groupedByDate[s.date]) groupedByDate[s.date] = [];
@@ -153,7 +155,7 @@ const RelatorioPage: React.FC = () => {
                                 const shiftsOnDate = groupedByDate[dateStr];
                                 return shiftsOnDate.map((s, idx) => {
                                     const mil = militaries.find(m => m.id === s.militaryId);
-                                    const dateObj = new Date(s.date + 'T12:00:00');
+                                    const dateObj = safeParseISO(s.date);
 
                                     const fullDate = dateObj.toLocaleDateString('pt-BR');
                                     const dayOfWeekFull = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
@@ -239,14 +241,22 @@ const RelatorioPage: React.FC = () => {
                     </div>
 
                     <div className="pt-8 border-t border-slate-200 dark:border-slate-800">
-                        <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase mb-8 flex items-center gap-2 print:hidden">
-                            <span className="material-symbols-outlined text-primary">analytics</span>
-                            Tabelas de Estágio
-                        </h2>
-                        {/* Using '1°BBM' because that's what's in the DB strings based on StageQuantityPage */}
-                        {renderShiftTable("1º BBM - Batalhão Afonso Pena", "Estágio", "1°BBM")}
-                        {renderShiftTable("2º BBM - Batalhão Contagem", "Estágio", "2°BBM")}
-                        {renderShiftTable("3º BBM - Batalhão Antônio Carlos", "Estágio", "3°BBM")}
+                        <div className="flex items-center justify-between mb-8 print:hidden">
+                            <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">analytics</span>
+                                Tabelas de Estágio
+                            </h2>
+                            {isLoadingStages && (
+                                <div className="flex items-center gap-2 text-xs text-slate-400 italic">
+                                    <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    Carregando estágios...
+                                </div>
+                            )}
+                        </div>
+
+                        {renderShiftTable("1° BBM - Batalhão Afonso Pena", "Estágio", "1°BBM")}
+                        {renderShiftTable("2° BBM - Batalhão Contagem", "Estágio", "2°BBM")}
+                        {renderShiftTable("3° BBM - Batalhão Antônio Carlos", "Estágio", "3°BBM")}
                     </div>
                 </div>
             </MainLayout.Content>
