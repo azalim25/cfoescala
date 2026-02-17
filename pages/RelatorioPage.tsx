@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
-import { useShifts } from '../contexts/ShiftContext';
-import { useMilitaries } from '../contexts/MilitaryContext';
+import { useShift } from '../contexts/ShiftContext';
+import { useMilitary } from '../contexts/MilitaryContext';
 import { Shift, Military } from '../types';
 
 const RelatorioPage: React.FC = () => {
-    const { shifts } = useShifts();
-    const { militaries } = useMilitaries();
+    const { shifts } = useShift();
+    const { militaries } = useMilitary();
 
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -17,10 +17,10 @@ const RelatorioPage: React.FC = () => {
     ];
 
     const currentShifts = useMemo(() => {
-        return shifts.filter(s => {
+        return shifts.filter((s: Shift) => {
             const date = new Date(s.date + 'T12:00:00'); // Use fixed time to avoid TZ issues
             return date.getMonth() === selectedMonth && date.getFullYear() === selectedYear;
-        }).sort((a, b) => a.date.localeCompare(b.date));
+        }).sort((a: Shift, b: Shift) => a.date.localeCompare(b.date));
     }, [shifts, selectedMonth, selectedYear]);
 
     const formatMilitaryName = (mil: Military | undefined) => {
@@ -46,7 +46,7 @@ const RelatorioPage: React.FC = () => {
 
     const renderShiftTable = (title: string, type: string | string[], filterByLocation?: string) => {
         const typeArray = Array.isArray(type) ? type : [type];
-        const filteredShifts = currentShifts.filter(s => {
+        const filteredShifts = currentShifts.filter((s: Shift) => {
             const matchesType = typeArray.includes(s.type);
             const matchesLocation = filterByLocation ? s.location === filterByLocation : true;
             return matchesType && matchesLocation;
@@ -71,7 +71,7 @@ const RelatorioPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {filteredShifts.map(s => {
+                            {filteredShifts.map((s: Shift) => {
                                 const mil = militaries.find(m => m.id === s.militaryId);
                                 const dateObj = new Date(s.date + 'T12:00:00');
                                 const dayOfMonth = dateObj.getDate().toString().padStart(2, '0');
