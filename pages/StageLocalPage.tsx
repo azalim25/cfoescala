@@ -107,19 +107,29 @@ const StageLocalPage: React.FC = () => {
         }
     };
 
+    // List of locations to display (excluding Pel ABM)
+    const activeLocations = useMemo(() =>
+        STAGE_LOCATIONS.filter(loc => !loc.toLowerCase().includes('pel abm')),
+        []);
+
     // Aggregate stages from both 'stages' table AND 'shifts' table (type: 'Estágio')
     const allStages = useMemo(() => {
         const combined = [...stages];
 
         const normalize = (val: string | null | undefined) =>
-            (val || '').toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
+            (val || '').toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
 
-        const officialPrefixes = STAGE_LOCATIONS.map(loc => normalize(loc.split(' - ')[0]));
+        const officialPrefixes = activeLocations.map(loc => normalize(loc.split(' - ')[0]));
+        const extraKeywords = activeLocations.map(loc => {
+            const parts = loc.split(' - ');
+            return parts.length > 1 ? normalize(parts[1]) : '';
+        }).filter(Boolean);
 
         shifts.forEach(s => {
             if (s.type === 'Estágio' && s.location) {
                 const normLoc = normalize(s.location);
-                const isOfficial = officialPrefixes.some(prefix => normLoc.includes(prefix));
+                const isOfficial = officialPrefixes.some(prefix => normLoc.includes(prefix)) ||
+                    extraKeywords.some(keyword => normLoc.includes(keyword));
 
                 if (isOfficial) {
                     const alreadyExists = stages.some(st => st.military_id === s.militaryId && st.date === s.date);
@@ -141,10 +151,11 @@ const StageLocalPage: React.FC = () => {
             const d = safeParseISO(s.date);
             const matchesMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
             const normLoc = normalize(s.location);
-            const isOfficial = officialPrefixes.some(prefix => normLoc.includes(prefix));
+            const isOfficial = officialPrefixes.some(prefix => normLoc.includes(prefix)) ||
+                extraKeywords.some(keyword => normLoc.includes(keyword));
             return matchesMonth && isOfficial;
         });
-    }, [stages, shifts, currentMonth, currentYear]);
+    }, [stages, shifts, currentMonth, currentYear, activeLocations]);
 
     const currentMonthLabel = `${months[currentMonth]} de ${currentYear}`;
 
@@ -200,14 +211,15 @@ const StageLocalPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {STAGE_LOCATIONS.map(loc => {
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {activeLocations.map(loc => {
                         const locPrefix = loc.split(' - ')[0];
-                        const normPrefix = locPrefix.toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
+                        const normPrefix = locPrefix.toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+                        const locSubtitle = loc.includes(' - ') ? loc.split(' - ')[1].toLowerCase().replace(/\s+/g, ' ').trim() : '';
 
                         const locStages = allStages.filter(s => {
-                            const ns = (s.location || '').toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
-                            return ns.includes(normPrefix);
+                            const ns = (s.location || '').toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+                            return ns.includes(normPrefix) || (locSubtitle && ns.includes(locSubtitle));
                         });
                         return (
                             <div key={loc} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
@@ -315,7 +327,7 @@ const StageLocalPage: React.FC = () => {
                                             onChange={e => setFormData({ ...formData, location: e.target.value })}
                                             required
                                         >
-                                            {STAGE_LOCATIONS.map(loc => (
+                                            {activeLocations.map(loc => (
                                                 <option key={loc} value={loc}>{loc.split(' - ')[0]}</option>
                                             ))}
                                         </select>
