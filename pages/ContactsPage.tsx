@@ -343,6 +343,17 @@ const ContactsPage: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Contato Telefônico</label>
+                <input
+                  type="text"
+                  value={editingMilitary.contact}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingMilitary({ ...editingMilitary, contact: e.target.value })}
+                  placeholder="Ex: (00) 00000-0000"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none dark:text-white"
+                />
+              </div>
+
 
               <div className="pt-4 flex gap-3">
                 <button
