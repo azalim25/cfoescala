@@ -95,7 +95,7 @@ export const SHIFT_TYPE_PRIORITY: Record<string, number> = {
   'Barra': 8
 };
 
-export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'barra-fixa' | 'statistics';
+export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'barra-fixa' | 'statistics' | 'relatorio';
 
 export const NAV_LINKS = [
   { to: '/qtm', label: 'QTM', icon: 'event_note', id: 'qtm' as PageId },
@@ -114,4 +114,5 @@ export const NAV_LINKS = [
   { to: '/provas', label: 'Provas', icon: 'assignment_turned_in', id: 'provas' as PageId },
   { to: '/barra-fixa', label: 'Barra Fixa', icon: 'fitness_center', id: 'barra-fixa' as PageId },
   { to: '/statistics', label: 'Estatísticas', icon: 'analytics', id: 'statistics' as PageId },
+  { to: '/relatorio', label: 'Relatório', icon: 'description', id: 'relatorio' as PageId },
 ];

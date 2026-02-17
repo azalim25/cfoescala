@@ -25,6 +25,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AcademicProvider } from './contexts/AcademicContext';
 import QtmPage from './pages/QtmPage';
 import QdchPage from './pages/QdchPage';
+import RelatorioPage from './pages/RelatorioPage';
 
 const App: React.FC = () => {
   return (
@@ -135,6 +136,12 @@ const App: React.FC = () => {
                 <Route path="/statistics" element={
                   <ProtectedRoute>
                     <StatisticsPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/relatorio" element={
+                  <ProtectedRoute>
+                    <RelatorioPage />
                   </ProtectedRoute>
                 } />
 
