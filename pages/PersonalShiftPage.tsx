@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAcademic } from '../contexts/AcademicContext';
 import { supabase } from '../supabase';
 import { Shift, MilitaryPreference } from '../types';
-import { SHIFT_TYPE_COLORS } from '../constants';
+import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
 
 interface ExtraHourRecord {
@@ -420,7 +420,7 @@ const PersonalShiftPage: React.FC = () => {
 
   const totalShiftHours = useMemo(() => {
     const shiftHours = personalShifts
-      .filter(s => !isExcludedActivity(s.type))
+      .filter(s => !isExcludedActivity(s.type) && s.type !== 'Barra')
       .reduce((acc, s) => acc + calculateShiftHours(s), 0);
 
     const standaloneStageHours = personalStages
@@ -448,7 +448,7 @@ const PersonalShiftPage: React.FC = () => {
     const summary: Record<string, { totalHours: number, totalServices: number, type: string }> = {};
     personalShifts.forEach(s => {
       if (isExcludedActivity(s.type)) return;
-      const hours = calculateShiftHours(s);
+      const hours = s.type === 'Barra' ? 0 : calculateShiftHours(s);
       if (!summary[s.type]) summary[s.type] = { totalHours: 0, totalServices: 0, type: s.type };
       if (hours > 0) summary[s.type].totalHours += hours;
       else summary[s.type].totalServices += 1;
@@ -463,13 +463,28 @@ const PersonalShiftPage: React.FC = () => {
     });
 
     extraHours.forEach(e => {
-      const type = e.category || 'Registro de Horas';
+      let type = e.category || 'Registro de Horas';
+      // Consolidate CFO II - Registro de Horas into Escala Diversa as requested
+      if (type === 'CFO II - Registro de Horas') type = 'Escala Diversa';
+
       if (isExcludedActivity(type)) return;
       if (!summary[type]) summary[type] = { totalHours: 0, totalServices: 0, type };
       summary[type].totalHours += (e.hours + e.minutes / 60);
     });
-    return Object.values(summary).sort((a, b) => b.totalHours - a.totalHours || b.totalServices - a.totalServices);
-  }, [personalShifts, extraHours]);
+
+    const priorityOrder = (type: string) => {
+      // CFO I manual records (Sentinela, Acumulado) at the very bottom
+      if (type.startsWith('CFO I')) return 100;
+      return SHIFT_TYPE_PRIORITY[type] || 99;
+    };
+
+    return Object.values(summary).sort((a, b) => {
+      const pA = priorityOrder(a.type);
+      const pB = priorityOrder(b.type);
+      if (pA !== pB) return pA - pB;
+      return a.type.localeCompare(b.type);
+    });
+  }, [personalShifts, extraHours, personalStages]);
 
 
 
