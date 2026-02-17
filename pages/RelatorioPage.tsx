@@ -5,6 +5,7 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { Shift, Military } from '../types';
 import { supabase } from '../supabase';
 import { safeParseISO } from '../utils/dateUtils';
+import { STAGE_LOCATIONS } from '../constants';
 
 const RelatorioPage: React.FC = () => {
     const { shifts } = useShift();
@@ -254,9 +255,9 @@ const RelatorioPage: React.FC = () => {
                             )}
                         </div>
 
-                        {renderShiftTable("1° BBM - Batalhão Afonso Pena", "Estágio", "1°BBM")}
-                        {renderShiftTable("2° BBM - Batalhão Contagem", "Estágio", "2°BBM")}
-                        {renderShiftTable("3° BBM - Batalhão Antônio Carlos", "Estágio", "3°BBM")}
+                        {renderShiftTable(STAGE_LOCATIONS[0], "Estágio", STAGE_LOCATIONS[0].split(' - ')[0])}
+                        {renderShiftTable(STAGE_LOCATIONS[1], "Estágio", STAGE_LOCATIONS[1].split(' - ')[0])}
+                        {renderShiftTable(STAGE_LOCATIONS[2], "Estágio", STAGE_LOCATIONS[2].split(' - ')[0])}
                     </div>
                 </div>
             </MainLayout.Content>

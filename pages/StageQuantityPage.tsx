@@ -5,6 +5,7 @@ import { useShift } from '../contexts/ShiftContext';
 import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Holiday } from '../types';
+import { STAGE_LOCATIONS } from '../constants';
 
 interface StageAssignment {
     id: string;
@@ -52,18 +53,11 @@ const StageQuantityPage: React.FC = () => {
     const [formData, setFormData] = useState({
         militaryId: '',
         date: new Date().toISOString().split('T')[0],
-        location: '1°BBM - Batalhão Afonso Pena',
+        location: STAGE_LOCATIONS[0],
         duration: 12,
         startTime: '08:00',
         endTime: '20:00'
     });
-
-    const locations = [
-        '1°BBM - Batalhão Afonso Pena',
-        '2°BBM - Batalhão Contagem',
-        '3°BBM - Batalhão Antônio Carlos',
-        'Pelotão ABM'
-    ];
 
     const fetchStages = async () => {
         setIsLoading(true);
@@ -107,7 +101,6 @@ const StageQuantityPage: React.FC = () => {
 
         if (error) {
             console.error('Error adding stage:', error);
-            // Fallback: try without duration if it fails (in case column doesn't exist)
             const { error: error2 } = await supabase.from('stages').insert({
                 military_id: formData.militaryId,
                 date: formData.date,
@@ -131,42 +124,52 @@ const StageQuantityPage: React.FC = () => {
             ...formData,
             militaryId: '',
             startTime: '08:00',
-            endTime: '20:00'
+            endTime: '20:00',
+            location: STAGE_LOCATIONS[0],
+            duration: 12
         });
     };
 
-    // Helper function to get duration if not provided
     const getDuration = (dateStr: string, providedDuration?: number) => {
         if (providedDuration) return providedDuration;
 
         const d = new Date(dateStr + 'T12:00:00');
-        const day = d.getDay(); // 0 = Sunday, 1 = Monday... 6 = Saturday
+        const day = d.getDay();
 
         if (day === 6) return 24; // Saturday
         if (day === 0) return 12; // Sunday
-        return 12; // Default for other days if not specified
+        return 12;
     };
 
     // Aggregate data
     const stageStats = useMemo(() => {
         const stats: Record<string, Record<string, { p12: DetailedStat; p24: DetailedStat }>> = {};
-
         const emptyStat = () => ({ cfo1: 0, cfo2: 0, total: 0 });
 
-        // Initialize
+        // Initialize with official locations only
         militaries.forEach(m => {
             stats[m.id] = {};
-            locations.forEach(loc => {
-                const baseLoc = loc.split(' - ')[0];
+            STAGE_LOCATIONS.forEach(loc => {
+                const baseLoc = loc.split(' - ')[0]; // e.g. "1° BBM" or "1°BBM"
                 stats[m.id][baseLoc] = { p12: emptyStat(), p24: emptyStat() };
             });
         });
 
+        const findBaseLocKey = (locationName: string | null | undefined) => {
+            if (!locationName) return null;
+            const normalized = locationName.replace('º', '°');
+            for (const loc of STAGE_LOCATIONS) {
+                const base = loc.split(' - ')[0].replace('º', '°');
+                if (normalized.includes(base)) return loc.split(' - ')[0];
+            }
+            return null;
+        };
+
         // 1. Process shifts of type 'Estágio' (CFO II)
         shifts.forEach(s => {
             if (s.type === 'Estágio' && s.location && stats[s.militaryId]) {
-                const baseLoc = s.location.split(' - ')[0];
-                if (stats[s.militaryId][baseLoc]) {
+                const baseLoc = findBaseLocKey(s.location);
+                if (baseLoc && stats[s.militaryId][baseLoc]) {
                     const duration = getDuration(s.date, s.duration);
                     if (duration === 24) stats[s.militaryId][baseLoc].p24.cfo2++;
                     else stats[s.militaryId][baseLoc].p12.cfo2++;
@@ -177,8 +180,6 @@ const StageQuantityPage: React.FC = () => {
         // 2. Process stages from 'stages' table (CFO II) - DEDUPLICATED
         stages.forEach(s => {
             if (stats[s.military_id]) {
-                // Check if this stage assignment is already coming from a regular shift
-                // to avoid double counting (same as in DashboardPage and RankingPage)
                 const isAlreadyInShifts = shifts.some(sh =>
                     sh.militaryId === s.military_id &&
                     sh.date === s.date &&
@@ -186,8 +187,8 @@ const StageQuantityPage: React.FC = () => {
                 );
 
                 if (!isAlreadyInShifts) {
-                    const baseLoc = s.location.split(' - ')[0];
-                    if (stats[s.military_id][baseLoc]) {
+                    const baseLoc = findBaseLocKey(s.location);
+                    if (baseLoc && stats[s.military_id][baseLoc]) {
                         const duration = getDuration(s.date, s.duration);
                         if (duration === 24) stats[s.military_id][baseLoc].p24.cfo2++;
                         else stats[s.military_id][baseLoc].p12.cfo2++;
@@ -199,12 +200,11 @@ const StageQuantityPage: React.FC = () => {
         // 3. Process extra_hours manual records (CFO I)
         extraRecords.forEach(r => {
             if (stats[r.military_id]) {
-                // CFO I - Estágio - 1°BBM - 12h
                 const parts = r.category.split(' - ');
                 if (parts.length >= 4) {
-                    const baseLoc = parts[2];
+                    const baseLoc = findBaseLocKey(parts[2]);
                     const dur = parseInt(parts[3]) || 12;
-                    if (stats[r.military_id][baseLoc]) {
+                    if (baseLoc && stats[r.military_id][baseLoc]) {
                         if (dur === 24) stats[r.military_id][baseLoc].p24.cfo1 += r.hours;
                         else stats[r.military_id][baseLoc].p12.cfo1 += r.hours;
                     }
@@ -286,7 +286,6 @@ const StageQuantityPage: React.FC = () => {
     return (
         <MainLayout activePage="stage-quantity">
             <MainLayout.Content>
-                {/* Header Section */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
@@ -308,7 +307,6 @@ const StageQuantityPage: React.FC = () => {
                     )}
                 </div>
 
-                {/* Legend Section */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-wrap items-center gap-6">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Legenda:</h3>
                     <div className="flex items-center gap-2">
@@ -325,14 +323,13 @@ const StageQuantityPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Shisfts Table */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                 <tr className="bg-slate-100 dark:bg-slate-800/80">
                                     <th rowSpan={2} className="px-6 py-4 text-[12px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 min-w-[200px]">Militar</th>
-                                    {locations.map(loc => (
+                                    {STAGE_LOCATIONS.map(loc => (
                                         <th key={loc} colSpan={2} className="px-4 py-3 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-l border-slate-200 dark:border-slate-800 text-center bg-slate-50/50 dark:bg-slate-900/50">
                                             {loc.split(' - ')[0]}
                                         </th>
@@ -340,7 +337,7 @@ const StageQuantityPage: React.FC = () => {
                                     <th rowSpan={2} className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-l border-slate-200 dark:border-slate-800 text-center bg-slate-100/50 dark:bg-slate-700/50">Total</th>
                                 </tr>
                                 <tr className="bg-slate-50 dark:bg-slate-900/50">
-                                    {locations.map(loc => (
+                                    {STAGE_LOCATIONS.map(loc => (
                                         <React.Fragment key={loc}>
                                             <th className="px-2 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-l border-slate-200 dark:border-slate-700 text-center min-w-[60px]">P12</th>
                                             <th className="px-2 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-l border-slate-200 dark:border-slate-700 text-center min-w-[60px]">P24</th>
@@ -375,7 +372,7 @@ const StageQuantityPage: React.FC = () => {
                                                         <span className="text-[10px] text-slate-500">{mil.firefighterNumber}</span>
                                                     </div>
                                                 </td>
-                                                {locations.map(loc => {
+                                                {STAGE_LOCATIONS.map(loc => {
                                                     const baseLoc = loc.split(' - ')[0];
                                                     const locStats = stats[baseLoc] || {
                                                         p12: { cfo1: 0, cfo2: 0, total: 0 },
@@ -430,7 +427,6 @@ const StageQuantityPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* History Section */}
                 {isModerator && (
                     <div className="mt-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between">
@@ -476,7 +472,6 @@ const StageQuantityPage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Modal for adding */}
                 {isAdding && (
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                         <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -499,11 +494,9 @@ const StageQuantityPage: React.FC = () => {
                                         required
                                     >
                                         <option value="">Selecione um militar...</option>
-                                        {sortedMilitaries
-                                            .map(m => (
-                                                <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
-                                            ))
-                                        }
+                                        {sortedMilitaries.map(m => (
+                                            <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -525,41 +518,12 @@ const StageQuantityPage: React.FC = () => {
                                             onChange={e => setFormData({ ...formData, location: e.target.value })}
                                             required
                                         >
-                                            {locations.map(loc => (
+                                            {STAGE_LOCATIONS.map(loc => (
                                                 <option key={loc} value={loc}>{loc.split(' - ')[0]}</option>
                                             ))}
                                         </select>
                                     </div>
                                 </div>
-
-                                {holidays.some((h: Holiday) => h.date === formData.date) && (
-                                    <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="material-symbols-outlined text-primary text-xl">event_upcoming</span>
-                                            <span className="text-xs font-black text-primary uppercase tracking-widest">Horário Especial (Feriado)</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Início</label>
-                                                <input
-                                                    type="time"
-                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-bold"
-                                                    value={formData.startTime}
-                                                    onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Término</label>
-                                                <input
-                                                    type="time"
-                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm font-bold"
-                                                    value={formData.endTime}
-                                                    onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Duração</label>
                                     <div className="grid grid-cols-2 gap-3">
@@ -617,7 +581,6 @@ const StageQuantityPage: React.FC = () => {
                                     </p>
                                 </div>
                                 <div className="space-y-4">
-                                    <label className="block text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantidade Manual</label>
                                     <div className="flex items-center justify-center gap-4">
                                         <button
                                             onClick={() => setEditingData(prev => prev ? ({ ...prev, quantity: Math.max(0, prev.quantity - 1) }) : null)}
@@ -639,7 +602,6 @@ const StageQuantityPage: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
-
                                 <div className="pt-4 space-y-2">
                                     <button
                                         onClick={handleSaveCFO1}

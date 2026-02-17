@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { supabase } from '../supabase';
@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useShift } from '../contexts/ShiftContext';
 import { safeParseISO } from '../utils/dateUtils';
 import { Holiday } from '../types';
+import { STAGE_LOCATIONS } from '../constants';
 
 interface StageAssignment {
     id: string;
@@ -19,7 +20,7 @@ interface StageAssignment {
 const StageLocalPage: React.FC = () => {
     const { militaries } = useMilitary();
     const { isModerator } = useAuth();
-    const { holidays } = useShift();
+    const { holidays, shifts } = useShift();
     const [stages, setStages] = useState<StageAssignment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
@@ -30,7 +31,7 @@ const StageLocalPage: React.FC = () => {
     const [formData, setFormData] = useState({
         militaryId: '',
         date: new Date().toISOString().split('T')[0],
-        location: '1°BBM - Batalhão Afonso Pena',
+        location: STAGE_LOCATIONS[0],
         startTime: '08:00',
         endTime: '20:00'
     });
@@ -38,12 +39,6 @@ const StageLocalPage: React.FC = () => {
     const months = [
         'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-
-    const locations = [
-        '1°BBM - Batalhão Afonso Pena',
-        '2°BBM - Batalhão Contagem',
-        '3°BBM - Batalhão Antônio Carlos'
     ];
 
     const fetchStages = async () => {
@@ -112,20 +107,57 @@ const StageLocalPage: React.FC = () => {
         }
     };
 
-    const filteredStages = stages.filter(s => {
-        const d = safeParseISO(s.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
+    // Aggregate stages from both 'stages' table AND 'shifts' table (type: 'Estágio')
+    const allStages = useMemo(() => {
+        const combined = [...stages];
+
+        shifts.forEach(s => {
+            if (s.type === 'Estágio' && s.location) {
+                // Determine if it matches one of our official 3 locations
+                const isOfficial = STAGE_LOCATIONS.some(loc => s.location?.includes(loc.split(' - ')[0]));
+
+                if (isOfficial) {
+                    // Check if already in stages to avoid double counting
+                    const alreadyExists = stages.some(st => st.military_id === s.militaryId && st.date === s.date);
+                    if (!alreadyExists) {
+                        combined.push({
+                            id: s.id,
+                            military_id: s.militaryId,
+                            date: s.date,
+                            location: s.location,
+                            start_time: s.startTime,
+                            end_time: s.endTime
+                        });
+                    }
+                }
+            }
+        });
+
+        return combined.filter(s => {
+            const d = safeParseISO(s.date);
+            const matchesMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            const isOfficial = STAGE_LOCATIONS.some(loc => s.location?.includes(loc.split(' - ')[0]));
+            return matchesMonth && isOfficial;
+        });
+    }, [stages, shifts, currentMonth, currentYear]);
 
     const currentMonthLabel = `${months[currentMonth]} de ${currentYear}`;
 
     const handleDeleteStage = async (id: string) => {
         if (!confirm('Deseja excluir este estágio?')) return;
-        const { error } = await supabase.from('stages').delete().eq('id', id);
-        if (error) {
-            alert('Erro ao excluir');
+
+        // Check if it's from shifts or stages
+        const fromStages = stages.some(s => s.id === id);
+
+        if (fromStages) {
+            const { error } = await supabase.from('stages').delete().eq('id', id);
+            if (error) {
+                alert('Erro ao excluir');
+            } else {
+                fetchStages();
+            }
         } else {
-            fetchStages();
+            alert('Este registro vem da escala geral (Calendário) e deve ser removido por lá.');
         }
     };
 
@@ -164,13 +196,13 @@ const StageLocalPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {locations.map(loc => {
-                        const locStages = filteredStages.filter(s => s.location === loc);
+                    {STAGE_LOCATIONS.map(loc => {
+                        const locPrefix = loc.split(' - ')[0];
+                        const locStages = allStages.filter(s => s.location?.includes(locPrefix));
                         return (
                             <div key={loc} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
-                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 border-b border-slate-200 dark:border-slate-800">
-                                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-primary text-xl">account_balance</span>
+                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 border-b border-slate-200 dark:border-slate-800 text-center">
+                                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm uppercase tracking-wider">
                                         {loc}
                                     </h3>
                                 </div>
@@ -182,21 +214,30 @@ const StageLocalPage: React.FC = () => {
                                     ) : locStages.length === 0 ? (
                                         <p className="text-slate-400 text-sm italic text-center py-8">Nenhum militar alocado</p>
                                     ) : (
-                                        locStages.map(s => {
+                                        locStages.sort((a, b) => a.date.localeCompare(b.date)).map(s => {
                                             const military = militaries.find(m => m.id === s.military_id);
                                             const dateObj = safeParseISO(s.date);
+                                            const isFromShifts = !stages.some(st => st.id === s.id);
+
                                             return (
                                                 <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group hover:ring-1 hover:ring-primary/30 transition-all border border-transparent dark:border-slate-700/50">
                                                     <div className="flex flex-col">
                                                         <span className="text-slate-800 dark:text-slate-100 font-bold text-sm">
                                                             {military ? `${military.rank} ${military.name}` : 'Militar desconhecido'}
                                                         </span>
-                                                        <span className="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1 mt-1 font-medium">
-                                                            <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                                                            {dateObj.toLocaleDateString('pt-BR')} ({dateObj.toLocaleDateString('pt-BR', { weekday: 'short' })})
-                                                        </span>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="text-slate-500 dark:text-slate-400 text-[10px] flex items-center gap-1 font-medium">
+                                                                <span className="material-symbols-outlined text-[12px]">calendar_today</span>
+                                                                {dateObj.toLocaleDateString('pt-BR')} ({dateObj.toLocaleDateString('pt-BR', { weekday: 'short' })})
+                                                            </span>
+                                                            {isFromShifts && (
+                                                                <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded text-[8px] font-bold uppercase tracking-tighter">
+                                                                    Escala
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    {isModerator && (
+                                                    {isModerator && !isFromShifts && (
                                                         <button
                                                             onClick={() => handleDeleteStage(s.id)}
                                                             className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-md transition-all sm:opacity-0 group-hover:opacity-100"
@@ -264,7 +305,7 @@ const StageLocalPage: React.FC = () => {
                                             onChange={e => setFormData({ ...formData, location: e.target.value })}
                                             required
                                         >
-                                            {locations.map(loc => (
+                                            {STAGE_LOCATIONS.map(loc => (
                                                 <option key={loc} value={loc}>{loc.split(' - ')[0]}</option>
                                             ))}
                                         </select>
