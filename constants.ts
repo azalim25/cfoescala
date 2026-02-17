@@ -98,6 +98,7 @@ export const SHIFT_TYPE_PRIORITY: Record<string, number> = {
 export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'barra-fixa' | 'statistics' | 'relatorio';
 
 export const STAGE_LOCATIONS = [
+  'Pel ABM',
   '1° BBM - Batalhão Afonso Pena',
   '2° BBM - Batalhão Contagem',
   '3° BBM - Batalhão Antônio Carlos'

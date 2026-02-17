@@ -259,9 +259,11 @@ const RelatorioPage: React.FC = () => {
                             )}
                         </div>
 
-                        {renderShiftTable(STAGE_LOCATIONS[0], "Estágio", STAGE_LOCATIONS[0].split(' - ')[0])}
-                        {renderShiftTable(STAGE_LOCATIONS[1], "Estágio", STAGE_LOCATIONS[1].split(' - ')[0])}
-                        {renderShiftTable(STAGE_LOCATIONS[2], "Estágio", STAGE_LOCATIONS[2].split(' - ')[0])}
+                        {STAGE_LOCATIONS.map(loc => (
+                            <React.Fragment key={loc}>
+                                {renderShiftTable(loc, "Estágio", loc.split(' - ')[0])}
+                            </React.Fragment>
+                        ))}
                     </div>
                 </div>
             </MainLayout.Content>
