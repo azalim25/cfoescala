@@ -29,17 +29,20 @@ const RelatorioPage: React.FC = () => {
         const fullName = mil.fullName || mil.name;
         const warName = mil.name.toUpperCase();
 
-        // Find the war name in the full name and make it bold
-        // We split by words and compare
         const words = fullName.split(' ');
         return (
             <span>
-                {words.map((word, idx) => (
-                    <React.Fragment key={idx}>
-                        {word.toUpperCase() === warName ? <strong>{word}</strong> : word}
-                        {idx < words.length - 1 ? ' ' : ''}
-                    </React.Fragment>
-                ))}
+                {words.map((word, idx) => {
+                    const cleanWord = word.replace(/[.,]/g, '').toUpperCase();
+                    const isWarName = cleanWord === warName;
+
+                    return (
+                        <React.Fragment key={idx}>
+                            {isWarName ? <strong>{word}</strong> : word}
+                            {idx < words.length - 1 ? ' ' : ''}
+                        </React.Fragment>
+                    );
+                })}
             </span>
         );
     };
@@ -54,6 +57,15 @@ const RelatorioPage: React.FC = () => {
 
         if (filteredShifts.length === 0) return null;
 
+        // Group by date for row merging
+        const groupedByDate: Record<string, Shift[]> = {};
+        filteredShifts.forEach(s => {
+            if (!groupedByDate[s.date]) groupedByDate[s.date] = [];
+            groupedByDate[s.date].push(s);
+        });
+
+        const sortedDates = Object.keys(groupedByDate).sort();
+
         return (
             <div className="mb-8 overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
@@ -63,29 +75,42 @@ const RelatorioPage: React.FC = () => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                <th className="p-3 border-b border-slate-200 dark:border-slate-800">Dia</th>
-                                <th className="p-3 border-b border-slate-200 dark:border-slate-800">Semana</th>
+                                <th className="p-3 border-b border-slate-200 dark:border-slate-800">Dia/Mês/Ano</th>
+                                <th className="p-3 border-b border-slate-200 dark:border-slate-800">Dia da Semana</th>
                                 <th className="p-3 border-b border-slate-200 dark:border-slate-800">Nº BM</th>
                                 <th className="p-3 border-b border-slate-200 dark:border-slate-800">Nome Completo</th>
                                 <th className="p-3 border-b border-slate-200 dark:border-slate-800">Telefone</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {filteredShifts.map((s: Shift) => {
-                                const mil = militaries.find(m => m.id === s.militaryId);
-                                const dateObj = new Date(s.date + 'T12:00:00');
-                                const dayOfMonth = dateObj.getDate().toString().padStart(2, '0');
-                                const dayOfWeek = dateObj.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase();
+                            {sortedDates.map(dateStr => {
+                                const shiftsOnDate = groupedByDate[dateStr];
+                                return shiftsOnDate.map((s, idx) => {
+                                    const mil = militaries.find(m => m.id === s.militaryId);
+                                    const dateObj = new Date(s.date + 'T12:00:00');
 
-                                return (
-                                    <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                        <td className="p-3 text-sm font-bold text-slate-700 dark:text-slate-300">{dayOfMonth}</td>
-                                        <td className="p-3 text-xs text-slate-500 uppercase font-medium">{dayOfWeek}</td>
-                                        <td className="p-3 text-xs font-bold text-slate-600 dark:text-slate-400">{mil?.firefighterNumber || '-'}</td>
-                                        <td className="p-3 text-sm text-slate-800 dark:text-slate-100">{formatMilitaryName(mil)}</td>
-                                        <td className="p-3 text-xs text-slate-500">{mil?.contact || '-'}</td>
-                                    </tr>
-                                );
+                                    const fullDate = dateObj.toLocaleDateString('pt-BR'); // 02/02/2026
+                                    const dayOfWeekFull = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
+                                    const formattedDayOfWeek = dayOfWeekFull.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('-');
+
+                                    return (
+                                        <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                            {idx === 0 && (
+                                                <>
+                                                    <td rowSpan={shiftsOnDate.length} className="p-3 text-sm font-bold text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800">
+                                                        {fullDate}
+                                                    </td>
+                                                    <td rowSpan={shiftsOnDate.length} className="p-3 text-xs text-slate-500 font-bold border-r border-slate-100 dark:border-slate-800">
+                                                        {formattedDayOfWeek}
+                                                    </td>
+                                                </>
+                                            )}
+                                            <td className="p-3 text-xs font-bold text-slate-600 dark:text-slate-400">{mil?.firefighterNumber || '-'}</td>
+                                            <td className="p-3 text-sm text-slate-800 dark:text-slate-100">{formatMilitaryName(mil)}</td>
+                                            <td className="p-3 text-xs text-slate-500">{mil?.contact || '-'}</td>
+                                        </tr>
+                                    );
+                                });
                             })}
                         </tbody>
                     </table>
@@ -137,11 +162,9 @@ const RelatorioPage: React.FC = () => {
                             <span className="material-symbols-outlined text-primary">analytics</span>
                             Tabelas de Estágio
                         </h2>
-                        {renderShiftTable("Estágio - 1º BBM", "Estágio", "1º BBM")}
-                        {renderShiftTable("Estágio - 2º BBM", "Estágio", "2º BBM")}
-                        {renderShiftTable("Estágio - 3º BBM", "Estágio", "3º BBM")}
-                        {/* Fallback for stages with other or missing location */}
-                        {renderShiftTable("Estágio - Outros Locais", "Estágio", "")}
+                        {renderShiftTable("1º BBM - Batalhão Afonso Pena", "Estágio", "1º BBM")}
+                        {renderShiftTable("2º BBM - Batalhão Contagem", "Estágio", "2º BBM")}
+                        {renderShiftTable("3º BBM - Batalhão Afonso Pena", "Estágio", "3º BBM")}
                     </div>
                 </div>
             </MainLayout.Content>
