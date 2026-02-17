@@ -12,6 +12,7 @@ interface ExtraHourRecord {
     hours: number;
     minutes: number;
     category: string;
+    date: string;
 }
 
 const RankingPage: React.FC = () => {
@@ -20,6 +21,32 @@ const RankingPage: React.FC = () => {
     const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
     const [stages, setStages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedMonths, setSelectedMonths] = useState<number[]>([new Date().getMonth()]);
+
+    const months = [
+        { value: '01', label: 'Janeiro' },
+        { value: '02', label: 'Fevereiro' },
+        { value: '03', label: 'Março' },
+        { value: '04', label: 'Abril' },
+        { value: '05', label: 'Maio' },
+        { value: '06', label: 'Junho' },
+        { value: '07', label: 'Julho' },
+        { value: '08', label: 'Agosto' },
+        { value: '09', label: 'Setembro' },
+        { value: '10', label: 'Outubro' },
+        { value: '11', label: 'Novembro' },
+        { value: '12', label: 'Dezembro' }
+    ];
+
+    const toggleMonth = (monthIndex: number) => {
+        setSelectedMonths(prev =>
+            prev.includes(monthIndex)
+                ? prev.filter(m => m !== monthIndex)
+                : [...prev, monthIndex].sort((a, b) => a - b)
+        );
+    };
+
+    const clearFilters = () => setSelectedMonths([]);
 
     const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
     const [selectedExtraCategories, setSelectedExtraCategories] = useState<string[]>([]);
@@ -53,6 +80,27 @@ const RankingPage: React.FC = () => {
     }, []);
 
     const rankingData = useMemo(() => {
+        const filteredShifts = selectedMonths.length === 0
+            ? shifts
+            : shifts.filter(s => {
+                const shiftMonth = safeParseISO(s.date).getMonth();
+                return selectedMonths.includes(shiftMonth);
+            });
+
+        const filteredExtraHours = selectedMonths.length === 0
+            ? extraHours
+            : extraHours.filter(e => {
+                const extraMonth = safeParseISO(e.date || '').getMonth();
+                return selectedMonths.includes(extraMonth);
+            });
+
+        const filteredStages = selectedMonths.length === 0
+            ? stages
+            : stages.filter(st => {
+                const stageMonth = safeParseISO(st.date).getMonth();
+                return selectedMonths.includes(stageMonth);
+            });
+
         return militaries.map(mil => {
             let totalHours = 0;
             const separateCounts: Record<string, number> = {
@@ -62,7 +110,7 @@ const RankingPage: React.FC = () => {
                 'Barra': 0
             };
 
-            const milShifts = shifts.filter(s => s.militaryId === mil.id);
+            const milShifts = filteredShifts.filter(s => s.militaryId === mil.id);
             milShifts.forEach(s => {
                 if (!selectedShiftTypes.includes(s.type)) return;
 
@@ -82,7 +130,7 @@ const RankingPage: React.FC = () => {
                 }
             });
 
-            const milExtra = extraHours.filter(e => e.military_id === mil.id);
+            const milExtra = filteredExtraHours.filter(e => e.military_id === mil.id);
             milExtra.forEach(e => {
                 if (selectedExtraCategories.includes(e.category)) {
                     totalHours += e.hours + (e.minutes / 60);
@@ -91,9 +139,9 @@ const RankingPage: React.FC = () => {
 
             // Add standalone stages hours if not already counted via shifts
             if (selectedShiftTypes.includes('Estágio')) {
-                const milStages = stages.filter(st =>
+                const milStages = filteredStages.filter(st =>
                     st.military_id === mil.id &&
-                    !shifts.some(sh => sh.militaryId === st.military_id && sh.date === st.date && sh.type === 'Estágio')
+                    !filteredShifts.some(sh => sh.militaryId === st.military_id && sh.date === st.date && sh.type === 'Estágio')
                 );
                 milStages.forEach(st => {
                     if (st.start_time && st.end_time) {
@@ -118,7 +166,7 @@ const RankingPage: React.FC = () => {
                 separateCounts
             };
         }).sort((a, b) => b.totalHours - a.totalHours);
-    }, [militaries, shifts, extraHours, stages, selectedShiftTypes, selectedExtraCategories]);
+    }, [militaries, shifts, extraHours, stages, selectedShiftTypes, selectedExtraCategories, selectedMonths]);
 
     const toggleShiftType = (type: string) => {
         setSelectedShiftTypes(prev =>
@@ -136,8 +184,62 @@ const RankingPage: React.FC = () => {
         <MainLayout activePage="ranking">
             <MainLayout.Content>
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">Ranking de Horas</h1>
-                    <p className="text-xs sm:text-sm text-slate-500">Classificação do efetivo por horas trabalhadas e acumuladas.</p>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Ranking de Horas</h1>
+                            <p className="text-xs sm:text-sm text-slate-500 font-medium uppercase tracking-wider">Classificação do efetivo por horas trabalhadas e acumuladas.</p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <span className="material-symbols-outlined text-slate-400 text-sm">calendar_month</span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Meses:</span>
+                                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                    {selectedMonths.length === 0 ? (
+                                        <span className="text-[10px] font-black text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md">TODOS</span>
+                                    ) : (
+                                        selectedMonths.map(m => (
+                                            <span key={m} className="text-[10px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800 whitespace-nowrap">
+                                                {months[m].label.substring(0, 3).toUpperCase()}
+                                            </span>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="relative group">
+                                <button className="h-10 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                                    <span className="material-symbols-outlined text-slate-500 text-sm">filter_list</span>
+                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Filtrar Mês</span>
+                                </button>
+
+                                <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {months.map((m, idx) => (
+                                            <button
+                                                key={m.value}
+                                                onClick={() => toggleMonth(idx)}
+                                                className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedMonths.includes(idx)
+                                                    ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
+                                                    : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-700'
+                                                    }`}
+                                            >
+                                                {m.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {selectedMonths.length > 0 && (
+                                        <button
+                                            onClick={clearFilters}
+                                            className="w-full mt-4 py-2 text-[10px] font-black text-rose-500 uppercase border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-900/20 rounded-xl hover:bg-rose-100 transition-colors"
+                                        >
+                                            Limpar Filtros
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                         <div className="space-y-2">
@@ -325,7 +427,7 @@ const RankingPage: React.FC = () => {
                     </div>
                 </div>
             </MainLayout.Sidebar>
-        </MainLayout>
+        </MainLayout >
     );
 };
 

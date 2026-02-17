@@ -39,6 +39,33 @@ const PersonalShiftPage: React.FC = () => {
   const [prefType, setPrefType] = useState<'restriction' | 'priority'>('restriction');
   const [isSavingPref, setIsSavingPref] = useState(false);
 
+  // Month Filter State for Workload
+  const [workloadSelectedMonths, setWorkloadSelectedMonths] = useState<number[]>([new Date().getMonth()]);
+  const months = [
+    { value: '01', label: 'Janeiro' },
+    { value: '02', label: 'Fevereiro' },
+    { value: '03', label: 'Março' },
+    { value: '04', label: 'Abril' },
+    { value: '05', label: 'Maio' },
+    { value: '06', label: 'Junho' },
+    { value: '07', label: 'Julho' },
+    { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Setembro' },
+    { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' },
+    { value: '12', label: 'Dezembro' }
+  ];
+
+  const toggleWorkloadMonth = (monthIndex: number) => {
+    setWorkloadSelectedMonths(prev =>
+      prev.includes(monthIndex)
+        ? prev.filter(m => m !== monthIndex)
+        : [...prev, monthIndex].sort((a, b) => a - b)
+    );
+  };
+
+  const clearWorkloadFilters = () => setWorkloadSelectedMonths([]);
+
   // Filter State
   const allShiftTypes = useMemo(() =>
     Object.keys(SHIFT_TYPE_COLORS).filter(type => !['Escala Geral', 'Escala Diversa'].includes(type)),
@@ -419,34 +446,84 @@ const PersonalShiftPage: React.FC = () => {
   };
 
   const totalShiftHours = useMemo(() => {
-    const shiftHours = personalShifts
+    const filteredShifts = workloadSelectedMonths.length === 0
+      ? personalShifts
+      : personalShifts.filter(s => {
+        const shiftMonth = safeParseISO(s.date).getMonth();
+        return workloadSelectedMonths.includes(shiftMonth);
+      });
+
+    const shiftHours = filteredShifts
       .filter(s => !isExcludedActivity(s.type) && s.type !== 'Barra')
       .reduce((acc, s) => acc + calculateShiftHours(s), 0);
 
-    const standaloneStageHours = personalStages
+    const filteredStages = workloadSelectedMonths.length === 0
+      ? personalStages
+      : personalStages.filter(ps => {
+        const stageMonth = safeParseISO(ps.date).getMonth();
+        return workloadSelectedMonths.includes(stageMonth);
+      });
+
+    const standaloneStageHours = filteredStages
       .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
       .reduce((acc, ps) => acc + calculateShiftHours({ ...ps, type: 'Estágio' }), 0);
 
     return shiftHours + standaloneStageHours;
-  }, [personalShifts, personalStages]);
+  }, [personalShifts, personalStages, workloadSelectedMonths]);
 
-  const totalExtraHours = useMemo(() =>
-    extraHours
+  const totalExtraHours = useMemo(() => {
+    const filteredExtra = workloadSelectedMonths.length === 0
+      ? extraHours
+      : extraHours.filter(e => {
+        const extraMonth = safeParseISO(e.date || '').getMonth();
+        return workloadSelectedMonths.includes(extraMonth);
+      });
+
+    return filteredExtra
       .filter(e => !isExcludedActivity(e.category))
-      .reduce((acc, e) => acc + (e.hours + e.minutes / 60), 0)
-    , [extraHours]);
+      .reduce((acc, e) => acc + (e.hours + e.minutes / 60), 0);
+  }, [extraHours, workloadSelectedMonths]);
 
   const totalWorkload = totalShiftHours + totalExtraHours;
 
-  const totalOtherServices = useMemo(() =>
-    personalShifts.filter(s =>
+  const totalOtherServices = useMemo(() => {
+    const filteredShifts = workloadSelectedMonths.length === 0
+      ? personalShifts
+      : personalShifts.filter(s => {
+        const shiftMonth = safeParseISO(s.date).getMonth();
+        return workloadSelectedMonths.includes(shiftMonth);
+      });
+
+    return filteredShifts.filter(s =>
       ['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type) && !isExcludedActivity(s.type)
-    ).length
-    , [personalShifts]);
+    ).length;
+  }, [personalShifts, workloadSelectedMonths]);
 
   const groupedSummary = useMemo(() => {
     const summary: Record<string, { totalHours: number, totalServices: number, type: string }> = {};
-    personalShifts.forEach(s => {
+
+    const filteredShifts = workloadSelectedMonths.length === 0
+      ? personalShifts
+      : personalShifts.filter(s => {
+        const shiftMonth = safeParseISO(s.date).getMonth();
+        return workloadSelectedMonths.includes(shiftMonth);
+      });
+
+    const filteredExtra = workloadSelectedMonths.length === 0
+      ? extraHours
+      : extraHours.filter(e => {
+        const extraMonth = safeParseISO(e.date || '').getMonth();
+        return workloadSelectedMonths.includes(extraMonth);
+      });
+
+    const filteredStages = workloadSelectedMonths.length === 0
+      ? personalStages
+      : personalStages.filter(ps => {
+        const stageMonth = safeParseISO(ps.date).getMonth();
+        return workloadSelectedMonths.includes(stageMonth);
+      });
+
+    filteredShifts.forEach(s => {
       if (isExcludedActivity(s.type)) return;
       const hours = s.type === 'Barra' ? 0 : calculateShiftHours(s);
       if (!summary[s.type]) summary[s.type] = { totalHours: 0, totalServices: 0, type: s.type };
@@ -454,18 +531,26 @@ const PersonalShiftPage: React.FC = () => {
       else summary[s.type].totalServices += 1;
     });
 
-    personalStages.forEach(ps => {
-      if (personalShifts.some(s => s.date === ps.date && s.type === 'Estágio')) return;
+    filteredStages.forEach(ps => {
+      if (filteredShifts.some(s => s.date === ps.date && s.type === 'Estágio')) return;
       const type = 'Estágio';
       const hours = calculateShiftHours({ ...ps, type });
       if (!summary[type]) summary[type] = { totalHours: 0, totalServices: 0, type };
       summary[type].totalHours += hours;
     });
 
-    extraHours.forEach(e => {
+    filteredExtra.forEach(e => {
       let type = e.category || 'Registro de Horas';
-      // Consolidate CFO II - Registro de Horas into Escala Diversa as requested
-      if (type === 'CFO II - Registro de Horas') type = 'Escala Diversa';
+
+      // Consolidate CFO II - Registro de Horas into Escala Diversa
+      if (type === 'CFO II - Registro de Horas') {
+        type = 'Escala Diversa';
+        // Avoid double counting if a shift of type "Escala Diversa" already exists for this date
+        const shiftDate = e.date?.split('T')[0];
+        if (filteredShifts.some(s => s.type === 'Escala Diversa' && s.date?.split('T')[0] === shiftDate)) {
+          return;
+        }
+      }
 
       if (isExcludedActivity(type)) return;
       if (!summary[type]) summary[type] = { totalHours: 0, totalServices: 0, type };
@@ -484,7 +569,7 @@ const PersonalShiftPage: React.FC = () => {
       if (pA !== pB) return pA - pB;
       return a.type.localeCompare(b.type);
     });
-  }, [personalShifts, extraHours, personalStages]);
+  }, [personalShifts, extraHours, personalStages, workloadSelectedMonths]);
 
 
 
@@ -781,11 +866,61 @@ const PersonalShiftPage: React.FC = () => {
             )}
 
             <section className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 px-1">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary text-xl">history</span>
                   Carga Horária
                 </h2>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span className="material-symbols-outlined text-slate-400 text-sm">calendar_month</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Meses:</span>
+                    <div className="flex flex-wrap gap-1 max-w-[150px]">
+                      {workloadSelectedMonths.length === 0 ? (
+                        <span className="text-[10px] font-black text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md">TODOS</span>
+                      ) : (
+                        workloadSelectedMonths.map(m => (
+                          <span key={m} className="text-[10px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800 whitespace-nowrap">
+                            {months[m].label.substring(0, 3).toUpperCase()}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="relative group">
+                    <button className="h-9 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                      <span className="material-symbols-outlined text-slate-500 text-sm">filter_list</span>
+                      <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Filtrar</span>
+                    </button>
+
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                      <div className="grid grid-cols-2 gap-2">
+                        {months.map((m, idx) => (
+                          <button
+                            key={m.value}
+                            onClick={() => toggleWorkloadMonth(idx)}
+                            className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${workloadSelectedMonths.includes(idx)
+                              ? 'bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/20'
+                              : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-700'
+                              }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                      {workloadSelectedMonths.length > 0 && (
+                        <button
+                          onClick={clearWorkloadFilters}
+                          className="w-full mt-4 py-2 text-[10px] font-black text-rose-500 uppercase border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-900/20 rounded-xl hover:bg-rose-100 transition-colors"
+                        >
+                          Limpar Filtros
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
