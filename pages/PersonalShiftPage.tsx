@@ -40,7 +40,7 @@ const PersonalShiftPage: React.FC = () => {
   const [isSavingPref, setIsSavingPref] = useState(false);
 
   // Month Filter State for Workload
-  const [workloadSelectedMonths, setWorkloadSelectedMonths] = useState<number[]>([new Date().getMonth()]);
+  const [workloadSelectedMonths, setWorkloadSelectedMonths] = useState<number[]>([]);
   const months = [
     { value: '01', label: 'Janeiro' },
     { value: '02', label: 'Fevereiro' },

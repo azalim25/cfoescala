@@ -12,7 +12,7 @@ const StatisticsPage: React.FC = () => {
     const { militaries } = useMilitary();
     const { isModerator } = useAuth();
 
-    const [selectedMonths, setSelectedMonths] = useState<number[]>([new Date().getMonth()]);
+    const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
 
     const months = [
         { value: '01', label: 'Janeiro' },

@@ -21,7 +21,7 @@ const RankingPage: React.FC = () => {
     const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
     const [stages, setStages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedMonths, setSelectedMonths] = useState<number[]>([new Date().getMonth()]);
+    const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
 
     const months = [
         { value: '01', label: 'Janeiro' },
