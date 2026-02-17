@@ -110,10 +110,16 @@ const RelatorioPage: React.FC = () => {
             const matchesType = typeArray.includes(s.type);
 
             const normalize = (v: string | undefined | null) =>
-                (v || '').toLowerCase().replace(/º/g, '°').replace(/\s+/g, '');
+                (v || '').toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+
+            const locationKey = filterByLocation ? filterByLocation.toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim() : '';
+
+            // Try to find the full location template to get the subtitle/keyword
+            const fullLoc = STAGE_LOCATIONS.find(l => l.includes(filterByLocation || ''));
+            const extraKeyword = fullLoc && fullLoc.includes(' - ') ? fullLoc.split(' - ')[1].toLowerCase().replace(/\s+/g, ' ').trim() : '';
 
             const matchesLocation = filterByLocation
-                ? normalize(s.location).includes(normalize(filterByLocation))
+                ? normalize(s.location).includes(locationKey) || (extraKeyword && normalize(s.location).includes(extraKeyword))
                 : true;
             return matchesType && matchesLocation;
         });

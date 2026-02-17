@@ -146,23 +146,19 @@ const StageQuantityPage: React.FC = () => {
         const stats: Record<string, Record<string, { p12: DetailedStat; p24: DetailedStat }>> = {};
         const emptyStat = () => ({ cfo1: 0, cfo2: 0, total: 0 });
 
-        // Initialize with active locations only
+        // Initialize with all official locations
         militaries.forEach(m => {
             stats[m.id] = {};
-            activeLocations.forEach(loc => {
+            STAGE_LOCATIONS.forEach(loc => {
                 const baseLoc = loc.split(' - ')[0]; // e.g. "1° BBM"
                 stats[m.id][baseLoc] = { p12: emptyStat(), p24: emptyStat() };
             });
         });
 
-        const activeLocations = useMemo(() =>
-            STAGE_LOCATIONS.filter(loc => !loc.toLowerCase().includes('pel abm')),
-            []);
-
         const findBaseLocKey = (locationName: string | null | undefined) => {
             if (!locationName) return null;
             const normalized = locationName.toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
-            for (const loc of activeLocations) {
+            for (const loc of STAGE_LOCATIONS) {
                 const baseRaw = loc.split(' - ')[0];
                 const baseNorm = baseRaw.toLowerCase().replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -232,7 +228,7 @@ const StageQuantityPage: React.FC = () => {
         });
 
         return stats;
-    }, [militaries, shifts, stages, extraRecords, activeLocations]);
+    }, [militaries, shifts, stages, extraRecords]);
 
     const handleEditCFO1 = (militaryId: string, baseLoc: string, duration: number) => {
         if (!isModerator) return;
@@ -340,7 +336,7 @@ const StageQuantityPage: React.FC = () => {
                             <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                 <tr className="bg-slate-100 dark:bg-slate-800/80">
                                     <th rowSpan={2} className="px-6 py-4 text-[12px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 min-w-[200px]">Militar</th>
-                                    {activeLocations.map(loc => (
+                                    {STAGE_LOCATIONS.map(loc => (
                                         <th key={loc} colSpan={2} className="px-4 py-3 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-l border-slate-200 dark:border-slate-800 text-center bg-slate-50/50 dark:bg-slate-900/50">
                                             {loc.split(' - ')[0]}
                                         </th>
@@ -348,7 +344,7 @@ const StageQuantityPage: React.FC = () => {
                                     <th rowSpan={2} className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b border-l border-slate-200 dark:border-slate-800 text-center bg-slate-100/50 dark:bg-slate-700/50">Total</th>
                                 </tr>
                                 <tr className="bg-slate-50 dark:bg-slate-900/50">
-                                    {activeLocations.map(loc => (
+                                    {STAGE_LOCATIONS.map(loc => (
                                         <React.Fragment key={loc}>
                                             <th className="px-2 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-l border-slate-200 dark:border-slate-700 text-center min-w-[60px]">P12</th>
                                             <th className="px-2 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-l border-slate-200 dark:border-slate-700 text-center min-w-[60px]">P24</th>
@@ -383,7 +379,7 @@ const StageQuantityPage: React.FC = () => {
                                                         <span className="text-[10px] text-slate-500">{mil.firefighterNumber}</span>
                                                     </div>
                                                 </td>
-                                                {activeLocations.map(loc => {
+                                                {STAGE_LOCATIONS.map(loc => {
                                                     const baseLoc = loc.split(' - ')[0];
                                                     const locStats = stats[baseLoc] || {
                                                         p12: { cfo1: 0, cfo2: 0, total: 0 },
