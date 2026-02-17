@@ -174,14 +174,24 @@ const StageQuantityPage: React.FC = () => {
             }
         });
 
-        // 2. Process stages from 'stages' table (CFO II)
+        // 2. Process stages from 'stages' table (CFO II) - DEDUPLICATED
         stages.forEach(s => {
             if (stats[s.military_id]) {
-                const baseLoc = s.location.split(' - ')[0];
-                if (stats[s.military_id][baseLoc]) {
-                    const duration = getDuration(s.date, s.duration);
-                    if (duration === 24) stats[s.military_id][baseLoc].p24.cfo2++;
-                    else stats[s.military_id][baseLoc].p12.cfo2++;
+                // Check if this stage assignment is already coming from a regular shift
+                // to avoid double counting (same as in DashboardPage and RankingPage)
+                const isAlreadyInShifts = shifts.some(sh =>
+                    sh.militaryId === s.military_id &&
+                    sh.date === s.date &&
+                    sh.type === 'Estágio'
+                );
+
+                if (!isAlreadyInShifts) {
+                    const baseLoc = s.location.split(' - ')[0];
+                    if (stats[s.military_id][baseLoc]) {
+                        const duration = getDuration(s.date, s.duration);
+                        if (duration === 24) stats[s.military_id][baseLoc].p24.cfo2++;
+                        else stats[s.military_id][baseLoc].p12.cfo2++;
+                    }
                 }
             }
         });
