@@ -652,6 +652,22 @@ const DashboardPage: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-4">
+              <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={handlePrevDay}
+                  className="p-1 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all shadow-sm"
+                  title="Dia Anterior"
+                >
+                  <span className="material-symbols-outlined text-base">keyboard_arrow_left</span>
+                </button>
+                <button
+                  onClick={handleNextDay}
+                  className="p-1 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all shadow-sm"
+                  title="Próximo Dia"
+                >
+                  <span className="material-symbols-outlined text-base">keyboard_arrow_right</span>
+                </button>
+              </div>
               <div className="flex flex-col">
                 <h2 className="font-bold text-slate-800 dark:text-100 uppercase text-xs sm:text-sm leading-none mb-1">FICHA DO DIA</h2>
                 <div className="flex flex-col">
