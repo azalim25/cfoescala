@@ -20,29 +20,34 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
     }, []);
 
     const fetchMilitaries = async () => {
-        setLoading(true);
-        const { data, error } = await supabase
-            .from('militaries')
-            .select('*')
-            .order('antiguidade', { ascending: true, nullsFirst: false })
-            .order('name', { ascending: true });
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('militaries')
+                .select('*')
+                .order('antiguidade', { ascending: true, nullsFirst: false })
+                .order('name', { ascending: true });
 
-        if (error) {
-            console.error('Erro ao buscar militares:', error);
-        } else if (data) {
-            const mappedData: Military[] = data.map(m => ({
-                id: m.id,
-                name: m.name,
-                fullName: m.full_name || '',
-                rank: m.rank,
-                firefighterNumber: m.firefighter_number,
-                contact: m.contact || '',
-                battalion: m.battalion || '',
-                antiguidade: m.antiguidade || undefined
-            }));
-            setMilitaries(mappedData);
+            if (error) {
+                console.error('Erro ao buscar militares:', error);
+            } else if (data) {
+                const mappedData: Military[] = data.map(m => ({
+                    id: m.id,
+                    name: m.name,
+                    fullName: m.full_name || '',
+                    rank: m.rank,
+                    firefighterNumber: m.firefighter_number,
+                    contact: m.contact || '',
+                    battalion: m.battalion || '',
+                    antiguidade: m.antiguidade || undefined
+                }));
+                setMilitaries(mappedData);
+            }
+        } catch (error) {
+            console.error('Erro inesperado ao buscar militares:', error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const addMilitary = async (military: Omit<Military, 'id'>) => {

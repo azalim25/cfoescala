@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .select('role')
             .eq('id', userId)
             .single();
-        
+
         if (data && !error) {
             setRole(data.role);
             setIsModerator(data.role === 'moderator');
@@ -43,29 +43,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const guestStored = localStorage.getItem('isGuest') === 'true';
         setIsGuest(guestStored);
 
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            if (session?.user) {
-                fetchUserRole(session.user.id).then(() => setLoading(false));
-            } else {
+        const initAuth = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                setSession(session);
+                if (session?.user) {
+                    await fetchUserRole(session.user.id);
+                }
+            } catch (error) {
+                console.error('Erro ao inicializar autenticação:', error);
+            } finally {
                 setLoading(false);
             }
-        });
+        };
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            if (session?.user) {
-                fetchUserRole(session.user.id);
-            } else {
-                setRole(null);
-                setIsModerator(false);
+        initAuth();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            try {
+                setSession(session);
+                if (session?.user) {
+                    await fetchUserRole(session.user.id);
+                } else {
+                    setRole(null);
+                    setIsModerator(false);
+                }
+                // If we get a real session, we are definitely NOT a guest
+                if (session) {
+                    setIsGuest(false);
+                    localStorage.removeItem('isGuest');
+                }
+            } catch (error) {
+                console.error('Erro ao alterar estado de autenticação:', error);
+            } finally {
+                setLoading(false);
             }
-            // If we get a real session, we are definitely NOT a guest
-            if (session) {
-                setIsGuest(false);
-                localStorage.removeItem('isGuest');
-            }
-            setLoading(false);
         });
 
         return () => subscription.unsubscribe();
