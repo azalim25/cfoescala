@@ -55,13 +55,31 @@ const ExamsPage: React.FC = () => {
     }, [schedule]);
 
     const upcomingExams = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        return mergedExams.filter(e => e.date >= today);
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const currentTime = now.toLocaleTimeString('pt-BR', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+        return mergedExams.filter(e => {
+            if (e.date > today) return true;
+            if (e.date === today) {
+                return e.endTime.slice(0, 5) > currentTime;
+            }
+            return false;
+        });
     }, [mergedExams]);
 
     const pastExams = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        return mergedExams.filter(e => e.date < today).reverse();
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const currentTime = now.toLocaleTimeString('pt-BR', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+        return mergedExams.filter(e => {
+            if (e.date < today) return true;
+            if (e.date === today) {
+                return e.endTime.slice(0, 5) <= currentTime;
+            }
+            return false;
+        }).reverse();
     }, [mergedExams]);
 
     if (isLoading) {
