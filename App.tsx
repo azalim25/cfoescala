@@ -1,11 +1,12 @@
 import React, { Suspense, lazy } from 'react';
+import DashboardPage from './pages/DashboardPage';
+import PersonalShiftPage from './pages/PersonalShiftPage';
+import AuthPage from './pages/AuthPage';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // Lazy load components
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ContactsPage = lazy(() => import('./pages/ContactsPage'));
 const GenerateScalePage = lazy(() => import('./pages/GenerateScalePage'));
-const PersonalShiftPage = lazy(() => import('./pages/PersonalShiftPage'));
 const ExtraHoursPage = lazy(() => import('./pages/ExtraHoursPage'));
 const RankingPage = lazy(() => import('./pages/RankingPage'));
 const EstadoMaiorPage = lazy(() => import('./pages/EstadoMaiorPage'));
@@ -17,7 +18,6 @@ const BarraFixaPage = lazy(() => import('./pages/BarraFixaPage'));
 const HoursControlPage = lazy(() => import('./pages/HoursControlPage'));
 const ExamsPage = lazy(() => import('./pages/ExamsPage'));
 const StatisticsPage = lazy(() => import('./pages/StatisticsPage'));
-const AuthPage = lazy(() => import('./pages/AuthPage'));
 const QtmPage = lazy(() => import('./pages/QtmPage'));
 const QdchPage = lazy(() => import('./pages/QdchPage'));
 const RelatorioPage = lazy(() => import('./pages/RelatorioPage'));
