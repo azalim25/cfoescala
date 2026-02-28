@@ -546,8 +546,7 @@ const DashboardPage: React.FC = () => {
                   key={s.id}
                   className="text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-indigo-50 text-indigo-700 truncate border border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
                 >
-                  📌 {militaries.find(m => m.id === s.militaryId)?.name}
-                  <span className="block text-[6px] sm:text-[7px] opacity-70 uppercase leading-none mt-0.5">{formatLocation(s.type, s.location)}</span>
+                  {militaries.find(m => m.id === s.militaryId)?.name}
                 </div>
               );
             }
@@ -564,7 +563,6 @@ const DashboardPage: React.FC = () => {
                 className={`text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
               >
                 {militaries.find(m => m.id === s.militaryId)?.name}
-                {(s.type === 'Escala Diversa' || s.type === 'Estágio') && <span className="block text-[6px] sm:text-[7px] opacity-70 uppercase leading-none mt-0.5">{formatLocation(s.type, s.location)}</span>}
               </div>
             );
           })}
@@ -806,7 +804,20 @@ const DashboardPage: React.FC = () => {
                             </div>
                             <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
                               {formatLocation(s.type, s.location) || 'Local não definido'}
-                              {s.startTime && ` • ${s.startTime} - ${s.endTime}`}
+                              {(() => {
+                                if (s.type === 'Sobreaviso' || s.type === 'Faxina') return '';
+                                const isWeekendOrHoliday = (() => {
+                                  const d = new Date(`${selectedDateStr}T12:00:00`);
+                                  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                                  return isWeekend || holidays.some(h => h.date === selectedDateStr);
+                                })();
+                                if (s.type === 'Comandante da Guarda') return isWeekendOrHoliday ? ' • 06:30 - 06:30' : ' • 20:00 - 06:30';
+                                if (s.type === 'Manutenção') return ' • 06:00 - 07:30';
+                                const st = s.startTime || s.start_time;
+                                const et = s.endTime || s.end_time;
+                                if (st && et) return ` • ${st} - ${et}`;
+                                return '';
+                              })()}
                             </p>
                           </div>
                         </div>

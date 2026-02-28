@@ -42,7 +42,7 @@ const BarraFixaPage: React.FC = () => {
                 startTime: repeatTarget.time,
                 endTime: repeatTarget.time,
                 status: 'Confirmado',
-                location: s.location || 'Escola'
+                location: s.location || 'ABM'
             }));
 
             await createShifts(newShifts);
@@ -111,7 +111,7 @@ const BarraFixaPage: React.FC = () => {
                     startTime: formData.startTime,
                     endTime: formData.startTime,
                     status: 'Confirmado',
-                    location: 'Escola'
+                    location: 'ABM'
                 });
             }
             setIsAddEditModalOpen(false);
