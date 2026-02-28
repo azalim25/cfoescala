@@ -301,9 +301,9 @@ const PersonalShiftPage: React.FC = () => {
         let location = s.location;
         let description = (s as any).description;
 
-        if (['Comandante da Guarda', 'Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)) {
+        if (['Comandante da Guarda', 'Sobreaviso', 'Faxina', 'Manutenção', 'Barra'].includes(s.type)) {
           location = 'ABM';
-        } else if (['Escala Diversa', 'Barra'].includes(s.type)) {
+        } else if (['Escala Diversa'].includes(s.type)) {
           location = '';
           if (s.type === 'Escala Diversa' && !description) {
             const extraMatch = extraHours.find(eh =>

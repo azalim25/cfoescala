@@ -11,7 +11,7 @@ import { safeParseISO } from '../utils/dateUtils';
 const formatLocation = (type: string, location: string | null | undefined) => {
   if (!location) return '';
   const normLoc = location.trim().toUpperCase();
-  if (normLoc === 'QCG' || normLoc === 'PEL ABM') return 'ABM';
+  if (normLoc === 'QCG' || normLoc === 'PEL ABM' || normLoc === 'ESCOLA') return 'ABM';
   return location;
 };
 
