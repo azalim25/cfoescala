@@ -21,6 +21,124 @@ interface ExtraHourRecord {
   created_at: string;
 }
 
+// --- Helpers ---
+const isExcludedActivity = (type: string) => {
+  const excludedExact = ['CFO I - Faxina', 'CFO I - Manutenção', 'CFO I - Sobreaviso'];
+  if (excludedExact.includes(type)) return true;
+  return type.startsWith('CFO I - Estágio');
+};
+
+const calculateShiftHours = (shift: any) => {
+  if (shift.duration) return shift.duration;
+
+  // Case where we have explicit start/end times
+  const st = shift.start_time || shift.startTime;
+  const et = shift.end_time || shift.endTime;
+
+  if (st && et && (st !== '08:00' || et !== '08:00')) {
+    const [h1, m1] = st.split(':').map(Number);
+    const [h2, m2] = et.split(':').map(Number);
+    if (!isNaN(h1) && !isNaN(h2)) {
+      let totalMinutes = (h2 * 60 + (m2 || 0)) - (h1 * 60 + (m1 || 0));
+      if (totalMinutes <= 0) totalMinutes += 24 * 60;
+      return totalMinutes / 60;
+    }
+  }
+
+  const date = safeParseISO(shift.date);
+  const dayOfWeek = date.getDay();
+  if (shift.type === 'Comandante da Guarda') {
+    return (dayOfWeek >= 1 && dayOfWeek <= 5) ? 11 : 24;
+  }
+  if (shift.type === 'Estágio') {
+    if (dayOfWeek === 6) return 24;
+    if (dayOfWeek === 0) return 12;
+    return 12; // Default for week-day stages
+  }
+  return 0;
+};
+
+// --- Sub-components ---
+const StatCard = React.memo(({ title, value, unit, icon, colorClass, details }: any) => (
+  <div className={`${colorClass} rounded-xl p-6 shadow-xl relative overflow-hidden group`}>
+    <div className="relative z-10">
+      <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">{title}</p>
+      <div className="flex items-baseline gap-2">
+        <span className="text-4xl font-extrabold text-white tracking-tighter">{value}</span>
+        <span className="text-sm font-bold text-white/80">{unit}</span>
+      </div>
+      {details && (
+        <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+          {details.map((d: any, i: number) => (
+            <div key={i} className="flex justify-between items-center text-[10px] text-white/70 font-bold uppercase tracking-tight">
+              <span>{d.label}:</span>
+              <span>{d.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+    <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl text-white/10 rotate-12 pointer-events-none">{icon}</span>
+  </div>
+));
+
+const ShiftRow = React.memo(({ s, holidays }: { s: any, holidays: any[] }) => {
+  const isHoliday = holidays.some(h => h.date === s.date);
+  const day = safeParseISO(s.date);
+  const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+  const showTimes = s.type === 'Escala Diversa' || (s.type === 'Estágio' && (isHoliday || isWeekend || (s.start_time && s.end_time))) || s.type === 'Barra';
+
+  return (
+    <tr className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+      <td className="px-6 py-4 w-40">
+        <div className="flex flex-col">
+          <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+            {day.toLocaleDateString('pt-BR')}
+          </span>
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter text-left">
+            {day.toLocaleDateString('pt-BR', { weekday: 'long' })}
+          </span>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <span className={`px-2.5 py-0.5 rounded-md ${SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700'} text-[10px] font-bold uppercase border ${SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100'}`}>
+          {s.type}
+          {s.location && ` - ${s.location}`}
+          {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
+          {showTimes && ` (${s.startTime}${s.endTime ? ` às ${s.endTime}` : ''})`}
+        </span>
+      </td>
+    </tr>
+  );
+});
+
+const ShiftCard = React.memo(({ s, holidays }: { s: any, holidays: any[] }) => {
+  const isHoliday = holidays.some(h => h.date === s.date);
+  const day = safeParseISO(s.date);
+  const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+  const showTimes = s.type === 'Escala Diversa' || (s.type === 'Estágio' && (isHoliday || isWeekend || (s.start_time && s.end_time))) || s.type === 'Barra';
+
+  return (
+    <div className="p-4 flex items-center justify-between">
+      <div className="flex flex-col">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
+        <span className="text-sm font-black text-slate-800 dark:text-white">
+          {day.toLocaleDateString('pt-BR')}
+        </span>
+        <span className="text-[10px] text-primary font-bold uppercase tracking-tighter">
+          {day.toLocaleDateString('pt-BR', { weekday: 'short' })}
+        </span>
+      </div>
+      <span className={`px-2 py-1 rounded-md ${SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700'} text-[9px] font-black uppercase border ${SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100'}`}>
+        {s.type}
+        {s.location && ` - ${s.location}`}
+        {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
+        {showTimes && ` (${s.startTime}${s.endTime ? ` às ${s.endTime}` : ''})`}
+      </span>
+    </div>
+  );
+});
+
 const PersonalShiftPage: React.FC = () => {
   const { militaries } = useMilitary();
   const { shifts: allShifts, preferences, addPreference, removePreference, holidays } = useShift();
@@ -164,36 +282,6 @@ const PersonalShiftPage: React.FC = () => {
     allShifts.filter(s => s.militaryId === selectedMilitaryId)
     , [allShifts, selectedMilitaryId]);
 
-  const calculateShiftHours = (shift: any) => {
-    if (shift.duration) return shift.duration;
-
-    // Case where we have explicit start/end times (especially for manual stages)
-    const st = shift.start_time || shift.startTime;
-    const et = shift.end_time || shift.endTime;
-
-    if (st && et && (st !== '08:00' || et !== '08:00')) {
-      const [h1, m1] = st.split(':').map(Number);
-      const [h2, m2] = et.split(':').map(Number);
-      if (!isNaN(h1) && !isNaN(h2)) {
-        let totalMinutes = (h2 * 60 + (m2 || 0)) - (h1 * 60 + (m1 || 0));
-        if (totalMinutes <= 0) totalMinutes += 24 * 60;
-        return totalMinutes / 60;
-      }
-    }
-
-    const date = safeParseISO(shift.date);
-    const dayOfWeek = date.getDay();
-    if (shift.type === 'Comandante da Guarda') {
-      return (dayOfWeek >= 1 && dayOfWeek <= 5) ? 11 : 24;
-    }
-    if (shift.type === 'Estágio') {
-      if (dayOfWeek === 6) return 24;
-      if (dayOfWeek === 0) return 12;
-      return 12; // Default for week-day stages
-    }
-    return 0;
-  };
-
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   const todaysClasses = useMemo(() => {
@@ -202,60 +290,49 @@ const PersonalShiftPage: React.FC = () => {
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [schedule, today]);
 
-  const groupByMonth = (shifts: any[]) => {
-    const result: { month: string, items: any[] }[] = [];
-    shifts.forEach(s => {
-      const date = safeParseISO(s.date);
-      const monthYear = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-      const lastGroup = result[result.length - 1];
-      if (lastGroup && lastGroup.month === monthYear) {
-        lastGroup.items.push(s);
-      } else {
-        result.push({ month: monthYear, items: [s] });
-      }
-    });
-    return result;
-  };
+  // --- Unified Data Processing ---
+  const data = useMemo(() => {
+    if (!selectedMilitaryId) return null;
 
-  // Process shifts with new location rules
-  const processedShifts = useMemo(() => {
-    return personalShifts.map(s => {
-      let location = s.location;
-      let description = (s as any).description;
+    // 1. Process Raw Shifts
+    const rawPersonalShifts = allShifts
+      .filter(s => s.militaryId === selectedMilitaryId)
+      .map(s => {
+        let location = s.location;
+        let description = (s as any).description;
 
-      if (['Comandante da Guarda', 'Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)) {
-        location = 'ABM';
-      } else if (['Escala Diversa', 'Barra'].includes(s.type)) {
-        location = '';
-        if (s.type === 'Escala Diversa' && !description) {
-          const extraMatch = extraHours.find(eh =>
-            eh.category === 'CFO II - Registro de Horas' &&
-            eh.date.split('T')[0] === s.date.split('T')[0]
-          );
-          if (extraMatch) {
-            description = extraMatch.description.replace('Escala Diversa: ', '');
+        if (['Comandante da Guarda', 'Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type)) {
+          location = 'ABM';
+        } else if (['Escala Diversa', 'Barra'].includes(s.type)) {
+          location = '';
+          if (s.type === 'Escala Diversa' && !description) {
+            const extraMatch = extraHours.find(eh =>
+              eh.category === 'CFO II - Registro de Horas' &&
+              eh.date.split('T')[0] === s.date.split('T')[0]
+            );
+            if (extraMatch) {
+              description = extraMatch.description.replace('Escala Diversa: ', '');
+            }
           }
+        } else if (s.type === 'Estágio') {
+          const stageMatch = personalStages.find(ps => ps.date === s.date);
+          location = stageMatch?.location || s.location;
+          return {
+            ...s,
+            location,
+            description,
+            start_time: stageMatch?.start_time || (s as any).start_time,
+            end_time: stageMatch?.end_time || (s as any).end_time
+          };
         }
-      } else if (s.type === 'Estágio') {
-        const stageMatch = personalStages.find(ps => ps.date === s.date);
-        return {
-          ...s,
-          location: stageMatch?.location || s.location,
-          description,
-          start_time: stageMatch?.start_time || (s as any).start_time,
-          end_time: stageMatch?.end_time || (s as any).end_time
-        };
-      }
-      return { ...s, location, description };
-    });
-  }, [personalShifts, personalStages, extraHours]);
+        return { ...s, location, description };
+      });
 
-  // Robust Duplication Filter
-  const combinedUpcoming = useMemo(() => {
-    const list = [
-      ...processedShifts.map(s => ({ ...s, isStage: false, start_time: (s as any).start_time, end_time: (s as any).end_time })),
+    // 2. Combine all items
+    const allItems = [
+      ...rawPersonalShifts.map(s => ({ ...s, isStage: false, start_time: (s as any).start_time, end_time: (s as any).end_time })),
       ...personalStages
-        .filter(ps => !processedShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
+        .filter(ps => !rawPersonalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
         .map(s => ({
           id: s.id,
           date: s.date,
@@ -264,103 +341,6 @@ const PersonalShiftPage: React.FC = () => {
           isStage: true,
           startTime: s.start_time || '08:00',
           endTime: s.end_time || (s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00'),
-          start_time: s.start_time,
-          end_time: s.end_time,
-          status: 'Confirmado'
-        })),
-      ...extraHours
-        .filter(eh => {
-          if (eh.category !== 'CFO II - Registro de Horas' || eh.date < today) return false;
-          const ehDate = eh.date.split('T')[0];
-          const hasExistingShift = processedShifts.some(s => {
-            const shiftDate = s.date.split('T')[0];
-            return shiftDate === ehDate && s.type === 'Escala Diversa';
-          });
-          return !hasExistingShift;
-        })
-        .map(eh => ({
-          id: eh.id,
-          date: eh.date,
-          type: 'Escala Diversa',
-          description: eh.description.replace('Escala Diversa: ', ''),
-          location: '', // No location for Escala Diversa as per user request
-          isStage: false,
-          isExtra: true,
-          startTime: '08:00',
-          endTime: '12:00',
-          start_time: undefined,
-          end_time: undefined,
-          status: 'Confirmado'
-        }))
-    ];
-    return list
-      .filter(s => s.date >= today)
-      .filter(s => selectedShiftTypes.includes(s.type))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [processedShifts, personalStages, extraHours, today, selectedShiftTypes]);
-
-  const combinedPast = useMemo(() => {
-    const list = [
-      ...processedShifts.map(s => ({ ...s, isStage: false, start_time: (s as any).start_time, end_time: (s as any).end_time })),
-      ...personalStages
-        .filter(ps => !processedShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
-        .map(s => ({
-          id: s.id,
-          date: s.date,
-          type: 'Estágio',
-          location: s.location,
-          isStage: true,
-          startTime: s.start_time || '08:00',
-          endTime: s.end_time || (s.date && new Date(s.date + 'T12:00:00').getDay() === 0 ? '20:00' : '08:00'),
-          start_time: s.start_time,
-          end_time: s.end_time,
-          status: 'Confirmado'
-        })),
-      ...extraHours
-        .filter(eh => {
-          if (eh.category !== 'CFO II - Registro de Horas' || eh.date >= today) return false;
-          // Normalização e deduplicação
-          const ehDate = eh.date.split('T')[0];
-          const hasExistingShift = processedShifts.some(s => {
-            const shiftDate = s.date.split('T')[0];
-            return shiftDate === ehDate && s.type === 'Escala Diversa';
-          });
-          return !hasExistingShift;
-        })
-        .map(eh => ({
-          id: eh.id,
-          date: eh.date,
-          type: 'Escala Diversa',
-          description: eh.description.replace('Escala Diversa: ', ''),
-          location: '',
-          isStage: false,
-          isExtra: true,
-          startTime: '08:00',
-          endTime: '12:00',
-          start_time: undefined,
-          end_time: undefined,
-          status: 'Confirmado'
-        }))
-    ];
-    return list
-      .filter(s => s.date < today)
-      .filter(s => selectedPastTypes.includes(s.type))
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [processedShifts, personalStages, extraHours, today, selectedPastTypes]);
-
-  const todayShifts = useMemo(() => {
-    const all = [
-      ...processedShifts.map(s => ({ ...s, isStage: false, start_time: (s as any).start_time, end_time: (s as any).end_time })),
-      ...personalStages
-        .filter(ps => !processedShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
-        .map(s => ({
-          id: s.id,
-          date: s.date,
-          type: 'Estágio',
-          location: s.location,
-          isStage: true,
-          startTime: s.start_time || '08:00',
-          endTime: s.end_time || (s.date && safeParseISO(s.date).getDay() === 0 ? '20:00' : '08:00'),
           start_time: s.start_time,
           end_time: s.end_time,
           status: 'Confirmado'
@@ -369,7 +349,7 @@ const PersonalShiftPage: React.FC = () => {
         .filter(eh => {
           if (eh.category !== 'CFO II - Registro de Horas') return false;
           const ehDate = eh.date.split('T')[0];
-          return ehDate === today;
+          return !rawPersonalShifts.some(s => s.date.split('T')[0] === ehDate && s.type === 'Escala Diversa');
         })
         .map(eh => ({
           id: eh.id,
@@ -385,203 +365,128 @@ const PersonalShiftPage: React.FC = () => {
           end_time: undefined,
           status: 'Confirmado'
         }))
-    ];
-
-    return all.filter(s => {
-      const sDate = (s.date && typeof s.date === 'string') ? s.date.split('T')[0] : s.date;
-      return sDate === today;
-    }).map(s => {
-      let startTime = s.startTime;
-      let endTime = s.endTime;
-      const date = safeParseISO(s.date);
+    ].map(item => {
+      // Pre-calculate times for "Hoje" logic normalization
+      let { startTime, endTime } = item;
+      const date = safeParseISO(item.date);
       const dayOfWeek = date.getDay();
-      const sTypeLower = (s.type || '').trim().toLowerCase();
-      const isHoliday = holidays.some(h => {
-        const hDate = (h.date && typeof h.date === 'string') ? h.date.split('T')[0] : h.date;
-        const targetDate = (s.date && typeof s.date === 'string') ? s.date.split('T')[0] : s.date;
-        return hDate === targetDate;
-      });
+      const sTypeLower = (item.type || '').trim().toLowerCase();
+      const itemDateOnly = item.date.split('T')[0];
+      const isHoliday = holidays.some(h => h.date.split('T')[0] === itemDateOnly);
 
       if (sTypeLower === 'comandante da guarda') {
         if (dayOfWeek >= 1 && dayOfWeek <= 5 && !isHoliday) {
-          startTime = '20:00';
-          endTime = '06:30';
+          startTime = '20:00'; endTime = '06:30';
         } else {
-          startTime = '06:30';
-          endTime = '06:30';
+          startTime = '06:30'; endTime = '06:30';
         }
       } else if (sTypeLower === 'estágio') {
-        if (s.start_time && s.end_time) {
-          startTime = s.start_time;
-          endTime = s.end_time;
-        } else if (dayOfWeek === 6) { // Sábado
-          startTime = '08:00';
-          endTime = '08:00';
-        } else if (dayOfWeek === 0) { // Domingo
-          startTime = '08:00';
-          endTime = '20:00';
-        } else { // Dia de semana (se houver estágio)
-          startTime = '08:00';
-          endTime = '20:00';
-        }
+        if (item.start_time && item.end_time) {
+          startTime = item.start_time; endTime = item.end_time;
+        } else if (dayOfWeek === 6) { startTime = '08:00'; endTime = '08:00'; }
+        else if (dayOfWeek === 0) { startTime = '08:00'; endTime = '20:00'; }
+        else { startTime = '08:00'; endTime = '20:00'; }
       } else if (sTypeLower === 'manutenção') {
-        startTime = '06:00';
-        endTime = '07:30';
+        startTime = '06:00'; endTime = '07:30';
       } else if (sTypeLower === 'sobreaviso' || sTypeLower === 'faxina') {
-        startTime = '';
-        endTime = '';
+        startTime = ''; endTime = '';
       }
 
-      return { ...s, startTime, endTime };
-    });
-  }, [processedShifts, personalStages, extraHours, today, holidays]);
-
-  const upcomingGrouped = useMemo(() => groupByMonth(combinedUpcoming), [combinedUpcoming]);
-  const pastGrouped = useMemo(() => groupByMonth(combinedPast), [combinedPast]);
-
-  const isExcludedActivity = (type: string) => {
-    const excludedExact = ['CFO I - Faxina', 'CFO I - Manutenção', 'CFO I - Sobreaviso'];
-    if (excludedExact.includes(type)) return true;
-    return type.startsWith('CFO I - Estágio');
-  };
-
-  const totalShiftHours = useMemo(() => {
-    const filteredShifts = workloadSelectedMonths.length === 0
-      ? personalShifts
-      : personalShifts.filter(s => {
-        const shiftMonth = safeParseISO(s.date).getMonth();
-        return workloadSelectedMonths.includes(shiftMonth);
-      });
-
-    const shiftHours = filteredShifts
-      .filter(s => !isExcludedActivity(s.type) && s.type !== 'Barra')
-      .reduce((acc, s) => acc + calculateShiftHours(s), 0);
-
-    const filteredStages = workloadSelectedMonths.length === 0
-      ? personalStages
-      : personalStages.filter(ps => {
-        const stageMonth = safeParseISO(ps.date).getMonth();
-        return workloadSelectedMonths.includes(stageMonth);
-      });
-
-    const standaloneStageHours = filteredStages
-      .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
-      .reduce((acc, ps) => acc + calculateShiftHours({ ...ps, type: 'Estágio' }), 0);
-
-    return shiftHours + standaloneStageHours;
-  }, [personalShifts, personalStages, workloadSelectedMonths]);
-
-  const totalExtraHours = useMemo(() => {
-    const filteredExtra = workloadSelectedMonths.length === 0
-      ? extraHours
-      : extraHours.filter(e => {
-        const extraMonth = safeParseISO(e.date || '').getMonth();
-        return workloadSelectedMonths.includes(extraMonth);
-      });
-
-    return filteredExtra
-      .filter(e => !isExcludedActivity(e.category))
-      .reduce((acc, e) => acc + (e.hours + e.minutes / 60), 0);
-  }, [extraHours, workloadSelectedMonths]);
-
-  const totalWorkload = totalShiftHours + totalExtraHours;
-
-  const totalOtherServices = useMemo(() => {
-    const filteredShifts = workloadSelectedMonths.length === 0
-      ? personalShifts
-      : personalShifts.filter(s => {
-        const shiftMonth = safeParseISO(s.date).getMonth();
-        return workloadSelectedMonths.includes(shiftMonth);
-      });
-
-    return filteredShifts.filter(s =>
-      ['Sobreaviso', 'Faxina', 'Manutenção'].includes(s.type) && !isExcludedActivity(s.type)
-    ).length;
-  }, [personalShifts, workloadSelectedMonths]);
-
-  const totalStageHours = useMemo(() => {
-    const shiftHours = personalShifts
-      .filter(s => s.type === 'Estágio')
-      .reduce((acc, s) => acc + calculateShiftHours(s), 0);
-
-    const standaloneStageHours = personalStages
-      .filter(ps => !personalShifts.some(s => s.date === ps.date && s.type === 'Estágio'))
-      .reduce((acc, ps) => acc + calculateShiftHours({ ...ps, type: 'Estágio' }), 0);
-
-    return shiftHours + standaloneStageHours;
-  }, [personalShifts, personalStages]);
-
-  const groupedSummary = useMemo(() => {
-    const summary: Record<string, { totalHours: number, totalServices: number, type: string }> = {};
-
-    const filteredShifts = workloadSelectedMonths.length === 0
-      ? personalShifts
-      : personalShifts.filter(s => {
-        const shiftMonth = safeParseISO(s.date).getMonth();
-        return workloadSelectedMonths.includes(shiftMonth);
-      });
-
-    const filteredExtra = workloadSelectedMonths.length === 0
-      ? extraHours
-      : extraHours.filter(e => {
-        const extraMonth = safeParseISO(e.date || '').getMonth();
-        return workloadSelectedMonths.includes(extraMonth);
-      });
-
-    const filteredStages = workloadSelectedMonths.length === 0
-      ? personalStages
-      : personalStages.filter(ps => {
-        const stageMonth = safeParseISO(ps.date).getMonth();
-        return workloadSelectedMonths.includes(stageMonth);
-      });
-
-    filteredShifts.forEach(s => {
-      if (isExcludedActivity(s.type)) return;
-      const hours = s.type === 'Barra' ? 0 : calculateShiftHours(s);
-      if (!summary[s.type]) summary[s.type] = { totalHours: 0, totalServices: 0, type: s.type };
-      if (hours > 0) summary[s.type].totalHours += hours;
-      else summary[s.type].totalServices += 1;
+      return { ...item, startTime, endTime, hours: calculateShiftHours(item) };
     });
 
-    filteredStages.forEach(ps => {
-      if (filteredShifts.some(s => s.date === ps.date && s.type === 'Estágio')) return;
-      const type = 'Estágio';
-      const hours = calculateShiftHours({ ...ps, type });
-      if (!summary[type]) summary[type] = { totalHours: 0, totalServices: 0, type };
-      summary[type].totalHours += hours;
-    });
+    // 3. Split into Today, Upcoming, Past
+    const todayItems = allItems.filter(s => s.date.split('T')[0] === today);
+    const upcomingItems = allItems
+      .filter(s => s.date.split('T')[0] >= today && selectedShiftTypes.includes(s.type))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const pastItems = allItems
+      .filter(s => s.date.split('T')[0] < today && selectedPastTypes.includes(s.type))
+      .sort((a, b) => b.date.localeCompare(a.date));
 
-    filteredExtra.forEach(e => {
-      let type = e.category || 'Registro de Horas';
-
-      // Consolidate CFO II - Registro de Horas into Escala Diversa
-      if (type === 'CFO II - Registro de Horas') {
-        type = 'Escala Diversa';
-        // Avoid double counting if a shift of type "Escala Diversa" already exists for this date
-        const shiftDate = e.date?.split('T')[0];
-        if (filteredShifts.some(s => s.type === 'Escala Diversa' && s.date?.split('T')[0] === shiftDate)) {
-          return;
-        }
-      }
-
-      if (isExcludedActivity(type)) return;
-      if (!summary[type]) summary[type] = { totalHours: 0, totalServices: 0, type };
-      summary[type].totalHours += (e.hours + e.minutes / 60);
-    });
-
-    const priorityOrder = (type: string) => {
-      // CFO I manual records (Sentinela, Acumulado) at the very bottom
-      if (type.startsWith('CFO I')) return 100;
-      return SHIFT_TYPE_PRIORITY[type] || 99;
+    // 4. Group by Month
+    const groupByMonth = (list: any[]) => {
+      const groups: { month: string, items: any[] }[] = [];
+      list.forEach(s => {
+        const monthYear = safeParseISO(s.date).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        const last = groups[groups.length - 1];
+        if (last && last.month === monthYear) last.items.push(s);
+        else groups.push({ month: monthYear, items: [s] });
+      });
+      return groups;
     };
 
-    return Object.values(summary).sort((a, b) => {
-      const pA = priorityOrder(a.type);
-      const pB = priorityOrder(b.type);
-      if (pA !== pB) return pA - pB;
-      return a.type.localeCompare(b.type);
+    // 5. Statistics & Summary
+    const monthFilter = workloadSelectedMonths;
+    const isFiltered = (d: string) => monthFilter.length === 0 || monthFilter.includes(safeParseISO(d).getMonth());
+
+    const summaryMap: Record<string, { totalHours: number, totalServices: number, type: string }> = {};
+    let totalShiftH = 0;
+    let totalExtraH = 0;
+    let totalOtherS = 0;
+    let totalStageH = 0;
+
+    // Calculate Summary and Stats in one pass
+    allItems.forEach(item => {
+      const type = item.type;
+      const hours = item.hours || 0;
+      const inFilter = isFiltered(item.date);
+
+      if (inFilter) {
+        if (!isExcludedActivity(type)) {
+          if (type !== 'Barra') totalShiftH += hours;
+        }
+        if (['Sobreaviso', 'Faxina', 'Manutenção'].includes(type) && !isExcludedActivity(type)) {
+          totalOtherS++;
+        }
+      }
+
+      // Special case for stage hours (requirement progress)
+      if (type === 'Estágio') totalStageH += hours;
+
+      if (inFilter) {
+        if (!summaryMap[type]) summaryMap[type] = { totalHours: 0, totalServices: 0, type };
+        if (hours > 0) summaryMap[type].totalHours += hours;
+        else summaryMap[type].totalServices += 1;
+      }
     });
-  }, [personalShifts, extraHours, personalStages, workloadSelectedMonths]);
+
+    // Extra hours specific logic (avoiding double counting Escala Diversa)
+    extraHours.forEach(e => {
+      if (isExcludedActivity(e.category)) return;
+      const inFilter = isFiltered(e.date);
+      if (inFilter) totalExtraH += (e.hours + e.minutes / 60);
+
+      // Consolidate in summary
+      let type = e.category === 'CFO II - Registro de Horas' ? 'Escala Diversa' : (e.category || 'Registro de Horas');
+      if (type === 'Escala Diversa' && rawPersonalShifts.some(s => s.type === 'Escala Diversa' && s.date.split('T')[0] === e.date.split('T')[0])) return;
+
+      if (inFilter) {
+        if (!summaryMap[type]) summaryMap[type] = { totalHours: 0, totalServices: 0, type };
+        summaryMap[type].totalHours += (e.hours + e.minutes / 60);
+      }
+    });
+
+    const priorityOrder = (t: string) => t.startsWith('CFO I') ? 100 : (SHIFT_TYPE_PRIORITY[t] || 99);
+    const sortedSummary = Object.values(summaryMap).sort((a, b) => {
+      const pA = priorityOrder(a.type), pB = priorityOrder(b.type);
+      return pA !== pB ? pA - pB : a.type.localeCompare(b.type);
+    });
+
+    return {
+      todayItems,
+      upcomingGroups: groupByMonth(upcomingItems),
+      pastGroups: groupByMonth(pastItems),
+      summary: sortedSummary,
+      stats: {
+        totalShiftHours: totalShiftH,
+        totalExtraHours: totalExtraH,
+        totalWorkload: totalShiftH + totalExtraH,
+        activeOtherServices: totalOtherS,
+        totalStageHours: totalStageH
+      }
+    };
+  }, [selectedMilitaryId, allShifts, personalStages, extraHours, today, selectedShiftTypes, selectedPastTypes, workloadSelectedMonths, holidays]);
 
 
 
@@ -707,9 +612,9 @@ const PersonalShiftPage: React.FC = () => {
                 <span className="material-symbols-outlined text-primary text-xl">today</span>
                 Escalas de Hoje
               </h2>
-              {todayShifts.length > 0 ? (
+              {data && data.todayItems.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {todayShifts.map((s: any, idx: number) => {
+                  {data.todayItems.map((s: any, idx: number) => {
                     const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
                     return (
                       <div key={s.id || idx} className={`${colors.bg} rounded-2xl border-2 ${colors.border} p-5 relative overflow-hidden group hover:shadow-lg transition-all`}>
@@ -774,7 +679,7 @@ const PersonalShiftPage: React.FC = () => {
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                {upcomingGrouped.map((group, gIdx) => (
+                {data && data.upcomingGroups.map((group, gIdx) => (
                   <div key={group.month}>
                     <div className="bg-slate-50/80 dark:bg-slate-800/80 px-4 py-2 border-y border-slate-200 dark:border-slate-700 flex items-center gap-2">
                       <span className="material-symbols-outlined text-slate-400 text-sm">calendar_month</span>
@@ -783,61 +688,22 @@ const PersonalShiftPage: React.FC = () => {
                     <div className="hidden sm:block">
                       <table className="w-full text-left">
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {group.items.map((s: any, idx: number) => (
-                            <tr key={s.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                              <td className="px-6 py-4 w-40">
-                                <div className="flex flex-col">
-                                  <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                                    {safeParseISO(s.date).toLocaleDateString('pt-BR')}
-                                  </span>
-                                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter text-left">
-                                    {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className={`px-2.5 py-0.5 rounded-md ${SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700'} text-[10px] font-bold uppercase border ${SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100'}`}>
-                                  {s.type}
-                                  {s.location && ` - ${s.location}`}
-                                  {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
-                                  {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
-                                  {s.type === 'Estágio' && (holidays.some(h => h.date === s.date) || safeParseISO(s.date).getDay() === 0 || safeParseISO(s.date).getDay() === 6 || (s.start_time && s.end_time)) && ` (${s.startTime} às ${s.endTime})`}
-                                  {s.type === 'Barra' && ` (${s.startTime})`}
-                                </span>
-                              </td>
-                            </tr>
+                          {group.items.map((s, idx) => (
+                            <ShiftRow key={s.id || idx} s={s} holidays={holidays} />
                           ))}
                         </tbody>
                       </table>
                     </div>
 
                     <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                      {group.items.map((s: any, idx: number) => (
-                        <div key={s.id || idx} className="p-4 flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
-                            <span className="text-sm font-black text-slate-800 dark:text-white">
-                              {safeParseISO(s.date).toLocaleDateString('pt-BR')}
-                            </span>
-                            <span className="text-[10px] text-primary font-bold uppercase tracking-tighter">
-                              {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'short' })}
-                            </span>
-                          </div>
-                          <span className={`px-2 py-1 rounded-md ${SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700'} text-[9px] font-black uppercase border ${SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100'}`}>
-                            {s.type}
-                            {s.location && ` - ${s.location}`}
-                            {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
-                            {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
-                            {s.type === 'Estágio' && (holidays.some(h => h.date === s.date) || safeParseISO(s.date).getDay() === 0 || safeParseISO(s.date).getDay() === 6 || (s.start_time && s.end_time)) && ` (${s.startTime} às ${s.endTime})`}
-                            {s.type === 'Barra' && ` (${s.startTime})`}
-                          </span>
-                        </div>
+                      {group.items.map((s, idx) => (
+                        <ShiftCard key={s.id || idx} s={s} holidays={holidays} />
                       ))}
                     </div>
                   </div>
                 ))}
 
-                {combinedUpcoming.length === 0 && (
+                {(!data || data.upcomingGroups.length === 0) && (
                   <div className="p-10 text-center text-slate-400 italic text-sm">Nenhum serviço ou estágio agendado.</div>
                 )}
               </div>
@@ -945,11 +811,11 @@ const PersonalShiftPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {groupedSummary.map((item, index) => (
+                      {data && data.summary.map((item: any, index: number) => (
                         <tr key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'}`}></div>
+                              <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type as any]?.dot || 'bg-primary'}`}></div>
                               <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.type}</span>
                             </div>
                           </td>
@@ -965,10 +831,10 @@ const PersonalShiftPage: React.FC = () => {
                 </div>
 
                 <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                  {groupedSummary.map((item, index) => (
+                  {data && data.summary.map((item: any, index: number) => (
                     <div key={index} className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type]?.dot || 'bg-primary'} shrink-0`}></div>
+                        <div className={`w-2 h-2 rounded-full ${SHIFT_TYPE_COLORS[item.type as any]?.dot || 'bg-primary'} shrink-0`}></div>
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">{item.type}</span>
                       </div>
                       <span className={`px-2 py-1 rounded text-[10px] font-black ${item.totalHours > 0 ? 'bg-primary/10 text-primary' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
@@ -994,27 +860,27 @@ const PersonalShiftPage: React.FC = () => {
                   <div className="flex justify-between items-end">
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Acumulado</p>
-                      <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{totalStageHours.toFixed(1)}h <span className="text-sm text-slate-400">/ 140h</span></h3>
+                      <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{data ? data.stats.totalStageHours.toFixed(1) : '0.0'}h <span className="text-sm text-slate-400">/ 140h</span></h3>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Porcentagem</p>
-                      <h3 className="text-2xl font-black text-slate-800 dark:text-white">{Math.min(100, (totalStageHours / 140) * 100).toFixed(1)}%</h3>
+                      <h3 className="text-2xl font-black text-slate-800 dark:text-white">{data ? Math.min(100, (data.stats.totalStageHours / 140) * 100).toFixed(1) : '0.0'}%</h3>
                     </div>
                   </div>
 
                   <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-200 dark:border-slate-700">
                     <div
                       className="h-full bg-indigo-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                      style={{ width: `${Math.min(100, (totalStageHours / 140) * 100)}%` }}
+                      style={{ width: `${data ? Math.min(100, (data.stats.totalStageHours / 140) * 100) : 0}%` }}
                     ></div>
                   </div>
 
                   <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800/50">
                     <span className="material-symbols-outlined text-indigo-500 text-sm">info</span>
                     <p className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-tight">
-                      {totalStageHours >= 140
+                      {data && data.stats.totalStageHours >= 140
                         ? "Parabéns! Requisito de estágio cumprido com sucesso."
-                        : `Faltam ${Math.max(0, 140 - totalStageHours).toFixed(1)} horas para completar o requisito de 140h.`}
+                        : `Faltam ${data ? Math.max(0, 140 - data.stats.totalStageHours).toFixed(1) : '140.0'} horas para completar o requisito de 140h.`}
                     </p>
                   </div>
                 </div>
@@ -1132,13 +998,13 @@ const PersonalShiftPage: React.FC = () => {
                 })}
               </div>
 
-              {combinedPast.length === 0 ? (
+              {(!data || data.pastGroups.length === 0) ? (
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border border-slate-200 dark:border-slate-800 text-center">
                   <p className="text-sm text-slate-500 font-medium">Nenhum serviço anterior registrado.</p>
                 </div>
               ) : (
                 <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  {pastGrouped.map((group, gIdx) => (
+                  {data.pastGroups.map((group, gIdx) => (
                     <div key={group.month}>
                       <div className="bg-slate-50/80 dark:bg-slate-800/80 px-4 py-2 border-y border-slate-200 dark:border-slate-700 flex items-center gap-2">
                         <span className="material-symbols-outlined text-slate-400 text-sm">calendar_month</span>
@@ -1147,50 +1013,16 @@ const PersonalShiftPage: React.FC = () => {
                       <div className="hidden sm:block">
                         <table className="w-full text-left">
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {group.items.map((s: any, idx: number) => (
-                              <tr key={s.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                                <td className="px-6 py-4 w-40">
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-extrabold text-slate-400 dark:text-slate-500">
-                                      {safeParseISO(s.date).toLocaleDateString('pt-BR')}
-                                    </span>
-                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter text-left">
-                                      {safeParseISO(s.date).toLocaleDateString('pt-BR', { weekday: 'long' })}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className={`px-2.5 py-0.5 rounded-md ${SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700'} text-[10px] font-bold uppercase border ${SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100'}`}>
-                                    {s.type}
-                                    {s.location && ` - ${s.location}`}
-                                    {s.type === 'Escala Diversa' && s.description && `: ${s.description}`}
-                                    {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
-                                    {s.type === 'Estágio' && (holidays.some(h => h.date === s.date) || safeParseISO(s.date).getDay() === 0 || safeParseISO(s.date).getDay() === 6 || (s.start_time && s.end_time)) && ` (${s.startTime} às ${s.endTime})`}
-                                    {s.type === 'Barra' && ` (${s.startTime})`}
-                                  </span>
-                                </td>
-                              </tr>
+                            {group.items.map((s, idx) => (
+                              <ShiftRow key={s.id || idx} s={s} holidays={holidays} />
                             ))}
                           </tbody>
                         </table>
                       </div>
 
                       <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                        {group.items.map((s: any, idx: number) => (
-                          <div key={s.id || idx} className="p-4 flex items-center justify-between">
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</span>
-                              <span className="text-sm font-black text-slate-400 dark:text-slate-500">
-                                {safeParseISO(s.date).toLocaleDateString('pt-BR')}
-                              </span>
-                            </div>
-                            <span className={`px-2 py-1 rounded-md ${SHIFT_TYPE_COLORS[s.type as any]?.bg || 'bg-blue-50'} ${SHIFT_TYPE_COLORS[s.type as any]?.text || 'text-blue-700'} text-[9px] font-black uppercase border ${SHIFT_TYPE_COLORS[s.type as any]?.border || 'border-blue-100'}`}>
-                              {s.type}
-                              {s.location && ` - ${s.location}`}
-                              {s.type === 'Escala Diversa' && ` (${s.startTime} às ${s.endTime})`}
-                              {s.type === 'Estágio' && (holidays.some(h => h.date === s.date) || safeParseISO(s.date).getDay() === 0 || safeParseISO(s.date).getDay() === 6 || (s.start_time && s.end_time)) && ` (${s.startTime} às ${s.endTime})`}
-                            </span>
-                          </div>
+                        {group.items.map((s, idx) => (
+                          <ShiftCard key={s.id || idx} s={s} holidays={holidays} />
                         ))}
                       </div>
                     </div>
@@ -1245,21 +1077,21 @@ const PersonalShiftPage: React.FC = () => {
             <div className="relative z-10">
               <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Carga Horária Total</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold text-white tracking-tighter">{totalWorkload.toFixed(1)}</span>
+                <span className="text-4xl font-extrabold text-white tracking-tighter">{data ? data.stats.totalWorkload.toFixed(1) : '0.0'}</span>
                 <span className="text-sm font-bold text-white/80">HRS</span>
               </div>
               <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
                 <div className="flex justify-between items-center text-[10px] text-white/70 font-bold uppercase tracking-tight">
                   <span>Serviços:</span>
-                  <span>{totalShiftHours}h</span>
+                  <span>{data ? data.stats.totalShiftHours.toFixed(1) : '0.0'}h</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-white/70 font-bold uppercase tracking-tight">
                   <span>Reg. Horas:</span>
-                  <span>{totalExtraHours.toFixed(1)}h</span>
+                  <span>{data ? data.stats.totalExtraHours.toFixed(1) : '0.0'}h</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-white/70 font-bold uppercase tracking-tight pt-2 border-t border-white/10">
                   <span>Outros Serviços:</span>
-                  <span>{totalOtherServices} Un</span>
+                  <span>{data ? data.stats.activeOtherServices : '0'} Un</span>
                 </div>
               </div>
             </div>
