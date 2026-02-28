@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,9 +12,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const { militaries } = useMilitary();
-  const { isModerator } = useAuth();
+  const { isModerator, logout } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const militaryProfile = useMemo(() => {
     if (!profile || !militaries) return null;
@@ -101,8 +102,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
           <button
             onClick={async () => {
-              await supabase.auth.signOut();
-              window.location.href = '/#/auth';
+              await logout();
+              navigate('/auth');
             }}
             className="hidden lg:block p-1.5 text-slate-400 hover:text-red-500 transition-colors"
             title="Sair"
@@ -188,8 +189,9 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
             <button
               onClick={async () => {
-                await supabase.auth.signOut();
-                window.location.href = '/#/auth';
+                await logout();
+                navigate('/auth');
+                setIsMenuOpen(false);
               }}
               className="flex items-center gap-3 w-full px-3 py-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-bold transition-colors"
             >

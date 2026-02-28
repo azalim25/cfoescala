@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const { data: { session } } = await supabase.auth.getSession();
                 setSession(session);
                 if (session?.user) {
-                    await fetchUserRole(session.user.id);
+                    fetchUserRole(session.user.id); // Non-blocking
                 }
             } catch (error) {
                 console.error('Erro ao inicializar autenticação:', error);
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
                 setSession(session);
                 if (session?.user) {
-                    await fetchUserRole(session.user.id);
+                    fetchUserRole(session.user.id); // Non-blocking
                 } else {
                     setRole(null);
                     setIsModerator(false);

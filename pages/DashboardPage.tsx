@@ -150,6 +150,13 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    // Auto-scroll to details on mobile when a day is selected
+    if (window.innerWidth < 1024) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [selectedDay, currentMonth, currentYear]);
+
   const handleOpenAddModal = () => {
     setEditingShift(null);
     setFormData({
@@ -475,7 +482,7 @@ const DashboardPage: React.FC = () => {
           .map(s => ({ ...s, isStage: true, type: 'Estágio' as const, militaryId: s.military_id })),
         ...dayShifts
           .filter(s => isShiftVisibleLocal(s.type))
-          .map(s => ({ ...s, isStage: false })),
+          .map(s => ({ ...s, isStage: s.type === 'Estágio' })),
         ...dayExtraHours
           .filter(eh => isShiftVisibleLocal('Escala Diversa'))
           .map(eh => ({
@@ -530,9 +537,10 @@ const DashboardPage: React.FC = () => {
               return (
                 <div
                   key={s.id}
-                  className="text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
+                  className="text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
                 >
                   📌 {militaries.find(m => m.id === s.militaryId)?.name}
+                  <span className="block text-[6px] sm:text-[7px] opacity-70 uppercase leading-none mt-0.5">{s.location}</span>
                 </div>
               );
             }
@@ -546,9 +554,10 @@ const DashboardPage: React.FC = () => {
                     onEditShift(s as Shift);
                   }
                 }}
-                className={`text-[7px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
+                className={`text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
               >
                 {militaries.find(m => m.id === s.militaryId)?.name}
+                {(s.type === 'Escala Diversa' || s.type === 'Estágio') && <span className="block text-[6px] sm:text-[7px] opacity-70 uppercase leading-none mt-0.5">{s.location}</span>}
               </div>
             );
           })}
@@ -680,7 +689,7 @@ const DashboardPage: React.FC = () => {
       </MainLayout.Content>
 
       <MainLayout.Sidebar>
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20">
+        <div id="fiche-do-dia" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
