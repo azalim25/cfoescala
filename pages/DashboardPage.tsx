@@ -162,7 +162,7 @@ const DashboardPage: React.FC = () => {
     setFormData({
       militaryId: '',
       type: 'Escala Geral',
-      location: 'QCG',
+      location: 'Pel ABM',
       duration: undefined,
       description: '',
       startTime: '08:00',
@@ -178,7 +178,7 @@ const DashboardPage: React.FC = () => {
     setFormData({
       militaryId: shift.militaryId,
       type: shift.type,
-      location: (shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : shift.location || 'QCG',
+      location: (shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : shift.location || 'Pel ABM',
       duration: shift.duration,
       description: shift.type === 'Escala Diversa' ? shift.location : '',
       startTime: shift.startTime,
@@ -537,7 +537,7 @@ const DashboardPage: React.FC = () => {
               return (
                 <div
                   key={s.id}
-                  className="text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-amber-100 text-amber-700 truncate border border-amber-200"
+                  className="text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-indigo-50 text-indigo-700 truncate border border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
                 >
                   📌 {militaries.find(m => m.id === s.militaryId)?.name}
                   <span className="block text-[6px] sm:text-[7px] opacity-70 uppercase leading-none mt-0.5">{s.location}</span>
@@ -759,7 +759,7 @@ const DashboardPage: React.FC = () => {
 
                 const unifiedList = [
                   ...dayShifts.map(s => ({ ...s, isStage: false })),
-                  ...dayStages.map(s => ({ ...s, isStage: true, type: 'Estágio' as const, militaryId: s.military_id })),
+                  ...dayStages.map(s => ({ ...s, isStage: true, type: 'Estágio' as const, militaryId: s.military_id, location: s.location })),
                   ...dayExtraHours.map(eh => ({
                     id: eh.id,
                     militaryId: eh.military_id,

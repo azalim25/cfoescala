@@ -17,7 +17,7 @@ export const MOCK_SHIFTS: Shift[] = [
     type: 'Comandante da Guarda',
     startTime: '08:00',
     endTime: '08:00',
-    location: 'QCG',
+    location: 'Pel ABM',
     militaryId: '2',
     status: 'Confirmado'
   },
