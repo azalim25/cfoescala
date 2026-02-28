@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
-import { MOCK_SHIFTS, SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
+import { MOCK_SHIFTS, SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY, STAGE_LOCATIONS } from '../constants';
 import { useShift } from '../contexts/ShiftContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Shift, Rank } from '../types';
 import { supabase } from '../supabase';
 import { safeParseISO } from '../utils/dateUtils';
+
+const formatLocation = (type: string, location: string | null | undefined) => {
+  if (!location) return '';
+  const normLoc = location.trim().toUpperCase();
+  if (normLoc === 'QCG' || normLoc === 'PEL ABM') return 'ABM';
+  return location;
+};
 
 const DashboardPage: React.FC = () => {
   const { shifts: allShifts, createShift, updateShift, removeShift, preferences, holidays, addHoliday, removeHoliday } = useShift();
@@ -162,7 +169,7 @@ const DashboardPage: React.FC = () => {
     setFormData({
       militaryId: '',
       type: 'Escala Geral',
-      location: 'Pel ABM',
+      location: 'ABM',
       duration: undefined,
       description: '',
       startTime: '08:00',
@@ -178,7 +185,7 @@ const DashboardPage: React.FC = () => {
     setFormData({
       militaryId: shift.militaryId,
       type: shift.type,
-      location: (shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : shift.location || 'Pel ABM',
+      location: (shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : (shift.location === 'QCG' ? 'ABM' : shift.location || 'ABM'),
       duration: shift.duration,
       description: shift.type === 'Escala Diversa' ? shift.location : '',
       startTime: shift.startTime,
@@ -478,10 +485,10 @@ const DashboardPage: React.FC = () => {
 
       return [
         ...dayStages
-          .filter(st => isShiftVisibleLocal('Estágio') && !dayShifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'))
+          .filter(st => isShiftVisibleLocal('Estágio'))
           .map(s => ({ ...s, isStage: true, type: 'Estágio' as const, militaryId: s.military_id })),
         ...dayShifts
-          .filter(s => isShiftVisibleLocal(s.type))
+          .filter(s => isShiftVisibleLocal(s.type) && !(s.type === 'Estágio' && dayStages.some(st => st.military_id === s.militaryId)))
           .map(s => ({ ...s, isStage: s.type === 'Estágio' })),
         ...dayExtraHours
           .filter(eh => isShiftVisibleLocal('Escala Diversa'))
@@ -540,7 +547,7 @@ const DashboardPage: React.FC = () => {
                   className="text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-indigo-50 text-indigo-700 truncate border border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
                 >
                   📌 {militaries.find(m => m.id === s.militaryId)?.name}
-                  <span className="block text-[6px] sm:text-[7px] opacity-70 uppercase leading-none mt-0.5">{s.location}</span>
+                  <span className="block text-[6px] sm:text-[7px] opacity-70 uppercase leading-none mt-0.5">{formatLocation(s.type, s.location)}</span>
                 </div>
               );
             }
@@ -557,7 +564,7 @@ const DashboardPage: React.FC = () => {
                 className={`text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
               >
                 {militaries.find(m => m.id === s.militaryId)?.name}
-                {(s.type === 'Escala Diversa' || s.type === 'Estágio') && <span className="block text-[6px] sm:text-[7px] opacity-70 uppercase leading-none mt-0.5">{s.location}</span>}
+                {(s.type === 'Escala Diversa' || s.type === 'Estágio') && <span className="block text-[6px] sm:text-[7px] opacity-70 uppercase leading-none mt-0.5">{formatLocation(s.type, s.location)}</span>}
               </div>
             );
           })}
@@ -754,11 +761,13 @@ const DashboardPage: React.FC = () => {
                 }
 
                 const dayShifts = dayData.shifts.filter(s => isShiftVisible(s.type));
-                const dayStages = dayData.stages.filter(st => isShiftVisible('Estágio') && !dayShifts.some(sh => sh.militaryId === st.military_id && sh.type === 'Estágio'));
+                const dayStages = dayData.stages.filter(st => isShiftVisible('Estágio'));
                 const dayExtraHours = dayData.extraHours.filter(eh => isShiftVisible('Escala Diversa'));
 
                 const unifiedList = [
-                  ...dayShifts.map(s => ({ ...s, isStage: false })),
+                  ...dayShifts
+                    .filter(s => !(s.type === 'Estágio' && dayStages.some(st => st.military_id === s.militaryId)))
+                    .map(s => ({ ...s, isStage: s.type === 'Estágio' })),
                   ...dayStages.map(s => ({ ...s, isStage: true, type: 'Estágio' as const, militaryId: s.military_id, location: s.location })),
                   ...dayExtraHours.map(eh => ({
                     id: eh.id,
@@ -796,7 +805,7 @@ const DashboardPage: React.FC = () => {
                               </span>
                             </div>
                             <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
-                              {s.location || 'Local não definido'}
+                              {formatLocation(s.type, s.location) || 'Local não definido'}
                               {s.startTime && ` • ${s.startTime} - ${s.endTime}`}
                             </p>
                           </div>
