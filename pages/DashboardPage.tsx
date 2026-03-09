@@ -28,7 +28,7 @@ const DashboardPage: React.FC = () => {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const [editingShift, setEditingShift] = useState<Shift | any | null>(null);
   const [formData, setFormData] = useState<{
     militaryId: string;
     type: Shift['type'];
@@ -407,11 +407,27 @@ const DashboardPage: React.FC = () => {
 
       if (shiftType === 'Estágio') {
         try {
-          await supabase
+          // 1. Delete from stages table
+          const { error: stageError } = await supabase
             .from('stages')
             .delete()
             .eq('military_id', militaryId)
             .eq('date', dateStr);
+
+          if (stageError) throw stageError;
+
+          // 2. Also find and delete from shifts table if it exists as an 'Estágio' type
+          // The current editingShift.id might be a UUID from shifts OR a UUID from stages
+          // To be safe, we remove the matching shift from the context as well
+          const matchingShift = allShifts.find(s => s.militaryId === militaryId && s.date === dateStr && s.type === 'Estágio');
+          if (matchingShift) {
+            await removeShift(matchingShift.id);
+          } else if (!(editingShift as any).isStage) {
+            // If we are deleting a shift that IS an Estágio but didn't find "another" matching one, 
+            // the editingShift itself is the one in the shifts table
+            await removeShift(editingShift.id);
+          }
+
           const { data: updatedStages } = await supabase.from('stages').select('*');
           if (updatedStages) setStages(updatedStages);
         } catch (error) {
