@@ -137,8 +137,7 @@ const StageQuantityPage: React.FC = () => {
         const day = d.getDay();
 
         if (day === 6) return 24; // Saturday
-        if (day === 0) return 12; // Sunday
-        return 12;
+        return 12; // Weekdays and Sunday
     };
 
     // Aggregate data
@@ -188,7 +187,7 @@ const StageQuantityPage: React.FC = () => {
                 const baseLoc = findBaseLocKey(locToUse);
 
                 if (baseLoc && stats[s.militaryId][baseLoc]) {
-                    const duration = getDuration(s.date, (s as any).duration || (stageInTable as any)?.duration);
+                    const duration = (s as any).duration || (stageInTable as any)?.duration || getDuration(s.date);
                     if (duration === 24) stats[s.militaryId][baseLoc].p24.cfo2++;
                     else stats[s.militaryId][baseLoc].p12.cfo2++;
                 }

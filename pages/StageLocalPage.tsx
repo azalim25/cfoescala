@@ -136,20 +136,24 @@ const StageLocalPage: React.FC = () => {
                     extraKeywords.some(keyword => normLoc.includes(keyword));
 
                 if (isOfficial) {
+                    const stageInTable = stages.find(st => st.military_id === s.militaryId && st.date === s.date);
                     const alreadyExistsIndex = combined.findIndex(st => st.military_id === s.militaryId && st.date === s.date);
+
                     if (alreadyExistsIndex === -1) {
                         combined.push({
                             id: s.id,
                             military_id: s.militaryId,
                             date: s.date,
-                            location: s.location || '',
-                            start_time: s.startTime,
-                            end_time: s.endTime,
+                            location: stageInTable?.location || s.location || '',
+                            start_time: stageInTable?.start_time || s.startTime,
+                            end_time: stageInTable?.end_time || s.endTime,
                             isFromStages: false
                         } as any);
                     } else if (!(combined[alreadyExistsIndex] as any).isFromStages) {
-                        // If it's not from stages table, update location if missing
-                        combined[alreadyExistsIndex].location = s.location || combined[alreadyExistsIndex].location;
+                        // If it's not from stages table, update location and times if missing
+                        combined[alreadyExistsIndex].location = stageInTable?.location || s.location || combined[alreadyExistsIndex].location;
+                        combined[alreadyExistsIndex].start_time = stageInTable?.start_time || s.startTime || combined[alreadyExistsIndex].start_time;
+                        combined[alreadyExistsIndex].end_time = stageInTable?.end_time || s.endTime || combined[alreadyExistsIndex].end_time;
                     }
                 }
             }
