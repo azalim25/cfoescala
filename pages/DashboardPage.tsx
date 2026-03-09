@@ -59,6 +59,15 @@ const DashboardPage: React.FC = () => {
     []);
   const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
 
+  const activeDateStr = useMemo(() => {
+    return `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+  }, [currentYear, currentMonth, selectedDay]);
+
+  const activePreference = useMemo(() => {
+    if (!formData.militaryId || !preferences) return null;
+    return preferences.find(p => p.militaryId === formData.militaryId && p.date === activeDateStr);
+  }, [formData.militaryId, activeDateStr, preferences]);
+
   useEffect(() => {
     setSelectedShiftTypes([...allShiftTypes, 'Escala Diversa']);
   }, [allShiftTypes]);
@@ -875,6 +884,21 @@ const DashboardPage: React.FC = () => {
                     <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
                   ))}
                 </select>
+                {activePreference && (
+                  <div className={`mt-2 p-3 rounded-xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-200 ${activePreference.type === 'restriction' ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800 text-red-700 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'}`}>
+                    <span className="material-symbols-outlined text-xl">
+                      {activePreference.type === 'restriction' ? 'warning' : 'priority_high'}
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-widest leading-tight">
+                        {activePreference.type === 'restriction' ? 'Restrição' : 'Prioridade'}
+                      </span>
+                      <span className="text-xs font-bold leading-tight">
+                        {activePreference.type === 'restriction' ? 'Este militar possui uma restrição para este dia.' : 'Este militar solicitou prioridade para este dia.'}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">
