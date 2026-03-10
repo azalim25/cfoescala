@@ -809,7 +809,18 @@ const DashboardPage: React.FC = () => {
                     isExtra: true,
                     date: eh.date
                   }))
-                ].sort((a, b) => (SHIFT_TYPE_PRIORITY[a.type] || 99) - (SHIFT_TYPE_PRIORITY[b.type] || 99));
+                ].sort((a, b) => {
+                  const typePrio = (SHIFT_TYPE_PRIORITY[a.type] || 99) - (SHIFT_TYPE_PRIORITY[b.type] || 99);
+                  if (typePrio !== 0) return typePrio;
+
+                  const milA = militaries.find(m => m.id === (a.militaryId || a.military_id));
+                  const milB = militaries.find(m => m.id === (b.militaryId || b.military_id));
+                  const antA = milA?.antiguidade ?? 999999;
+                  const antB = milB?.antiguidade ?? 999999;
+
+                  if (antA !== antB) return antA - antB;
+                  return (milA?.name || '').localeCompare(milB?.name || '');
+                });
 
                 return unifiedList.map((s: any) => {
                   const m = militaries.find(mil => mil.id === s.militaryId);
