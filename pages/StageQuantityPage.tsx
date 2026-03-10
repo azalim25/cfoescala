@@ -251,8 +251,22 @@ const StageQuantityPage: React.FC = () => {
     const handleSaveCFO1 = async () => {
         if (!editingData) return;
         setIsSaving(true);
-        const category = `CFO I - Estágio - ${editingData.location} - ${editingData.duration}h`;
-        const existing = extraRecords.find(r => r.military_id === editingData.militaryId && r.category === category);
+
+        const normalizeStr = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+        const editingLocNorm = normalizeStr(editingData.location);
+
+        // Find existing record using the same logic as stageStats aggregation
+        const existing = extraRecords.find(r => {
+            if (r.military_id !== editingData.militaryId) return false;
+            const parts = r.category.split(' - ');
+            if (parts.length < 4) return false;
+            if (!r.category.startsWith('CFO I - Estágio - ')) return false;
+
+            const recordLocNorm = normalizeStr(parts[2]);
+            const recordDur = parseInt(parts[3]) || 12;
+
+            return recordLocNorm.includes(editingLocNorm) && recordDur === editingData.duration;
+        });
 
         try {
             if (existing) {
@@ -262,6 +276,7 @@ const StageQuantityPage: React.FC = () => {
                     await supabase.from('extra_hours').update({ hours: editingData.quantity }).eq('id', existing.id);
                 }
             } else if (editingData.quantity > 0) {
+                const category = `CFO I - Estágio - ${editingData.location} - ${editingData.duration}h`;
                 await supabase.from('extra_hours').insert({
                     military_id: editingData.militaryId,
                     category: category,
