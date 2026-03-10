@@ -191,12 +191,15 @@ const DashboardPage: React.FC = () => {
 
   const handleOpenEditModal = (shift: Shift) => {
     setEditingShift(shift);
+    const isStage = shift.type === 'Estágio';
+    const isOthers = isStage && shift.location && !STAGE_LOCATIONS.includes(shift.location);
+
     setFormData({
       militaryId: shift.militaryId,
       type: shift.type,
-      location: (shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : (shift.location === 'QCG' ? 'ABM' : shift.location || 'ABM'),
+      location: isOthers ? 'OUTROS' : ((shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : (shift.location === 'QCG' ? 'ABM' : shift.location || 'ABM')),
       duration: shift.duration,
-      description: shift.type === 'Escala Diversa' ? shift.location : '',
+      description: (shift.type === 'Escala Diversa' || isOthers) ? shift.location || '' : '',
       startTime: shift.startTime,
       endTime: shift.endTime,
       manualHours: shift.duration ? Math.floor(shift.duration) : 0,
@@ -306,7 +309,7 @@ const DashboardPage: React.FC = () => {
         await updateShift(editingShift.id, {
           militaryId: formData.militaryId,
           type: formData.type,
-          location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
+          location: (formData.type === 'Escala Diversa' || (formData.type === 'Estágio' && formData.location === 'OUTROS')) ? formData.description : formData.location,
           duration: Math.round(finalDuration || 0),
           startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
           endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
@@ -318,7 +321,7 @@ const DashboardPage: React.FC = () => {
           type: formData.type,
           startTime: finalStartTime,
           endTime: finalEndTime,
-          location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
+          location: (formData.type === 'Escala Diversa' || (formData.type === 'Estágio' && formData.location === 'OUTROS')) ? formData.description : formData.location,
           status: 'Confirmado',
           duration: Math.round(finalDuration || 0)
         });
@@ -362,7 +365,7 @@ const DashboardPage: React.FC = () => {
         }
       }
 
-      if (formData.type === 'Estágio') {
+      if (formData.type === 'Estágio' && formData.location !== 'OUTROS') {
         const stageData = {
           military_id: formData.militaryId,
           location: formData.location,
@@ -943,8 +946,22 @@ const DashboardPage: React.FC = () => {
                       {STAGE_LOCATIONS.map(loc => (
                         <option key={loc} value={loc}>{loc.split(' - ')[0]}</option>
                       ))}
+                      <option value="OUTROS">OUTROS</option>
                     </select>
                   </div>
+
+                  {formData.location === 'OUTROS' && (
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Descrição do Local</label>
+                      <input
+                        type="text"
+                        placeholder="Especifique o local..."
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Duração</label>
                     <div className="grid grid-cols-2 gap-2">
