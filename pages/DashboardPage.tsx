@@ -14,7 +14,7 @@ const formatLocation = (type: string, location: string | null | undefined) => {
 };
 
 const DashboardPage: React.FC = () => {
-  const { shifts: allShifts, createShift, updateShift, removeShift, preferences, holidays, addHoliday, removeHoliday } = useShift();
+  const { shifts: allShifts, createShift, createShifts, updateShift, removeShift, preferences, holidays, addHoliday, removeHoliday } = useShift();
   const { militaries } = useMilitary();
   const { isModerator } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -305,21 +305,34 @@ const DashboardPage: React.FC = () => {
       : '';
 
     try {
-      // 1. If editing a group, clean up ALL old records first (atomic operation before loop)
-      if (editingShift && formData.type === 'Escala Diversa') {
+      // 1. If editing, clean up ALL old records first (atomic operation before loop)
+      if (editingShift) {
+        const oldDate = editingShift.date;
         const oldMatch = editingShift.location?.match(/\[GRP_(\d+)\]/);
+
         if (oldMatch) {
           const oldGroupId = oldMatch[0];
-          await supabase.from('extra_hours').delete().eq('date', dateStr).ilike('description', `%${oldGroupId}%`);
-          const otherShifts = allShifts.filter(s => s.date === dateStr && s.type === 'Escala Diversa' && s.location?.includes(oldGroupId));
+          // Delete from extra_hours using the ORIGINAL date
+          await supabase.from('extra_hours').delete().eq('date', oldDate).ilike('description', `%${oldGroupId}%`);
+          // Remove old shifts in group
+          const otherShifts = allShifts.filter(s => s.date === oldDate && s.type === 'Escala Diversa' && s.location?.includes(oldGroupId));
           for (const s of otherShifts) {
             await removeShift(s.id);
           }
         } else {
+          // Single shift cleanup
           await removeShift(editingShift.id);
-          await supabase.from('extra_hours').delete().eq('military_id', editingShift.militaryId).eq('date', dateStr).ilike('description', 'Escala Diversa:%');
+          // Also cleanup any specific extra_hours for this military on the original date
+          await supabase.from('extra_hours').delete()
+            .eq('military_id', editingShift.militaryId)
+            .eq('date', oldDate)
+            .ilike('description', 'Escala Diversa:%');
         }
       }
+
+      const shiftsToCreate: any[] = [];
+      const extraHoursToCreate: any[] = [];
+      const stagesToCreate: any[] = [];
 
       for (const mId of targetMilitaryIds) {
         const cleanDescription = stripGroupId(formData.description);
@@ -328,6 +341,7 @@ const DashboardPage: React.FC = () => {
           : formData.location;
 
         if (editingShift && formData.type !== 'Escala Diversa') {
+          // Individual update for non-diversa/non-bulk types
           if (formData.type === 'Estágio') {
             const { data: existingStage } = await supabase
               .from('stages')
@@ -336,23 +350,19 @@ const DashboardPage: React.FC = () => {
               .eq('date', dateStr)
               .maybeSingle();
 
+            const stageData = {
+              military_id: mId,
+              location: formData.location,
+              date: dateStr,
+              start_time: formData.startTime,
+              end_time: formData.endTime,
+              duration: Math.round(finalDuration || 0)
+            };
+
             if (existingStage) {
-              await supabase.from('stages').update({
-                military_id: mId,
-                location: formData.location,
-                start_time: formData.startTime,
-                end_time: formData.endTime,
-                duration: Math.round(finalDuration || 0)
-              }).eq('id', existingStage.id);
+              await supabase.from('stages').update(stageData).eq('id', existingStage.id);
             } else {
-              await supabase.from('stages').insert({
-                military_id: mId,
-                location: formData.location,
-                date: dateStr,
-                start_time: formData.startTime,
-                end_time: formData.endTime,
-                duration: Math.round(finalDuration || 0)
-              });
+              await supabase.from('stages').insert(stageData);
             }
           }
 
@@ -361,74 +371,74 @@ const DashboardPage: React.FC = () => {
             type: formData.type,
             location: finalLocation,
             duration: Math.round(finalDuration || 0),
-            startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
-            endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
-          });
-        } else if (editingShift && formData.type === 'Escala Diversa') {
-          // Fresh records are inserted here after the global cleanup above
-          await createShift({
-            militaryId: mId,
-            date: dateStr,
-            type: formData.type,
-            startTime: (formData.startTime || '08:00'),
-            endTime: (formData.endTime || '12:00'),
-            location: finalLocation,
-            status: 'Confirmado',
-            duration: Math.round(finalDuration || 0)
+            startTime: (formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
+            endTime: (formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
           });
         } else {
-          await createShift({
+          // Prepare for bulk insert (includes newly added shifts and diversa edits which were cleaned up above)
+          const shiftData = {
             militaryId: mId,
             date: dateStr,
             type: formData.type,
-            startTime: finalStartTime,
-            endTime: finalEndTime,
+            startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
+            endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
             location: finalLocation,
             status: 'Confirmado',
             duration: Math.round(finalDuration || 0)
-          });
-        }
-
-        if (formData.type === 'Escala Diversa') {
-          const start = formData.startTime || '08:00';
-          const end = formData.endTime || '12:00';
-          const [h1, m1] = start.split(':').map(Number);
-          const [h2, m2] = end.split(':').map(Number);
-          let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-          if (totalMinutes < 0) totalMinutes += 24 * 60;
-          const hours = Math.floor(totalMinutes / 60);
-          const minutes = totalMinutes % 60;
-
-          const extraData = {
-            military_id: mId,
-            category: 'CFO II - Registro de Horas',
-            hours: hours,
-            minutes: minutes,
-            description: `Escala Diversa: ${finalLocation || 'Sem descrição'}`,
-            date: dateStr
           };
+          shiftsToCreate.push(shiftData);
 
-          await supabase.from('extra_hours').insert(extraData);
-        }
+          if (formData.type === 'Escala Diversa') {
+            const start = formData.startTime || '08:00';
+            const end = formData.endTime || '12:00';
+            const [h1, m1] = start.split(':').map(Number);
+            const [h2, m2] = end.split(':').map(Number);
+            let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+            if (totalMinutes < 0) totalMinutes += 24 * 60;
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
 
-        if (formData.type === 'Estágio' && formData.location !== 'OUTROS' && !editingShift) {
-          // This block handles the fresh insertion loop for non-diversa/non-group (though current UI only allows multi-select for Diversa)
-          const stageData = {
-            military_id: mId,
-            location: formData.location,
-            date: dateStr,
-            start_time: formData.startTime,
-            end_time: formData.endTime,
-            duration: Math.round(finalDuration || 0)
-          };
-          await supabase.from('stages').insert(stageData);
+            extraHoursToCreate.push({
+              military_id: mId,
+              category: 'CFO II - Registro de Horas',
+              hours: hours,
+              minutes: minutes,
+              description: `Escala Diversa: ${finalLocation || 'Sem descrição'}`,
+              date: dateStr
+            });
+          }
+
+          if (formData.type === 'Estágio' && formData.location !== 'OUTROS' && !editingShift) {
+            stagesToCreate.push({
+              military_id: mId,
+              location: formData.location,
+              date: dateStr,
+              start_time: formData.startTime,
+              end_time: formData.endTime,
+              duration: Math.round(finalDuration || 0)
+            });
+          }
         }
       }
 
+      // Execute bulk operations if any
+      if (shiftsToCreate.length > 0) {
+        await createShifts(shiftsToCreate);
+      }
+      if (extraHoursToCreate.length > 0) {
+        const { error: extraError } = await supabase.from('extra_hours').insert(extraHoursToCreate);
+        if (extraError) throw extraError;
+      }
+      if (stagesToCreate.length > 0) {
+        const { error: stageError } = await supabase.from('stages').insert(stagesToCreate);
+        if (stageError) throw stageError;
+      }
+
+      await fetchExtraHours();
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error saving shift/extra hours:', error);
-      alert('Erro ao salvar os dados.');
+      alert('Erro ao salvar os dados. Verifique sua conexão.');
     }
   };
 

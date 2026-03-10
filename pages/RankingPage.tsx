@@ -133,7 +133,7 @@ const RankingPage: React.FC = () => {
             const milExtra = filteredExtraHours.filter(e => e.military_id === mil.id);
             milExtra.forEach(e => {
                 if (selectedExtraCategories.includes(e.category)) {
-                    totalHours += e.hours + (e.minutes / 60);
+                    totalHours += Number(e.hours || 0) + (Number(e.minutes || 0) / 60);
                 }
             });
 
