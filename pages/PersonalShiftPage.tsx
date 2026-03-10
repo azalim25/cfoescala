@@ -9,6 +9,7 @@ import { supabase } from '../supabase';
 import { Shift, MilitaryPreference } from '../types';
 import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
+import { stripGroupId } from '../utils/formatUtils';
 
 interface ExtraHourRecord {
   id: string;
@@ -311,7 +312,7 @@ const PersonalShiftPage: React.FC = () => {
               eh.date.split('T')[0] === s.date.split('T')[0]
             );
             if (extraMatch) {
-              description = extraMatch.description.replace('Escala Diversa: ', '');
+              description = stripGroupId(extraMatch.description.replace('Escala Diversa: ', ''));
             }
           }
         } else if (s.type === 'Estágio') {
@@ -458,7 +459,10 @@ const PersonalShiftPage: React.FC = () => {
       if (inFilter) totalExtraH += (e.hours + e.minutes / 60);
 
       // Consolidate in summary
-      let type = e.category === 'CFO II - Registro de Horas' ? 'Escala Diversa' : (e.category || 'Registro de Horas');
+      const isExtra = e.category === 'CFO II - Registro de Horas';
+      let type = isExtra ? 'Escala Diversa' : (e.category || 'Registro de Horas');
+      let location = isExtra ? '' : e.category;
+      let description = isExtra ? stripGroupId(e.description.replace('Escala Diversa: ', '')) : stripGroupId(e.description);
       if (type === 'Escala Diversa' && rawPersonalShifts.some(s => s.type === 'Escala Diversa' && s.date.split('T')[0] === e.date.split('T')[0])) return;
 
       if (inFilter) {
@@ -632,12 +636,12 @@ const PersonalShiftPage: React.FC = () => {
                           )}
                           <h3 className={`text-lg font-extrabold ${colors.text} mb-2`}>{s.type}</h3>
                           {s.type === 'Escala Diversa' && s.description && (
-                            <p className={`text-xs font-bold ${colors.text} opacity-80 mb-3 -mt-1`}>{s.description}</p>
+                            <p className={`text-xs font-bold ${colors.text} opacity-80 mb-3 -mt-1`}>{stripGroupId(s.description)}</p>
                           )}
                           {s.location && (
                             <div className={`flex items-center gap-2 pt-3 border-t ${colors.border} opacity-60`}>
                               <span className={`material-symbols-outlined ${colors.text} text-sm`}>location_on</span>
-                              <span className={`text-[10px] font-bold ${colors.text} uppercase tracking-tighter truncate`}>{s.location}</span>
+                              <span className={`text-[10px] font-bold ${colors.text} uppercase tracking-tighter truncate`}>{stripGroupId(s.location)}</span>
                             </div>
                           )}
                         </div>
@@ -728,11 +732,11 @@ const PersonalShiftPage: React.FC = () => {
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{cls.startTime.slice(0, 5)} - {cls.endTime.slice(0, 5)}</span>
                           <span className="text-sm font-black text-slate-800 dark:text-white">
                             {isExam && <span className="text-pink-600 dark:text-pink-400 mr-1">[PROVA]</span>}
-                            {discipline?.name || cls.description}
+                            {discipline?.name || stripGroupId(cls.description)}
                           </span>
                           {cls.location && cls.description !== 'Liberação' && (
                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
-                              {cls.location}
+                              {stripGroupId(cls.location)}
                             </span>
                           )}
                         </div>

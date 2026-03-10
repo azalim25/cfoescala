@@ -7,12 +7,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { Shift, Rank } from '../types';
 import { supabase } from '../supabase';
 import { safeParseISO } from '../utils/dateUtils';
+import { stripGroupId } from '../utils/formatUtils';
 
 const formatLocation = (type: string, location: string | null | undefined) => {
   if (!location) return '';
   const normLoc = location.trim().toUpperCase();
   if (normLoc === 'QCG' || normLoc === 'PEL ABM' || normLoc === 'ESCOLA') return 'ABM';
-  return location;
+  return stripGroupId(location);
 };
 
 const DashboardPage: React.FC = () => {
@@ -225,7 +226,7 @@ const DashboardPage: React.FC = () => {
       type: shift.type,
       location: isOthers ? 'OUTROS' : ((shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : (shift.location === 'QCG' ? 'ABM' : shift.location || 'ABM')),
       duration: shift.duration,
-      description: (shift.type === 'Escala Diversa' || isOthers) ? shift.location || '' : '',
+      description: (shift.type === 'Escala Diversa' || isOthers) ? stripGroupId(shift.location || '') : '',
       startTime: shift.startTime,
       endTime: shift.endTime,
       manualHours: shift.duration ? Math.floor(shift.duration) : 0,
@@ -307,9 +308,26 @@ const DashboardPage: React.FC = () => {
       : '';
 
     try {
+      // 1. If editing a group, clean up ALL old records first (atomic operation before loop)
+      if (editingShift && formData.type === 'Escala Diversa') {
+        const oldMatch = editingShift.location?.match(/\[GRP_(\d+)\]/);
+        if (oldMatch) {
+          const oldGroupId = oldMatch[0];
+          await supabase.from('extra_hours').delete().eq('date', dateStr).ilike('description', `%${oldGroupId}%`);
+          const otherShifts = allShifts.filter(s => s.date === dateStr && s.type === 'Escala Diversa' && s.location?.includes(oldGroupId));
+          for (const s of otherShifts) {
+            await removeShift(s.id);
+          }
+        } else {
+          await removeShift(editingShift.id);
+          await supabase.from('extra_hours').delete().eq('military_id', editingShift.militaryId).eq('date', dateStr).ilike('description', 'Escala Diversa:%');
+        }
+      }
+
       for (const mId of targetMilitaryIds) {
+        const cleanDescription = stripGroupId(formData.description);
         const finalLocation = (formData.type === 'Escala Diversa' || (formData.type === 'Estágio' && formData.location === 'OUTROS'))
-          ? (groupId ? `${formData.description} ${groupId}` : formData.description)
+          ? (groupId ? `${cleanDescription} ${groupId}` : cleanDescription)
           : formData.location;
 
         if (editingShift && formData.type !== 'Escala Diversa') {
@@ -350,23 +368,7 @@ const DashboardPage: React.FC = () => {
             endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
           });
         } else if (editingShift && formData.type === 'Escala Diversa') {
-          // If editing a group, we might need to delete old records and insert new ones
-          // To simplify: if editingShift exists, we are in group edit mode.
-          // However, to be robust, let's delete existing group records first if a group ID exists
-          const oldMatch = editingShift.location?.match(/\[GRP_(\d+)\]/);
-          if (oldMatch) {
-            const oldGroupId = oldMatch[0];
-            await supabase.from('extra_hours').delete().eq('date', dateStr).ilike('description', `%${oldGroupId}%`);
-            const otherShifts = allShifts.filter(s => s.date === dateStr && s.type === 'Escala Diversa' && s.location?.includes(oldGroupId));
-            for (const s of otherShifts) {
-              await removeShift(s.id);
-            }
-          } else {
-            await removeShift(editingShift.id);
-            await supabase.from('extra_hours').delete().eq('military_id', editingShift.militaryId).eq('date', dateStr).ilike('description', 'Escala Diversa:%');
-          }
-
-          // Now insert fresh records for all selected militaryIds
+          // Fresh records are inserted here after the global cleanup above
           await createShift({
             militaryId: mId,
             date: dateStr,
@@ -466,7 +468,6 @@ const DashboardPage: React.FC = () => {
               .eq('military_id', militaryId)
               .eq('date', dateStr)
               .ilike('description', 'Escala Diversa:%');
-            await removeShift(editingShift.id);
           }
         } catch (error) {
           console.error('Error syncing deletion with extra_hours:', error);
@@ -887,11 +888,18 @@ const DashboardPage: React.FC = () => {
                             <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
                           </div>
                           <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
-                              <span className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} border ${colors.border}`}>
-                                {s.type}
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
+                                {m?.rank} {m?.name}
+                                {s.type === 'Escala Diversa' && (
+                                  <span className="ml-2 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 rounded uppercase border border-slate-200 dark:border-slate-700">ESCALA DIVERSA</span>
+                                )}
                               </span>
+                              {s.location && (
+                                <p className="text-[10px] text-slate-500 font-bold uppercase truncate mt-0.5">
+                                  {stripGroupId(s.location)} {s.startTime && s.endTime ? `• ${s.startTime} - ${s.endTime}` : ''}
+                                </p>
+                              )}
                             </div>
                             <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
                               {formatLocation(s.type, s.location) || 'Local não definido'}

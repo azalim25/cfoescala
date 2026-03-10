@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
 import { Military } from '../types';
 import { safeParseISO } from '../utils/dateUtils';
+import { stripGroupId } from '../utils/formatUtils';
 
 interface ExtraHourRecord {
     id: string;
@@ -296,8 +297,8 @@ const ExtraHoursPage: React.FC = () => {
                                                         <td className="px-6 py-4">
                                                             <div className="flex flex-col">
                                                                 <span className="text-[10px] font-black text-primary uppercase tracking-tight mb-0.5">{record.category || 'Outros'}</span>
-                                                                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-1" title={record.description}>
-                                                                    {record.description || '-'}
+                                                                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-1" title={stripGroupId(record.description)}>
+                                                                    {stripGroupId(record.description) || '-'}
                                                                 </p>
                                                             </div>
                                                         </td>
@@ -349,7 +350,7 @@ const ExtraHoursPage: React.FC = () => {
                                                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50">
                                                         <span className="text-[9px] font-black text-primary uppercase tracking-tight block mb-1">{record.category || 'Outros'}</span>
                                                         <p className="text-xs text-slate-600 dark:text-slate-400 font-medium whitespace-pre-wrap">
-                                                            {record.description || '-'}
+                                                            {stripGroupId(record.description) || '-'}
                                                         </p>
                                                     </div>
                                                     {isModerator && (
