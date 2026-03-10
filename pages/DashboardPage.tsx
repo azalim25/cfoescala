@@ -900,9 +900,28 @@ const DashboardPage: React.FC = () => {
                   className="w-full h-10 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm"
                 >
                   <option value="">Selecione um militar...</option>
-                  {militaries.map(m => (
-                    <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
-                  ))}
+                  {militaries.map(m => {
+                    const pref = preferences?.find(p => p.militaryId === m.id && p.date === activeDateStr);
+                    const isRestriction = pref?.type === 'restriction';
+                    const isPreference = pref?.type === 'priority';
+
+                    let label = `${m.rank} ${m.name}`;
+                    if (isRestriction) label += ' - RESTRIÇÃO';
+                    if (isPreference) label += ' - PREFERÊNCIA';
+
+                    return (
+                      <option
+                        key={m.id}
+                        value={m.id}
+                        style={{
+                          color: isRestriction ? '#ef4444' : (isPreference ? '#eab308' : 'inherit'),
+                          fontWeight: (isRestriction || isPreference) ? 'bold' : 'normal'
+                        }}
+                      >
+                        {label}
+                      </option>
+                    );
+                  })}
                 </select>
                 {activePreference && (
                   <div className={`mt-2 p-3 rounded-xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-200 ${activePreference.type === 'restriction' ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800 text-red-700 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'}`}>
