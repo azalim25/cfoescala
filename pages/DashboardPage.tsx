@@ -29,8 +29,10 @@ const DashboardPage: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | any | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState<{
     militaryId: string;
+    militaryIds: string[];
     type: Shift['type'];
     location: string;
     duration?: number;
@@ -41,6 +43,7 @@ const DashboardPage: React.FC = () => {
     manualMinutes?: number;
   }>({
     militaryId: '',
+    militaryIds: [],
     type: 'Escala Geral',
     location: 'QCG',
     duration: undefined,
@@ -175,8 +178,10 @@ const DashboardPage: React.FC = () => {
 
   const handleOpenAddModal = () => {
     setEditingShift(null);
+    setSearchTerm('');
     setFormData({
       militaryId: '',
+      militaryIds: [],
       type: 'Escala Geral',
       location: 'ABM',
       duration: undefined,
@@ -191,11 +196,32 @@ const DashboardPage: React.FC = () => {
 
   const handleOpenEditModal = (shift: Shift) => {
     setEditingShift(shift);
+    setSearchTerm('');
     const isStage = shift.type === 'Estágio';
     const isOthers = isStage && shift.location && !STAGE_LOCATIONS.includes(shift.location);
 
+    // Check for group ID in description for Escala Diversa
+    let groupMilitaryIds: string[] = [shift.militaryId];
+    if (shift.type === 'Escala Diversa' && shift.location?.includes('[GRP_')) {
+      const match = shift.location.match(/\[GRP_(\d+)\]/);
+      if (match) {
+        const groupId = match[0];
+        const dateStr = shift.date;
+        // Find all other members of the group in the current state
+        const groupMembers = allShifts.filter(s => s.type === 'Escala Diversa' && s.date === dateStr && s.location?.includes(groupId));
+        const extraMembers = extraHours.filter(eh => eh.date === dateStr && eh.description?.includes(groupId));
+
+        const allIds = new Set([
+          ...groupMembers.map(m => m.militaryId),
+          ...extraMembers.map(m => m.military_id)
+        ]);
+        groupMilitaryIds = Array.from(allIds);
+      }
+    }
+
     setFormData({
       militaryId: shift.militaryId,
+      militaryIds: groupMilitaryIds,
       type: shift.type,
       location: isOthers ? 'OUTROS' : ((shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : (shift.location === 'QCG' ? 'ABM' : shift.location || 'ABM')),
       duration: shift.duration,
@@ -209,8 +235,12 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleSaveShift = async () => {
-    if (!formData.militaryId) {
+    if (formData.type !== 'Escala Diversa' && !formData.militaryId) {
       alert('Selecione um militar.');
+      return;
+    }
+    if (formData.type === 'Escala Diversa' && formData.militaryIds.length === 0) {
+      alert('Selecione pelo menos um militar.');
       return;
     }
 
@@ -270,125 +300,130 @@ const DashboardPage: React.FC = () => {
       }
     }
 
+    // Prepare loop for military positions
+    const targetMilitaryIds = formData.type === 'Escala Diversa' ? formData.militaryIds : [formData.militaryId];
+    const groupId = formData.type === 'Escala Diversa' && targetMilitaryIds.length > 1
+      ? `[GRP_${Date.now()}]`
+      : '';
+
     try {
-      if (editingShift) {
-        if (formData.type === 'Estágio') {
-          const { data: existingStage } = await supabase
-            .from('stages')
-            .select('id')
-            .eq('military_id', formData.militaryId)
-            .eq('date', dateStr)
-            .maybeSingle();
+      for (const mId of targetMilitaryIds) {
+        const finalLocation = (formData.type === 'Escala Diversa' || (formData.type === 'Estágio' && formData.location === 'OUTROS'))
+          ? (groupId ? `${formData.description} ${groupId}` : formData.description)
+          : formData.location;
 
-          if (existingStage) {
-            await supabase.from('stages').update({
-              military_id: formData.militaryId,
-              location: formData.location,
-              start_time: formData.startTime,
-              end_time: formData.endTime,
-              duration: Math.round(finalDuration || 0)
-            }).eq('id', existingStage.id);
+        if (editingShift && formData.type !== 'Escala Diversa') {
+          if (formData.type === 'Estágio') {
+            const { data: existingStage } = await supabase
+              .from('stages')
+              .select('id')
+              .eq('military_id', mId)
+              .eq('date', dateStr)
+              .maybeSingle();
+
+            if (existingStage) {
+              await supabase.from('stages').update({
+                military_id: mId,
+                location: formData.location,
+                start_time: formData.startTime,
+                end_time: formData.endTime,
+                duration: Math.round(finalDuration || 0)
+              }).eq('id', existingStage.id);
+            } else {
+              await supabase.from('stages').insert({
+                military_id: mId,
+                location: formData.location,
+                date: dateStr,
+                start_time: formData.startTime,
+                end_time: formData.endTime,
+                duration: Math.round(finalDuration || 0)
+              });
+            }
+          }
+
+          await updateShift(editingShift.id, {
+            militaryId: mId,
+            type: formData.type,
+            location: finalLocation,
+            duration: Math.round(finalDuration || 0),
+            startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
+            endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
+          });
+        } else if (editingShift && formData.type === 'Escala Diversa') {
+          // If editing a group, we might need to delete old records and insert new ones
+          // To simplify: if editingShift exists, we are in group edit mode.
+          // However, to be robust, let's delete existing group records first if a group ID exists
+          const oldMatch = editingShift.location?.match(/\[GRP_(\d+)\]/);
+          if (oldMatch) {
+            const oldGroupId = oldMatch[0];
+            await supabase.from('extra_hours').delete().eq('date', dateStr).ilike('description', `%${oldGroupId}%`);
+            const otherShifts = allShifts.filter(s => s.date === dateStr && s.type === 'Escala Diversa' && s.location?.includes(oldGroupId));
+            for (const s of otherShifts) {
+              await removeShift(s.id);
+            }
           } else {
-            await supabase.from('stages').insert({
-              military_id: formData.militaryId,
-              location: formData.location,
-              date: dateStr,
-              start_time: formData.startTime,
-              end_time: formData.endTime,
-              duration: Math.round(finalDuration || 0)
-            });
+            await removeShift(editingShift.id);
+            await supabase.from('extra_hours').delete().eq('military_id', editingShift.militaryId).eq('date', dateStr).ilike('description', 'Escala Diversa:%');
           }
+
+          // Now insert fresh records for all selected militaryIds
+          await createShift({
+            militaryId: mId,
+            date: dateStr,
+            type: formData.type,
+            startTime: (formData.startTime || '08:00'),
+            endTime: (formData.endTime || '12:00'),
+            location: finalLocation,
+            status: 'Confirmado',
+            duration: Math.round(finalDuration || 0)
+          });
         } else {
-          // Se mudou de estágio para outro tipo, deleta do stages
-          if ((editingShift as any).isStage || editingShift.type === 'Estágio') {
-            await supabase.from('stages').delete()
-              .eq('military_id', formData.militaryId)
-              .eq('date', dateStr);
-          }
+          await createShift({
+            militaryId: mId,
+            date: dateStr,
+            type: formData.type,
+            startTime: finalStartTime,
+            endTime: finalEndTime,
+            location: finalLocation,
+            status: 'Confirmado',
+            duration: Math.round(finalDuration || 0)
+          });
         }
-        await updateShift(editingShift.id, {
-          militaryId: formData.militaryId,
-          type: formData.type,
-          location: (formData.type === 'Escala Diversa' || (formData.type === 'Estágio' && formData.location === 'OUTROS')) ? formData.description : formData.location,
-          duration: Math.round(finalDuration || 0),
-          startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
-          endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
-        });
-      } else {
-        await createShift({
-          militaryId: formData.militaryId,
-          date: dateStr,
-          type: formData.type,
-          startTime: finalStartTime,
-          endTime: finalEndTime,
-          location: (formData.type === 'Escala Diversa' || (formData.type === 'Estágio' && formData.location === 'OUTROS')) ? formData.description : formData.location,
-          status: 'Confirmado',
-          duration: Math.round(finalDuration || 0)
-        });
-      }
 
-      if (formData.type === 'Escala Diversa') {
-        const start = formData.startTime || '08:00';
-        const end = formData.endTime || '12:00';
-        const [h1, m1] = start.split(':').map(Number);
-        const [h2, m2] = end.split(':').map(Number);
-        let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (totalMinutes < 0) totalMinutes += 24 * 60;
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
+        if (formData.type === 'Escala Diversa') {
+          const start = formData.startTime || '08:00';
+          const end = formData.endTime || '12:00';
+          const [h1, m1] = start.split(':').map(Number);
+          const [h2, m2] = end.split(':').map(Number);
+          let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+          if (totalMinutes < 0) totalMinutes += 24 * 60;
+          const hours = Math.floor(totalMinutes / 60);
+          const minutes = totalMinutes % 60;
 
-        const extraData = {
-          military_id: formData.militaryId,
-          category: 'CFO II - Registro de Horas',
-          hours: hours,
-          minutes: minutes,
-          description: `Escala Diversa: ${formData.description || 'Sem descrição'}`,
-          date: dateStr
-        };
+          const extraData = {
+            military_id: mId,
+            category: 'CFO II - Registro de Horas',
+            hours: hours,
+            minutes: minutes,
+            description: `Escala Diversa: ${finalLocation || 'Sem descrição'}`,
+            date: dateStr
+          };
 
-        if (editingShift) {
-          const { data: existingEH } = await supabase
-            .from('extra_hours')
-            .select('id')
-            .eq('military_id', formData.militaryId)
-            .eq('date', dateStr)
-            .ilike('description', 'Escala Diversa:%')
-            .maybeSingle();
-
-          if (existingEH) {
-            await supabase.from('extra_hours').update(extraData).eq('id', existingEH.id);
-          } else {
-            await supabase.from('extra_hours').insert(extraData);
-          }
-        } else {
           await supabase.from('extra_hours').insert(extraData);
         }
-      }
 
-      if (formData.type === 'Estágio' && formData.location !== 'OUTROS') {
-        const stageData = {
-          military_id: formData.militaryId,
-          location: formData.location,
-          date: dateStr,
-          start_time: formData.startTime,
-          end_time: formData.endTime,
-          duration: Math.round(finalDuration || 0)
-        };
-
-        const { data: existingStage } = await supabase
-          .from('stages')
-          .select('id')
-          .eq('military_id', formData.militaryId)
-          .eq('date', dateStr)
-          .maybeSingle();
-
-        if (existingStage) {
-          await supabase.from('stages').update(stageData).eq('id', existingStage.id);
-        } else {
+        if (formData.type === 'Estágio' && formData.location !== 'OUTROS' && !editingShift) {
+          // This block handles the fresh insertion loop for non-diversa/non-group (though current UI only allows multi-select for Diversa)
+          const stageData = {
+            military_id: mId,
+            location: formData.location,
+            date: dateStr,
+            start_time: formData.startTime,
+            end_time: formData.endTime,
+            duration: Math.round(finalDuration || 0)
+          };
           await supabase.from('stages').insert(stageData);
         }
-        const { data: updatedStages } = await supabase.from('stages').select('*');
-        if (updatedStages) setStages(updatedStages);
       }
 
       setIsModalOpen(false);
@@ -415,13 +450,24 @@ const DashboardPage: React.FC = () => {
       }
 
       if (shiftType === 'Escala Diversa') {
+        const groupMatch = editingShift.location?.match(/\[GRP_(\d+)\]/);
         try {
-          await supabase
-            .from('extra_hours')
-            .delete()
-            .eq('military_id', militaryId)
-            .eq('date', dateStr)
-            .ilike('description', 'Escala Diversa:%');
+          if (groupMatch) {
+            const groupId = groupMatch[0];
+            await supabase.from('extra_hours').delete().eq('date', dateStr).ilike('description', `%${groupId}%`);
+            const otherShifts = allShifts.filter(s => s.date === dateStr && s.type === 'Escala Diversa' && s.location?.includes(groupId));
+            for (const s of otherShifts) {
+              await removeShift(s.id);
+            }
+          } else {
+            await supabase
+              .from('extra_hours')
+              .delete()
+              .eq('military_id', militaryId)
+              .eq('date', dateStr)
+              .ilike('description', 'Escala Diversa:%');
+            await removeShift(editingShift.id);
+          }
         } catch (error) {
           console.error('Error syncing deletion with extra_hours:', error);
         }
@@ -894,49 +940,138 @@ const DashboardPage: React.FC = () => {
             <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase">Militar</label>
-                <select
-                  value={formData.militaryId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, militaryId: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm"
-                >
-                  <option value="">Selecione um militar...</option>
-                  {militaries.map(m => {
-                    const pref = preferences?.find(p => p.militaryId === m.id && p.date === activeDateStr);
-                    const isRestriction = pref?.type === 'restriction';
-                    const isPreference = pref?.type === 'priority';
-
-                    let label = `${m.rank} ${m.name}`;
-                    if (isRestriction) label += ' - RESTRIÇÃO';
-                    if (isPreference) label += ' - PREFERÊNCIA';
-
-                    return (
-                      <option
-                        key={m.id}
-                        value={m.id}
-                        style={{
-                          color: isRestriction ? '#ef4444' : (isPreference ? '#eab308' : 'inherit'),
-                          fontWeight: (isRestriction || isPreference) ? 'bold' : 'normal'
+                {formData.type === 'Escala Diversa' ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                        <input
+                          type="text"
+                          placeholder="Buscar militar..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full h-9 pl-9 pr-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-xs"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const filtered = militaries.filter(m =>
+                            m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            m.rank.toLowerCase().includes(searchTerm.toLowerCase())
+                          );
+                          const allFilteredSelected = filtered.every(m => formData.militaryIds.includes(m.id));
+                          if (allFilteredSelected) {
+                            setFormData(prev => ({ ...prev, militaryIds: prev.militaryIds.filter(id => !filtered.some(f => f.id === id)) }));
+                          } else {
+                            const newIds = Array.from(new Set([...formData.militaryIds, ...filtered.map(m => m.id)]));
+                            setFormData(prev => ({ ...prev, militaryIds: newIds }));
+                          }
                         }}
+                        className="px-3 h-9 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold uppercase hover:bg-slate-200 transition-colors shrink-0"
                       >
-                        {label}
-                      </option>
-                    );
-                  })}
-                </select>
-                {activePreference && (
-                  <div className={`mt-2 p-3 rounded-xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-200 ${activePreference.type === 'restriction' ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800 text-red-700 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'}`}>
-                    <span className="material-symbols-outlined text-xl">
-                      {activePreference.type === 'restriction' ? 'warning' : 'priority_high'}
-                    </span>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest leading-tight">
-                        {activePreference.type === 'restriction' ? 'Restrição' : 'Prioridade'}
-                      </span>
-                      <span className="text-xs font-bold leading-tight">
-                        {activePreference.type === 'restriction' ? 'Este militar possui uma restrição para este dia.' : 'Este militar solicitou prioridade para este dia.'}
-                      </span>
+                        {militaries.filter(m =>
+                          (m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.rank.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                          formData.militaryIds.includes(m.id)
+                        ).length === militaries.filter(m =>
+                          m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.rank.toLowerCase().includes(searchTerm.toLowerCase())
+                        ).length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                      </button>
                     </div>
+
+                    <div className="max-h-48 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl p-2 bg-slate-50/30 dark:bg-slate-800/20 space-y-1 custom-scrollbar">
+                      {militaries
+                        .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.rank.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .map(m => {
+                          const pref = preferences?.find(p => p.militaryId === m.id && p.date === activeDateStr);
+                          const isRestriction = pref?.type === 'restriction';
+                          const isPreference = pref?.type === 'priority';
+                          const isSelected = formData.militaryIds.includes(m.id);
+
+                          return (
+                            <label
+                              key={m.id}
+                              className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-primary/5 border-primary/20 shadow-sm' : 'hover:bg-white dark:hover:bg-slate-800'}`}
+                            >
+                              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
+                                {isSelected && <span className="material-symbols-outlined text-white text-[12px] font-black">check</span>}
+                              </div>
+                              <input
+                                type="checkbox"
+                                className="hidden"
+                                checked={isSelected}
+                                onChange={() => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    militaryIds: isSelected
+                                      ? prev.militaryIds.filter(id => id !== m.id)
+                                      : [...prev.militaryIds, m.id]
+                                  }));
+                                }}
+                              />
+                              <div className="flex flex-col min-w-0">
+                                <span className={`text-[11px] font-bold truncate ${isRestriction ? 'text-red-500' : (isPreference ? 'text-amber-500' : 'text-slate-700 dark:text-slate-200')}`}>
+                                  {m.rank} {m.name}
+                                </span>
+                                {(isRestriction || isPreference) && (
+                                  <span className={`text-[8px] font-black uppercase ${isRestriction ? 'text-red-400' : 'text-amber-400'}`}>
+                                    {isRestriction ? 'Possui Restrição' : 'Solicitou Preferência'}
+                                  </span>
+                                )}
+                              </div>
+                            </label>
+                          );
+                        })}
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase pl-1">{formData.militaryIds.length} selecionado(s)</p>
                   </div>
+                ) : (
+                  <>
+                    <select
+                      value={formData.militaryId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, militaryId: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm"
+                    >
+                      <option value="">Selecione um militar...</option>
+                      {militaries.map(m => {
+                        const pref = preferences?.find(p => p.militaryId === m.id && p.date === activeDateStr);
+                        const isRestriction = pref?.type === 'restriction';
+                        const isPreference = pref?.type === 'priority';
+
+                        let label = `${m.rank} ${m.name}`;
+                        if (isRestriction) label += ' - RESTRIÇÃO';
+                        if (isPreference) label += ' - PREFERÊNCIA';
+
+                        return (
+                          <option
+                            key={m.id}
+                            value={m.id}
+                            style={{
+                              color: isRestriction ? '#ef4444' : (isPreference ? '#eab308' : 'inherit'),
+                              fontWeight: (isRestriction || isPreference) ? 'bold' : 'normal'
+                            }}
+                          >
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {activePreference && (
+                      <div className={`mt-2 p-3 rounded-xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-200 ${activePreference.type === 'restriction' ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800 text-red-700 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'}`}>
+                        <span className="material-symbols-outlined text-xl">
+                          {activePreference.type === 'restriction' ? 'warning' : 'priority_high'}
+                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase tracking-widest leading-tight">
+                            {activePreference.type === 'restriction' ? 'Restrição' : 'Prioridade'}
+                          </span>
+                          <span className="text-xs font-bold leading-tight">
+                            {activePreference.type === 'restriction' ? 'Este militar possui uma restrição para este dia.' : 'Este militar solicitou prioridade para este dia.'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
