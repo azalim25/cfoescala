@@ -7,13 +7,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { Shift, Rank } from '../types';
 import { supabase } from '../supabase';
 import { safeParseISO } from '../utils/dateUtils';
-import { stripGroupId } from '../utils/formatUtils';
+import { stripGroupId, formatLocationUtil } from '../utils/formatUtils';
 
 const formatLocation = (type: string, location: string | null | undefined) => {
-  if (!location) return '';
-  const normLoc = location.trim().toUpperCase();
-  if (normLoc === 'QCG' || normLoc === 'PEL ABM' || normLoc === 'ESCOLA') return 'ABM';
-  return stripGroupId(location);
+  return formatLocationUtil(type, location);
 };
 
 const DashboardPage: React.FC = () => {
@@ -882,28 +879,22 @@ const DashboardPage: React.FC = () => {
                       onClick={() => isModerator && handleOpenEditModal(s)}
                       className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${colors.border} dark:border-slate-700 p-3 sm:p-4 space-y-3 shadow-sm relative overflow-hidden transition-all group ${isModerator ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'}`}
                     >
-                      <div className="flex items-start justify-between relative z-10">
-                        <div className="flex gap-2 sm:gap-3">
+                      <div className="flex items-start justify-between relative z-10 w-full overflow-hidden">
+                        <div className="flex gap-2 sm:gap-3 items-center min-w-0 flex-1">
                           <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${colors.bg} flex items-center justify-center ${colors.text} border ${colors.border} shrink-0`}>
                             <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
-                                {m?.rank} {m?.name}
-                                {s.type === 'Escala Diversa' && (
-                                  <span className="ml-2 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 rounded uppercase border border-slate-200 dark:border-slate-700">ESCALA DIVERSA</span>
-                                )}
-                              </span>
-                              {s.location && (
-                                <p className="text-[10px] text-slate-500 font-bold uppercase truncate mt-0.5">
-                                  {stripGroupId(s.location)} {s.startTime && s.endTime ? `• ${s.startTime} - ${s.endTime}` : ''}
-                                </p>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate block">
+                              {m?.rank} {m?.name}
+                              {s.type === 'Escala Diversa' && (
+                                <span className="ml-2 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 rounded uppercase border border-slate-200 dark:border-slate-700">ESCALA DIVERSA</span>
                               )}
-                            </div>
-                            <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
+                            </span>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase truncate mt-0.5">
                               {formatLocation(s.type, s.location) || 'Local não definido'}
                               {(() => {
+                                if (s.type === 'Escala Diversa') return '';
                                 if (s.type === 'Sobreaviso' || s.type === 'Faxina') return '';
                                 const isWeekendOrHoliday = (() => {
                                   const d = new Date(`${selectedDateStr}T12:00:00`);

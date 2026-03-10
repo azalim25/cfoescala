@@ -305,7 +305,8 @@ const PersonalShiftPage: React.FC = () => {
         if (['Comandante da Guarda', 'Sobreaviso', 'Faxina', 'Manutenção', 'Barra'].includes(s.type)) {
           location = 'ABM';
         } else if (['Escala Diversa'].includes(s.type)) {
-          location = '';
+          // Keep location for diverse shifts to ensure title/description shows
+          location = stripGroupId(s.location || '');
           if (s.type === 'Escala Diversa' && !description) {
             const extraMatch = extraHours.find(eh =>
               eh.category === 'CFO II - Registro de Horas' &&
