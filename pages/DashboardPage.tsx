@@ -511,6 +511,31 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleAcionarSobreaviso = async () => {
+    if (!confirm('Deseja acionar o Sobreaviso? O atual Comandante da Guarda será substituído pelo militar de Sobreaviso.')) return;
+
+    const dayData = groupedData[selectedDateStr];
+    if (!dayData) return;
+
+    const cgShift = dayData.shifts.find(s => s.type === 'Comandante da Guarda');
+    const sobreavisoShift = dayData.shifts.find(s => s.type === 'Sobreaviso');
+
+    if (cgShift && sobreavisoShift) {
+      try {
+        await removeShift(cgShift.id);
+        await updateShift(sobreavisoShift.id, {
+          type: 'Comandante da Guarda',
+          location: 'Sobreaviso Acionado',
+          startTime: cgShift.startTime,
+          endTime: cgShift.endTime
+        });
+      } catch (error) {
+        console.error('Erro ao acionar sobreaviso:', error);
+        alert('Erro ao acionar sobreaviso.');
+      }
+    }
+  };
+
   const selectedDateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
 
   const isShiftVisible = (type: string) => selectedShiftTypes.includes(type);
@@ -607,10 +632,12 @@ const DashboardPage: React.FC = () => {
       });
     }, [dayData, visibleTypes, militaries]);
 
+    const isSobreavisoAcionado = dayData?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location === 'Sobreaviso Acionado') || false;
+
     return (
       <button
         onClick={onClick}
-        className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${isToday ? 'bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'} ${isSelected ? 'ring-2 ring-primary ring-inset z-10' : ''}`}
+        className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${isSobreavisoAcionado && !isSelected ? 'ring-2 ring-yellow-400 dark:ring-yellow-500 ring-inset z-10 bg-yellow-50/30 dark:bg-yellow-900/10' : ''} ${isToday && !isSobreavisoAcionado ? 'bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'} ${isSelected ? 'ring-2 ring-primary ring-inset z-20' : ''}`}
       >
         <div className="flex justify-between items-start mb-0.5 sm:mb-1">
           <div className="flex flex-col items-start gap-1">
@@ -782,7 +809,7 @@ const DashboardPage: React.FC = () => {
       </MainLayout.Content>
 
       <MainLayout.Sidebar>
-        <div id="fiche-do-dia" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20">
+        <div id="fiche-do-dia" className={`bg-white dark:bg-slate-900 rounded-xl shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20 border-2 ${groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location === 'Sobreaviso Acionado') ? 'border-yellow-400 dark:border-yellow-500 shadow-yellow-400/20' : 'border-slate-200 dark:border-slate-800'}`}>
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -830,6 +857,16 @@ const DashboardPage: React.FC = () => {
                   className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-sm"
                 >
                   <span className="material-symbols-outlined text-lg">add</span>
+                </button>
+              )}
+              {isModerator && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda') && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Sobreaviso') && !groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location === 'Sobreaviso Acionado') && (
+                <button
+                  onClick={handleAcionarSobreaviso}
+                  className="px-2 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-[10px] font-bold uppercase hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors flex items-center gap-1 border border-yellow-200 dark:border-yellow-800 shadow-sm shrink-0"
+                  title="Acionar Sobreaviso"
+                >
+                  <span className="material-symbols-outlined text-sm">notifications_active</span>
+                  <span className="hidden sm:inline">Acionar Sobreaviso</span>
                 </button>
               )}
             </div>
