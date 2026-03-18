@@ -21,7 +21,10 @@ const RankingPage: React.FC = () => {
     const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
     const [stages, setStages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+    const [selectedMonths, setSelectedMonths] = useState<number[]>(() => {
+        const saved = localStorage.getItem('@cfo_ranking_months');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     const months = [
         { value: '01', label: 'Janeiro' },
@@ -39,17 +42,19 @@ const RankingPage: React.FC = () => {
     ];
 
     const toggleMonth = (monthIndex: number) => {
-        setSelectedMonths(prev =>
-            prev.includes(monthIndex)
+        setSelectedMonths(prev => {
+            const next = prev.includes(monthIndex)
                 ? prev.filter(m => m !== monthIndex)
-                : [...prev, monthIndex].sort((a, b) => a - b)
-        );
+                : [...prev, monthIndex].sort((a, b) => a - b);
+            localStorage.setItem('@cfo_ranking_months', JSON.stringify(next));
+            return next;
+        });
     };
 
-    const clearFilters = () => setSelectedMonths([]);
-
-    const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
-    const [selectedExtraCategories, setSelectedExtraCategories] = useState<string[]>([]);
+    const clearFilters = () => {
+        setSelectedMonths([]);
+        localStorage.removeItem('@cfo_ranking_months');
+    };
 
     const allShiftTypes = useMemo(() =>
         Object.keys(SHIFT_TYPE_COLORS).filter(type => !['Escala Geral', 'Escala Diversa'].includes(type)),
@@ -60,10 +65,27 @@ const RankingPage: React.FC = () => {
         'CFO II - Registro de Horas'
     ];
 
+    const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>(() => {
+        const saved = localStorage.getItem('@cfo_ranking_shiftTypes');
+        return saved ? JSON.parse(saved) : []; // Will be populated in useEffect if empty
+    });
+    const [selectedExtraCategories, setSelectedExtraCategories] = useState<string[]>(() => {
+        const saved = localStorage.getItem('@cfo_ranking_extraCategories');
+        return saved ? JSON.parse(saved) : []; // Will be populated in useEffect if empty
+    });
+
     useEffect(() => {
-        setSelectedShiftTypes(allShiftTypes);
-        setSelectedExtraCategories(allExtraCategories);
+        // Initialize if empty (first time visit)
+        if (selectedShiftTypes.length === 0 && !localStorage.getItem('@cfo_ranking_shiftTypes')) {
+            setSelectedShiftTypes(allShiftTypes);
+            localStorage.setItem('@cfo_ranking_shiftTypes', JSON.stringify(allShiftTypes));
+        }
+        if (selectedExtraCategories.length === 0 && !localStorage.getItem('@cfo_ranking_extraCategories')) {
+            setSelectedExtraCategories(allExtraCategories);
+            localStorage.setItem('@cfo_ranking_extraCategories', JSON.stringify(allExtraCategories));
+        }
     }, [allShiftTypes]);
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -133,7 +155,7 @@ const RankingPage: React.FC = () => {
             const milExtra = filteredExtraHours.filter(e => e.military_id === mil.id);
             milExtra.forEach(e => {
                 if (selectedExtraCategories.includes(e.category)) {
-                    totalHours += e.hours + (e.minutes / 60);
+                    totalHours += Number(e.hours || 0) + (Number(e.minutes || 0) / 60);
                 }
             });
 
@@ -169,15 +191,19 @@ const RankingPage: React.FC = () => {
     }, [militaries, shifts, extraHours, stages, selectedShiftTypes, selectedExtraCategories, selectedMonths]);
 
     const toggleShiftType = (type: string) => {
-        setSelectedShiftTypes(prev =>
-            prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-        );
+        setSelectedShiftTypes(prev => {
+            const next = prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type];
+            localStorage.setItem('@cfo_ranking_shiftTypes', JSON.stringify(next));
+            return next;
+        });
     };
 
     const toggleExtraCategory = (cat: string) => {
-        setSelectedExtraCategories(prev =>
-            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-        );
+        setSelectedExtraCategories(prev => {
+            const next = prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat];
+            localStorage.setItem('@cfo_ranking_extraCategories', JSON.stringify(next));
+            return next;
+        });
     };
 
     return (

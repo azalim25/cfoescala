@@ -7,16 +7,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { Shift, Rank } from '../types';
 import { supabase } from '../supabase';
 import { safeParseISO } from '../utils/dateUtils';
+import { stripGroupId, formatLocationUtil } from '../utils/formatUtils';
 
 const formatLocation = (type: string, location: string | null | undefined) => {
-  if (!location) return '';
-  const normLoc = location.trim().toUpperCase();
-  if (normLoc === 'QCG' || normLoc === 'PEL ABM' || normLoc === 'ESCOLA') return 'ABM';
-  return location;
+  return formatLocationUtil(type, location);
 };
 
 const DashboardPage: React.FC = () => {
-  const { shifts: allShifts, createShift, updateShift, removeShift, preferences, holidays, addHoliday, removeHoliday } = useShift();
+  const { shifts: allShifts, createShift, createShifts, updateShift, removeShift, preferences, holidays, addHoliday, removeHoliday } = useShift();
   const { militaries } = useMilitary();
   const { isModerator } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -28,9 +26,11 @@ const DashboardPage: React.FC = () => {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const [editingShift, setEditingShift] = useState<Shift | any | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState<{
     militaryId: string;
+    militaryIds: string[];
     type: Shift['type'];
     location: string;
     duration?: number;
@@ -41,6 +41,7 @@ const DashboardPage: React.FC = () => {
     manualMinutes?: number;
   }>({
     militaryId: '',
+    militaryIds: [],
     type: 'Escala Geral',
     location: 'QCG',
     duration: undefined,
@@ -58,6 +59,15 @@ const DashboardPage: React.FC = () => {
       .sort((a, b) => (SHIFT_TYPE_PRIORITY[a] || 99) - (SHIFT_TYPE_PRIORITY[b] || 99)),
     []);
   const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
+
+  const activeDateStr = useMemo(() => {
+    return `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+  }, [currentYear, currentMonth, selectedDay]);
+
+  const activePreference = useMemo(() => {
+    if (!formData.militaryId || !preferences) return null;
+    return preferences.find(p => p.militaryId === formData.militaryId && p.date === activeDateStr);
+  }, [formData.militaryId, activeDateStr, preferences]);
 
   useEffect(() => {
     setSelectedShiftTypes([...allShiftTypes, 'Escala Diversa']);
@@ -166,8 +176,10 @@ const DashboardPage: React.FC = () => {
 
   const handleOpenAddModal = () => {
     setEditingShift(null);
+    setSearchTerm('');
     setFormData({
       militaryId: '',
+      militaryIds: [],
       type: 'Escala Geral',
       location: 'ABM',
       duration: undefined,
@@ -182,12 +194,36 @@ const DashboardPage: React.FC = () => {
 
   const handleOpenEditModal = (shift: Shift) => {
     setEditingShift(shift);
+    setSearchTerm('');
+    const isStage = shift.type === 'Estágio';
+    const isOthers = isStage && shift.location && !STAGE_LOCATIONS.includes(shift.location);
+
+    // Check for group ID in description for Escala Diversa
+    let groupMilitaryIds: string[] = [shift.militaryId];
+    if (shift.type === 'Escala Diversa' && shift.location?.includes('[GRP_')) {
+      const match = shift.location.match(/\[GRP_(\d+)\]/);
+      if (match) {
+        const groupId = match[0];
+        const dateStr = shift.date;
+        // Find all other members of the group in the current state
+        const groupMembers = allShifts.filter(s => s.type === 'Escala Diversa' && s.date === dateStr && s.location?.includes(groupId));
+        const extraMembers = extraHours.filter(eh => eh.date === dateStr && eh.description?.includes(groupId));
+
+        const allIds = new Set([
+          ...groupMembers.map(m => m.militaryId),
+          ...extraMembers.map(m => m.military_id)
+        ]);
+        groupMilitaryIds = Array.from(allIds);
+      }
+    }
+
     setFormData({
       militaryId: shift.militaryId,
+      militaryIds: groupMilitaryIds,
       type: shift.type,
-      location: (shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : (shift.location === 'QCG' ? 'ABM' : shift.location || 'ABM'),
+      location: isOthers ? 'OUTROS' : ((shift.type === 'Escala Diversa' || shift.type === 'Barra' || shift.type === 'Estágio') ? shift.location || '' : (shift.location === 'QCG' ? 'ABM' : shift.location || 'ABM')),
       duration: shift.duration,
-      description: shift.type === 'Escala Diversa' ? shift.location : '',
+      description: (shift.type === 'Escala Diversa' || isOthers) ? stripGroupId(shift.location || '') : '',
       startTime: shift.startTime,
       endTime: shift.endTime,
       manualHours: shift.duration ? Math.floor(shift.duration) : 0,
@@ -197,8 +233,12 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleSaveShift = async () => {
-    if (!formData.militaryId) {
+    if (formData.type !== 'Escala Diversa' && !formData.militaryId) {
       alert('Selecione um militar.');
+      return;
+    }
+    if (formData.type === 'Escala Diversa' && formData.militaryIds.length === 0) {
+      alert('Selecione pelo menos um militar.');
       return;
     }
 
@@ -258,121 +298,147 @@ const DashboardPage: React.FC = () => {
       }
     }
 
+    // Prepare loop for military positions
+    const targetMilitaryIds = formData.type === 'Escala Diversa' ? formData.militaryIds : [formData.militaryId];
+    const groupId = formData.type === 'Escala Diversa' && targetMilitaryIds.length > 1
+      ? `[GRP_${Date.now()}]`
+      : '';
+
     try {
+      // 1. If editing, clean up ALL old records first (atomic operation before loop)
       if (editingShift) {
-        if ((editingShift as any).isStage) {
+        const oldDate = editingShift.date;
+        const oldMatch = editingShift.location?.match(/\[GRP_(\d+)\]/);
+
+        if (oldMatch) {
+          const oldGroupId = oldMatch[0];
+          // Delete from extra_hours using the ORIGINAL date
+          await supabase.from('extra_hours').delete().eq('date', oldDate).ilike('description', `%${oldGroupId}%`);
+          // Remove old shifts in group
+          const otherShifts = allShifts.filter(s => s.date === oldDate && s.type === 'Escala Diversa' && s.location?.includes(oldGroupId));
+          for (const s of otherShifts) {
+            await removeShift(s.id);
+          }
+        } else {
+          // Single shift cleanup
+          await removeShift(editingShift.id);
+          // Also cleanup any specific extra_hours for this military on the original date
+          await supabase.from('extra_hours').delete()
+            .eq('military_id', editingShift.militaryId)
+            .eq('date', oldDate)
+            .ilike('description', 'Escala Diversa:%');
+        }
+      }
+
+      const shiftsToCreate: any[] = [];
+      const extraHoursToCreate: any[] = [];
+      const stagesToCreate: any[] = [];
+
+      for (const mId of targetMilitaryIds) {
+        const cleanDescription = stripGroupId(formData.description);
+        const finalLocation = (formData.type === 'Escala Diversa' || (formData.type === 'Estágio' && formData.location === 'OUTROS'))
+          ? (groupId ? `${cleanDescription} ${groupId}` : cleanDescription)
+          : formData.location;
+
+        if (editingShift && formData.type !== 'Escala Diversa') {
+          // Individual update for non-diversa/non-bulk types
           if (formData.type === 'Estágio') {
-            await supabase.from('stages').update({
-              military_id: formData.militaryId,
+            const { data: existingStage } = await supabase
+              .from('stages')
+              .select('id')
+              .eq('military_id', mId)
+              .eq('date', dateStr)
+              .maybeSingle();
+
+            const stageData = {
+              military_id: mId,
               location: formData.location,
-              start_time: formData.startTime,
-              end_time: formData.endTime
-            }).eq('id', editingShift.id);
-          } else {
-            await supabase.from('stages').delete().eq('id', editingShift.id);
-            await createShift({
-              militaryId: formData.militaryId,
               date: dateStr,
-              type: formData.type,
-              startTime: finalStartTime,
-              endTime: finalEndTime,
-              location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
-              status: 'Confirmado',
+              start_time: formData.startTime,
+              end_time: formData.endTime,
+              duration: Math.round(finalDuration || 0)
+            };
+
+            if (existingStage) {
+              await supabase.from('stages').update(stageData).eq('id', existingStage.id);
+            } else {
+              await supabase.from('stages').insert(stageData);
+            }
+          }
+
+          await updateShift(editingShift.id, {
+            militaryId: mId,
+            type: formData.type,
+            location: finalLocation,
+            duration: Math.round(finalDuration || 0),
+            startTime: (formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
+            endTime: (formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
+          });
+        } else {
+          // Prepare for bulk insert (includes newly added shifts and diversa edits which were cleaned up above)
+          const shiftData = {
+            militaryId: mId,
+            date: dateStr,
+            type: formData.type,
+            startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
+            endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
+            location: finalLocation,
+            status: 'Confirmado',
+            duration: Math.round(finalDuration || 0)
+          };
+          shiftsToCreate.push(shiftData);
+
+          if (formData.type === 'Escala Diversa') {
+            const start = formData.startTime || '08:00';
+            const end = formData.endTime || '12:00';
+            const [h1, m1] = start.split(':').map(Number);
+            const [h2, m2] = end.split(':').map(Number);
+            let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+            if (totalMinutes < 0) totalMinutes += 24 * 60;
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+
+            extraHoursToCreate.push({
+              military_id: mId,
+              category: 'CFO II - Registro de Horas',
+              hours: hours,
+              minutes: minutes,
+              description: `Escala Diversa: ${finalLocation || 'Sem descrição'}`,
+              date: dateStr
+            });
+          }
+
+          if (formData.type === 'Estágio' && formData.location !== 'OUTROS' && !editingShift) {
+            stagesToCreate.push({
+              military_id: mId,
+              location: formData.location,
+              date: dateStr,
+              start_time: formData.startTime,
+              end_time: formData.endTime,
               duration: Math.round(finalDuration || 0)
             });
           }
-        } else {
-          await updateShift(editingShift.id, {
-            militaryId: formData.militaryId,
-            type: formData.type,
-            location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
-            duration: Math.round(finalDuration || 0),
-            startTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.startTime || finalStartTime) : finalStartTime,
-            endTime: (formData.type === 'Escala Diversa' || formData.type === 'Barra' || formData.type === 'Estágio' || formData.type === 'Comandante da Guarda') ? (formData.endTime || finalEndTime) : finalEndTime,
-          });
-        }
-      } else {
-        await createShift({
-          militaryId: formData.militaryId,
-          date: dateStr,
-          type: formData.type,
-          startTime: finalStartTime,
-          endTime: finalEndTime,
-          location: formData.type === 'Escala Diversa' ? formData.description : formData.location,
-          status: 'Confirmado',
-          duration: Math.round(finalDuration || 0)
-        });
-      }
-
-      if (formData.type === 'Escala Diversa') {
-        const start = formData.startTime || '08:00';
-        const end = formData.endTime || '12:00';
-        const [h1, m1] = start.split(':').map(Number);
-        const [h2, m2] = end.split(':').map(Number);
-        let totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (totalMinutes < 0) totalMinutes += 24 * 60;
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-
-        const extraData = {
-          military_id: formData.militaryId,
-          category: 'CFO II - Registro de Horas',
-          hours: hours,
-          minutes: minutes,
-          description: `Escala Diversa: ${formData.description || 'Sem descrição'}`,
-          date: dateStr
-        };
-
-        if (editingShift) {
-          const { data: existingEH } = await supabase
-            .from('extra_hours')
-            .select('id')
-            .eq('military_id', formData.militaryId)
-            .eq('date', dateStr)
-            .ilike('description', 'Escala Diversa:%')
-            .limit(1)
-            .single();
-
-          if (existingEH) {
-            await supabase.from('extra_hours').update(extraData).eq('id', existingEH.id);
-          } else {
-            await supabase.from('extra_hours').insert(extraData);
-          }
-        } else {
-          await supabase.from('extra_hours').insert(extraData);
         }
       }
 
-      if (formData.type === 'Estágio' && !((editingShift as any)?.isStage)) {
-        const stageData = {
-          military_id: formData.militaryId,
-          location: formData.location,
-          date: dateStr,
-          start_time: formData.startTime,
-          end_time: formData.endTime
-        };
-
-        const { data: existingStage } = await supabase
-          .from('stages')
-          .select('id')
-          .eq('military_id', formData.militaryId)
-          .eq('date', dateStr)
-          .limit(1)
-          .single();
-
-        if (existingStage) {
-          await supabase.from('stages').update(stageData).eq('id', existingStage.id);
-        } else {
-          await supabase.from('stages').insert(stageData);
-        }
-        const { data: updatedStages } = await supabase.from('stages').select('*');
-        if (updatedStages) setStages(updatedStages);
+      // Execute bulk operations if any
+      if (shiftsToCreate.length > 0) {
+        await createShifts(shiftsToCreate);
+      }
+      if (extraHoursToCreate.length > 0) {
+        const { error: extraError } = await supabase.from('extra_hours').insert(extraHoursToCreate);
+        if (extraError) throw extraError;
+      }
+      if (stagesToCreate.length > 0) {
+        const { error: stageError } = await supabase.from('stages').insert(stagesToCreate);
+        if (stageError) throw stageError;
       }
 
+      await fetchExtraHours();
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error saving shift/extra hours:', error);
-      alert('Erro ao salvar os dados.');
+      alert('Erro ao salvar os dados. Verifique sua conexão.');
     }
   };
 
@@ -393,13 +459,23 @@ const DashboardPage: React.FC = () => {
       }
 
       if (shiftType === 'Escala Diversa') {
+        const groupMatch = editingShift.location?.match(/\[GRP_(\d+)\]/);
         try {
-          await supabase
-            .from('extra_hours')
-            .delete()
-            .eq('military_id', militaryId)
-            .eq('date', dateStr)
-            .ilike('description', 'Escala Diversa:%');
+          if (groupMatch) {
+            const groupId = groupMatch[0];
+            await supabase.from('extra_hours').delete().eq('date', dateStr).ilike('description', `%${groupId}%`);
+            const otherShifts = allShifts.filter(s => s.date === dateStr && s.type === 'Escala Diversa' && s.location?.includes(groupId));
+            for (const s of otherShifts) {
+              await removeShift(s.id);
+            }
+          } else {
+            await supabase
+              .from('extra_hours')
+              .delete()
+              .eq('military_id', militaryId)
+              .eq('date', dateStr)
+              .ilike('description', 'Escala Diversa:%');
+          }
         } catch (error) {
           console.error('Error syncing deletion with extra_hours:', error);
         }
@@ -407,11 +483,23 @@ const DashboardPage: React.FC = () => {
 
       if (shiftType === 'Estágio') {
         try {
-          await supabase
+          // 1. Delete from stages table based on date and military_id to be safe
+          const { error: stageError } = await supabase
             .from('stages')
             .delete()
             .eq('military_id', militaryId)
             .eq('date', dateStr);
+
+          if (stageError) throw stageError;
+
+          // 2. Also find and delete from shifts table
+          const matchingShift = allShifts.find(s => s.militaryId === militaryId && s.date === dateStr && s.type === 'Estágio');
+          if (matchingShift) {
+            await removeShift(matchingShift.id);
+          } else if (!(editingShift as any).isStage) {
+            await removeShift(editingShift.id);
+          }
+
           const { data: updatedStages } = await supabase.from('stages').select('*');
           if (updatedStages) setStages(updatedStages);
         } catch (error) {
@@ -420,6 +508,72 @@ const DashboardPage: React.FC = () => {
       }
 
       setIsModalOpen(false);
+    }
+  };
+
+  const handleAcionarSobreaviso = async () => {
+    if (!confirm('Deseja acionar o Sobreaviso? O atual Comandante da Guarda será substituído pelo militar de Sobreaviso.')) return;
+
+    const dayData = groupedData[selectedDateStr];
+    if (!dayData) return;
+
+    const cgShift = dayData.shifts.find(s => s.type === 'Comandante da Guarda');
+    const sobreavisoShift = dayData.shifts.find(s => s.type === 'Sobreaviso');
+
+    if (cgShift && sobreavisoShift) {
+      try {
+        await removeShift(cgShift.id);
+        await updateShift(sobreavisoShift.id, {
+          type: 'Comandante da Guarda',
+          location: `Sobreaviso Acionado [ANTIGO_CG:${cgShift.militaryId}]`,
+          startTime: cgShift.startTime,
+          endTime: cgShift.endTime
+        });
+      } catch (error) {
+        console.error('Erro ao acionar sobreaviso:', error);
+        alert('Erro ao acionar sobreaviso.');
+      }
+    }
+  };
+
+  const handleDesfazerSobreaviso = async () => {
+    if (!confirm('Deseja DESFAZER o acionamento do Sobreaviso? A escala voltará ao normal.')) return;
+
+    const dayData = groupedData[selectedDateStr];
+    if (!dayData) return;
+
+    const modifiedCgShift = dayData.shifts.find(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado'));
+
+    if (modifiedCgShift) {
+      try {
+        // Extract old CG military ID from location string if present
+        const match = modifiedCgShift.location?.match(/\[ANTIGO_CG:(.+)\]/);
+        const oldCgId = match ? match[1] : undefined;
+
+        // Revert current CG back to Sobreaviso
+        await updateShift(modifiedCgShift.id, {
+          type: 'Sobreaviso',
+          location: 'QCG',
+          startTime: '08:00',
+          endTime: '08:00'
+        });
+
+        // If we know who the old CG was, restore them automatically
+        if (oldCgId) {
+          await createShift({
+            militaryId: oldCgId,
+            date: selectedDateStr,
+            type: 'Comandante da Guarda',
+            location: 'QCG',
+            startTime: modifiedCgShift.startTime || '08:00',
+            endTime: modifiedCgShift.endTime || '08:00',
+            status: 'Confirmado'
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao desfazer sobreaviso:', error);
+        alert('Erro ao desfazer sobreaviso.');
+      }
     }
   };
 
@@ -519,10 +673,12 @@ const DashboardPage: React.FC = () => {
       });
     }, [dayData, visibleTypes, militaries]);
 
+    const isSobreavisoAcionado = dayData?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado')) || false;
+
     return (
       <button
         onClick={onClick}
-        className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${isToday ? 'bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'} ${isSelected ? 'ring-2 ring-primary ring-inset z-10' : ''}`}
+        className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left ${isSobreavisoAcionado && !isSelected ? 'ring-2 ring-yellow-400 dark:ring-yellow-500 ring-inset z-10 bg-yellow-50/30 dark:bg-yellow-900/10' : ''} ${isToday && !isSobreavisoAcionado ? 'bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'} ${isSelected ? 'ring-2 ring-primary ring-inset z-20' : ''}`}
       >
         <div className="flex justify-between items-start mb-0.5 sm:mb-1">
           <div className="flex flex-col items-start gap-1">
@@ -694,7 +850,7 @@ const DashboardPage: React.FC = () => {
       </MainLayout.Content>
 
       <MainLayout.Sidebar>
-        <div id="fiche-do-dia" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20">
+        <div id="fiche-do-dia" className={`bg-white dark:bg-slate-900 rounded-xl shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20 border-2 ${groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado')) ? 'border-yellow-400 dark:border-yellow-500 shadow-yellow-400/20' : 'border-slate-200 dark:border-slate-800'}`}>
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -740,8 +896,27 @@ const DashboardPage: React.FC = () => {
                 <button
                   onClick={handleOpenAddModal}
                   className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-sm"
+                  title="Adicionar Serviço"
                 >
                   <span className="material-symbols-outlined text-lg">add</span>
+                </button>
+              )}
+              {isModerator && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda') && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Sobreaviso') && !groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado')) && (
+                <button
+                  onClick={handleAcionarSobreaviso}
+                  className="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors flex items-center justify-center border border-yellow-200 dark:border-yellow-800 shadow-sm shrink-0"
+                  title="Acionar Sobreaviso"
+                >
+                  <span className="material-symbols-outlined text-sm">notifications_active</span>
+                </button>
+              )}
+              {isModerator && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado')) && (
+                <button
+                  onClick={handleDesfazerSobreaviso}
+                  className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center justify-center border border-red-200 dark:border-red-800 shadow-sm shrink-0"
+                  title="Desfazer Acionamento de Sobreaviso"
+                >
+                  <span className="material-symbols-outlined text-sm">undo</span>
                 </button>
               )}
             </div>
@@ -778,7 +953,18 @@ const DashboardPage: React.FC = () => {
                     isExtra: true,
                     date: eh.date
                   }))
-                ].sort((a, b) => (SHIFT_TYPE_PRIORITY[a.type] || 99) - (SHIFT_TYPE_PRIORITY[b.type] || 99));
+                ].sort((a, b) => {
+                  const typePrio = (SHIFT_TYPE_PRIORITY[a.type] || 99) - (SHIFT_TYPE_PRIORITY[b.type] || 99);
+                  if (typePrio !== 0) return typePrio;
+
+                  const milA = militaries.find(m => m.id === (a.militaryId || a.military_id));
+                  const milB = militaries.find(m => m.id === (b.militaryId || b.military_id));
+                  const antA = milA?.antiguidade ?? 999999;
+                  const antB = milB?.antiguidade ?? 999999;
+
+                  if (antA !== antB) return antA - antB;
+                  return (milA?.name || '').localeCompare(milB?.name || '');
+                });
 
                 return unifiedList.map((s: any) => {
                   const m = militaries.find(mil => mil.id === s.militaryId);
@@ -790,21 +976,22 @@ const DashboardPage: React.FC = () => {
                       onClick={() => isModerator && handleOpenEditModal(s)}
                       className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${colors.border} dark:border-slate-700 p-3 sm:p-4 space-y-3 shadow-sm relative overflow-hidden transition-all group ${isModerator ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'}`}
                     >
-                      <div className="flex items-start justify-between relative z-10">
-                        <div className="flex gap-2 sm:gap-3">
+                      <div className="flex items-start justify-between relative z-10 w-full overflow-hidden">
+                        <div className="flex gap-2 sm:gap-3 items-center min-w-0 flex-1">
                           <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${colors.bg} flex items-center justify-center ${colors.text} border ${colors.border} shrink-0`}>
                             <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-none truncate">{m?.rank} {m?.name}</h3>
-                              <span className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} border ${colors.border}`}>
-                                {s.type}
-                              </span>
-                            </div>
-                            <p className="text-[9px] sm:text-[11px] text-slate-500 mt-1 uppercase font-bold">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate block">
+                              {m?.rank} {m?.name}
+                              {s.type === 'Escala Diversa' && (
+                                <span className="ml-2 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 rounded uppercase border border-slate-200 dark:border-slate-700">ESCALA DIVERSA</span>
+                              )}
+                            </span>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase truncate mt-0.5">
                               {formatLocation(s.type, s.location) || 'Local não definido'}
                               {(() => {
+                                if (s.type === 'Escala Diversa') return '';
                                 if (s.type === 'Sobreaviso' || s.type === 'Faxina') return '';
                                 const isWeekendOrHoliday = (() => {
                                   const d = new Date(`${selectedDateStr}T12:00:00`);
@@ -849,16 +1036,139 @@ const DashboardPage: React.FC = () => {
             <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase">Militar</label>
-                <select
-                  value={formData.militaryId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, militaryId: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm"
-                >
-                  <option value="">Selecione um militar...</option>
-                  {militaries.map(m => (
-                    <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
-                  ))}
-                </select>
+                {formData.type === 'Escala Diversa' ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                        <input
+                          type="text"
+                          placeholder="Buscar militar..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full h-9 pl-9 pr-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-xs"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const filtered = militaries.filter(m =>
+                            m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            m.rank.toLowerCase().includes(searchTerm.toLowerCase())
+                          );
+                          const allFilteredSelected = filtered.every(m => formData.militaryIds.includes(m.id));
+                          if (allFilteredSelected) {
+                            setFormData(prev => ({ ...prev, militaryIds: prev.militaryIds.filter(id => !filtered.some(f => f.id === id)) }));
+                          } else {
+                            const newIds = Array.from(new Set([...formData.militaryIds, ...filtered.map(m => m.id)]));
+                            setFormData(prev => ({ ...prev, militaryIds: newIds }));
+                          }
+                        }}
+                        className="px-3 h-9 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold uppercase hover:bg-slate-200 transition-colors shrink-0"
+                      >
+                        {militaries.filter(m =>
+                          (m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.rank.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                          formData.militaryIds.includes(m.id)
+                        ).length === militaries.filter(m =>
+                          m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.rank.toLowerCase().includes(searchTerm.toLowerCase())
+                        ).length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                      </button>
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl p-2 bg-slate-50/30 dark:bg-slate-800/20 space-y-1 custom-scrollbar">
+                      {militaries
+                        .filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.rank.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .map(m => {
+                          const pref = preferences?.find(p => p.militaryId === m.id && p.date === activeDateStr);
+                          const isRestriction = pref?.type === 'restriction';
+                          const isPreference = pref?.type === 'priority';
+                          const isSelected = formData.militaryIds.includes(m.id);
+
+                          return (
+                            <label
+                              key={m.id}
+                              className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-primary/5 border-primary/20 shadow-sm' : 'hover:bg-white dark:hover:bg-slate-800'}`}
+                            >
+                              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
+                                {isSelected && <span className="material-symbols-outlined text-white text-[12px] font-black">check</span>}
+                              </div>
+                              <input
+                                type="checkbox"
+                                className="hidden"
+                                checked={isSelected}
+                                onChange={() => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    militaryIds: isSelected
+                                      ? prev.militaryIds.filter(id => id !== m.id)
+                                      : [...prev.militaryIds, m.id]
+                                  }));
+                                }}
+                              />
+                              <div className="flex flex-col min-w-0">
+                                <span className={`text-[11px] font-bold truncate ${isRestriction ? 'text-red-500' : (isPreference ? 'text-amber-500' : 'text-slate-700 dark:text-slate-200')}`}>
+                                  {m.rank} {m.name}
+                                </span>
+                                {(isRestriction || isPreference) && (
+                                  <span className={`text-[8px] font-black uppercase ${isRestriction ? 'text-red-400' : 'text-amber-400'}`}>
+                                    {isRestriction ? 'Possui Restrição' : 'Solicitou Preferência'}
+                                  </span>
+                                )}
+                              </div>
+                            </label>
+                          );
+                        })}
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase pl-1">{formData.militaryIds.length} selecionado(s)</p>
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      value={formData.militaryId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, militaryId: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm"
+                    >
+                      <option value="">Selecione um militar...</option>
+                      {militaries.map(m => {
+                        const pref = preferences?.find(p => p.militaryId === m.id && p.date === activeDateStr);
+                        const isRestriction = pref?.type === 'restriction';
+                        const isPreference = pref?.type === 'priority';
+
+                        let label = `${m.rank} ${m.name}`;
+                        if (isRestriction) label += ' - RESTRIÇÃO';
+                        if (isPreference) label += ' - PREFERÊNCIA';
+
+                        return (
+                          <option
+                            key={m.id}
+                            value={m.id}
+                            style={{
+                              color: isRestriction ? '#ef4444' : (isPreference ? '#eab308' : 'inherit'),
+                              fontWeight: (isRestriction || isPreference) ? 'bold' : 'normal'
+                            }}
+                          >
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {activePreference && (
+                      <div className={`mt-2 p-3 rounded-xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-200 ${activePreference.type === 'restriction' ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800 text-red-700 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'}`}>
+                        <span className="material-symbols-outlined text-xl">
+                          {activePreference.type === 'restriction' ? 'warning' : 'priority_high'}
+                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase tracking-widest leading-tight">
+                            {activePreference.type === 'restriction' ? 'Restrição' : 'Prioridade'}
+                          </span>
+                          <span className="text-xs font-bold leading-tight">
+                            {activePreference.type === 'restriction' ? 'Este militar possui uma restrição para este dia.' : 'Este militar solicitou prioridade para este dia.'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -877,36 +1187,111 @@ const DashboardPage: React.FC = () => {
               {formData.type === 'Estágio' && (
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Local</label>
-                    <input
-                      type="text"
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Local</label>
+                    <select
                       value={formData.location}
                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      className="w-full h-10 px-3 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm"
-                    />
+                      className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    >
+                      {STAGE_LOCATIONS.map(loc => (
+                        <option key={loc} value={loc}>{loc.split(' - ')[0]}</option>
+                      ))}
+                      <option value="OUTROS">OUTROS</option>
+                    </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+
+                  {formData.location === 'OUTROS' && (
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
-                      <input type="time" value={formData.startTime} onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))} className="w-full h-10 px-3 rounded-lg border text-sm" />
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Descrição do Local</label>
+                      <input
+                        type="text"
+                        placeholder="Especifique o local..."
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold"
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Duração</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, duration: 12, startTime: '08:00', endTime: '20:00' }))}
+                        className={`py-2 px-3 rounded-lg text-[10px] font-bold border transition-all ${formData.duration === 12 && formData.startTime === '08:00' && formData.endTime === '20:00' ? 'bg-primary text-white border-primary shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'}`}
+                      >
+                        12 Horas (P12)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, duration: 24, startTime: '08:00', endTime: '08:00' }))}
+                        className={`py-2 px-3 rounded-lg text-[10px] font-bold border transition-all ${formData.duration === 24 && formData.startTime === '08:00' && formData.endTime === '08:00' ? 'bg-primary text-white border-primary shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'}`}
+                      >
+                        24 Horas (P24)
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Início Manual</label>
+                      <input
+                        type="time"
+                        value={formData.startTime}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData(prev => ({ ...prev, startTime: val }));
+                        }}
+                        className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
+                      />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">Fim</label>
-                      <input type="time" value={formData.endTime} onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))} className="w-full h-10 px-3 rounded-lg border text-sm" />
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fim Manual</label>
+                      <input
+                        type="time"
+                        value={formData.endTime}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData(prev => ({ ...prev, endTime: val }));
+                        }}
+                        className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
+                      />
                     </div>
                   </div>
                 </div>
               )}
 
               {formData.type === 'Escala Diversa' && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Descrição</label>
-                  <input
-                    type="text"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full h-10 px-3 rounded-lg border text-sm"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Descrição</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Cerimônia, Palestra..."
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Início</label>
+                      <input
+                        type="time"
+                        value={formData.startTime}
+                        onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                        className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fim</label>
+                      <input
+                        type="time"
+                        value={formData.endTime}
+                        onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                        className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

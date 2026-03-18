@@ -137,8 +137,7 @@ const StageQuantityPage: React.FC = () => {
         const day = d.getDay();
 
         if (day === 6) return 24; // Saturday
-        if (day === 0) return 12; // Sunday
-        return 12;
+        return 12; // Weekdays and Sunday
     };
 
     // Aggregate data
@@ -188,7 +187,7 @@ const StageQuantityPage: React.FC = () => {
                 const baseLoc = findBaseLocKey(locToUse);
 
                 if (baseLoc && stats[s.militaryId][baseLoc]) {
-                    const duration = getDuration(s.date, (s as any).duration || (stageInTable as any)?.duration);
+                    const duration = (s as any).duration || (stageInTable as any)?.duration || getDuration(s.date);
                     if (duration === 24) stats[s.militaryId][baseLoc].p24.cfo2++;
                     else stats[s.militaryId][baseLoc].p12.cfo2++;
                 }
@@ -252,8 +251,22 @@ const StageQuantityPage: React.FC = () => {
     const handleSaveCFO1 = async () => {
         if (!editingData) return;
         setIsSaving(true);
-        const category = `CFO I - Estágio - ${editingData.location} - ${editingData.duration}h`;
-        const existing = extraRecords.find(r => r.military_id === editingData.militaryId && r.category === category);
+
+        const normalizeStr = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[º°]/g, ' ').replace(/\s+/g, ' ').trim();
+        const editingLocNorm = normalizeStr(editingData.location);
+
+        // Find existing record using the same logic as stageStats aggregation
+        const existing = extraRecords.find(r => {
+            if (r.military_id !== editingData.militaryId) return false;
+            const parts = r.category.split(' - ');
+            if (parts.length < 4) return false;
+            if (!r.category.startsWith('CFO I - Estágio - ')) return false;
+
+            const recordLocNorm = normalizeStr(parts[2]);
+            const recordDur = parseInt(parts[3]) || 12;
+
+            return recordLocNorm.includes(editingLocNorm) && recordDur === editingData.duration;
+        });
 
         try {
             if (existing) {
@@ -263,6 +276,7 @@ const StageQuantityPage: React.FC = () => {
                     await supabase.from('extra_hours').update({ hours: editingData.quantity }).eq('id', existing.id);
                 }
             } else if (editingData.quantity > 0) {
+                const category = `CFO I - Estágio - ${editingData.location} - ${editingData.duration}h`;
                 await supabase.from('extra_hours').insert({
                     military_id: editingData.militaryId,
                     category: category,
@@ -450,32 +464,69 @@ const StageQuantityPage: React.FC = () => {
                         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between">
                             <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary text-xl">history</span>
-                                Registros Recentes (Modo Edição)
+                                Registros Manuais e CFO I (Modo Edição)
                             </h3>
                         </div>
                         <div className="p-4 max-h-[400px] overflow-y-auto custom-scrollbar">
-                            {stages.length === 0 ? (
+                            {stages.length === 0 && extraRecords.length === 0 ? (
                                 <p className="text-center text-slate-400 text-sm italic py-8">Nenhum registro manual encontrado.</p>
                             ) : (
                                 <div className="space-y-2">
-                                    {[...stages].sort((a, b) => b.date.localeCompare(a.date)).map(s => {
+                                    {/* CFO II Manual Records */}
+                                    {stages.sort((a, b) => b.date.localeCompare(a.date)).map(s => {
                                         const m = militaries.find(mil => mil.id === s.military_id);
                                         const duration = getDuration(s.date, s.duration);
                                         return (
                                             <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group hover:ring-1 hover:ring-primary/20 transition-all border border-transparent dark:border-slate-700/50">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-black shrink-0">
+                                                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-black shrink-0">
                                                         P{duration}
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{m?.rank} {m?.name}</p>
                                                         <p className="text-[10px] text-slate-500 font-medium">
-                                                            {new Date(s.date + 'T12:00:00').toLocaleDateString('pt-BR')} • {s.location.split(' - ')[0]}
+                                                            CFO II • {new Date(s.date + 'T12:00:00').toLocaleDateString('pt-BR')} • {s.location.split(' - ')[0]}
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={() => handleDeleteStage(s.id)}
+                                                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-md transition-all sm:opacity-0 group-hover:opacity-100"
+                                                    title="Excluir"
+                                                >
+                                                    <span className="material-symbols-outlined text-lg">delete</span>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* CFO I Records */}
+                                    {extraRecords.map(r => {
+                                        const m = militaries.find(mil => mil.id === r.military_id);
+                                        const parts = r.category.split(' - ');
+                                        const loc = parts[2] || 'Local';
+                                        const dur = parts[3] || '12h';
+                                        return (
+                                            <div key={r.id} className="flex items-center justify-between p-3 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-lg group hover:ring-1 hover:ring-emerald-500/20 transition-all border border-transparent dark:border-emerald-800/30">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs font-black shrink-0">
+                                                        {dur.replace('h', '')}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{m?.rank} {m?.name}</p>
+                                                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                                                            CFO I • {loc} • {r.hours} registro(s)
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (confirm('Deseja excluir este registro do CFO I?')) {
+                                                            const { error } = await supabase.from('extra_hours').delete().eq('id', r.id);
+                                                            if (error) alert('Erro ao excluir');
+                                                            else fetchStages();
+                                                        }
+                                                    }}
                                                     className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-md transition-all sm:opacity-0 group-hover:opacity-100"
                                                     title="Excluir"
                                                 >
