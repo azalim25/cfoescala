@@ -525,13 +525,54 @@ const DashboardPage: React.FC = () => {
         await removeShift(cgShift.id);
         await updateShift(sobreavisoShift.id, {
           type: 'Comandante da Guarda',
-          location: 'Sobreaviso Acionado',
+          location: `Sobreaviso Acionado [ANTIGO_CG:${cgShift.militaryId}]`,
           startTime: cgShift.startTime,
           endTime: cgShift.endTime
         });
       } catch (error) {
         console.error('Erro ao acionar sobreaviso:', error);
         alert('Erro ao acionar sobreaviso.');
+      }
+    }
+  };
+
+  const handleDesfazerSobreaviso = async () => {
+    if (!confirm('Deseja DESFAZER o acionamento do Sobreaviso? A escala voltará ao normal.')) return;
+
+    const dayData = groupedData[selectedDateStr];
+    if (!dayData) return;
+
+    const modifiedCgShift = dayData.shifts.find(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado'));
+
+    if (modifiedCgShift) {
+      try {
+        // Extract old CG military ID from location string if present
+        const match = modifiedCgShift.location?.match(/\[ANTIGO_CG:(.+)\]/);
+        const oldCgId = match ? match[1] : undefined;
+
+        // Revert current CG back to Sobreaviso
+        await updateShift(modifiedCgShift.id, {
+          type: 'Sobreaviso',
+          location: 'QCG',
+          startTime: '08:00',
+          endTime: '08:00'
+        });
+
+        // If we know who the old CG was, restore them automatically
+        if (oldCgId) {
+          await createShift({
+            militaryId: oldCgId,
+            date: selectedDateStr,
+            type: 'Comandante da Guarda',
+            location: 'QCG',
+            startTime: modifiedCgShift.startTime || '08:00',
+            endTime: modifiedCgShift.endTime || '08:00',
+            status: 'Confirmado'
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao desfazer sobreaviso:', error);
+        alert('Erro ao desfazer sobreaviso.');
       }
     }
   };
@@ -632,7 +673,7 @@ const DashboardPage: React.FC = () => {
       });
     }, [dayData, visibleTypes, militaries]);
 
-    const isSobreavisoAcionado = dayData?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location === 'Sobreaviso Acionado') || false;
+    const isSobreavisoAcionado = dayData?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado')) || false;
 
     return (
       <button
@@ -809,7 +850,7 @@ const DashboardPage: React.FC = () => {
       </MainLayout.Content>
 
       <MainLayout.Sidebar>
-        <div id="fiche-do-dia" className={`bg-white dark:bg-slate-900 rounded-xl shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20 border-2 ${groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location === 'Sobreaviso Acionado') ? 'border-yellow-400 dark:border-yellow-500 shadow-yellow-400/20' : 'border-slate-200 dark:border-slate-800'}`}>
+        <div id="fiche-do-dia" className={`bg-white dark:bg-slate-900 rounded-xl shadow-sm flex flex-col h-auto lg:h-[calc(100vh-120px)] lg:sticky lg:top-20 border-2 ${groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado')) ? 'border-yellow-400 dark:border-yellow-500 shadow-yellow-400/20' : 'border-slate-200 dark:border-slate-800'}`}>
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -855,18 +896,27 @@ const DashboardPage: React.FC = () => {
                 <button
                   onClick={handleOpenAddModal}
                   className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-sm"
+                  title="Adicionar Serviço"
                 >
                   <span className="material-symbols-outlined text-lg">add</span>
                 </button>
               )}
-              {isModerator && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda') && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Sobreaviso') && !groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location === 'Sobreaviso Acionado') && (
+              {isModerator && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda') && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Sobreaviso') && !groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado')) && (
                 <button
                   onClick={handleAcionarSobreaviso}
-                  className="px-2 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-[10px] font-bold uppercase hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors flex items-center gap-1 border border-yellow-200 dark:border-yellow-800 shadow-sm shrink-0"
+                  className="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors flex items-center justify-center border border-yellow-200 dark:border-yellow-800 shadow-sm shrink-0"
                   title="Acionar Sobreaviso"
                 >
                   <span className="material-symbols-outlined text-sm">notifications_active</span>
-                  <span className="hidden sm:inline">Acionar Sobreaviso</span>
+                </button>
+              )}
+              {isModerator && groupedData[selectedDateStr]?.shifts.some(s => s.type === 'Comandante da Guarda' && s.location?.startsWith('Sobreaviso Acionado')) && (
+                <button
+                  onClick={handleDesfazerSobreaviso}
+                  className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center justify-center border border-red-200 dark:border-red-800 shadow-sm shrink-0"
+                  title="Desfazer Acionamento de Sobreaviso"
+                >
+                  <span className="material-symbols-outlined text-sm">undo</span>
                 </button>
               )}
             </div>
