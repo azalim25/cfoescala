@@ -36,7 +36,7 @@ const calculateShiftHours = (shift: any) => {
   const st = shift.start_time || shift.startTime;
   const et = shift.end_time || shift.endTime;
 
-  if (st && et && (st !== '08:00' || et !== '08:00')) {
+  if (st && et && (st !== '08:00' || et !== '08:00' || shift.type === 'Estágio' || shift.type === 'Comandante da Guarda')) {
     const [h1, m1] = st.split(':').map(Number);
     const [h2, m2] = et.split(':').map(Number);
     if (!isNaN(h1) && !isNaN(h2)) {
@@ -383,8 +383,10 @@ const PersonalShiftPage: React.FC = () => {
           startTime = '06:30'; endTime = '06:30';
         }
       } else if (sTypeLower === 'estágio') {
-        if (item.start_time && item.end_time) {
-          startTime = item.start_time; endTime = item.end_time;
+        const st = item.start_time || item.startTime;
+        const et = item.end_time || item.endTime;
+        if (st && et) {
+          startTime = st; endTime = et;
         } else if (dayOfWeek === 6) { startTime = '08:00'; endTime = '08:00'; }
         else if (dayOfWeek === 0) { startTime = '08:00'; endTime = '20:00'; }
         else { startTime = '08:00'; endTime = '20:00'; }
