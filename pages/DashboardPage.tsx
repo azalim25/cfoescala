@@ -8,6 +8,7 @@ import { Shift, Rank } from '../types';
 import { supabase } from '../supabase';
 import { safeParseISO } from '../utils/dateUtils';
 import { stripGroupId, formatLocationUtil } from '../utils/formatUtils';
+import { fetchAllRows } from '../utils/supabaseUtils';
 
 const formatLocation = (type: string, location: string | null | undefined) => {
   return formatLocationUtil(type, location);
@@ -85,17 +86,22 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const fetchExtraHours = async () => {
-    const { data, error } = await supabase
-      .from('extra_hours')
-      .select('*')
-      .eq('category', 'CFO II - Registro de Horas');
-    if (!error && data) setExtraHours(data);
+    try {
+      const data = await fetchAllRows('extra_hours', '*', (q) => q.eq('category', 'CFO II - Registro de Horas'));
+      if (data) setExtraHours(data);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const fetchStages = async () => {
     setIsLoadingStages(true);
-    const { data, error } = await supabase.from('stages').select('*');
-    if (!error && data) setStages(data);
+    try {
+      const data = await fetchAllRows('stages');
+      if (data) setStages(data);
+    } catch (e) {
+      console.error(e);
+    }
     setIsLoadingStages(false);
   };
 
@@ -500,7 +506,7 @@ const DashboardPage: React.FC = () => {
             await removeShift(editingShift.id);
           }
 
-          const { data: updatedStages } = await supabase.from('stages').select('*');
+          const updatedStages = await fetchAllRows('stages');
           if (updatedStages) setStages(updatedStages);
         } catch (error) {
           console.error('Error syncing deletion with stages:', error);

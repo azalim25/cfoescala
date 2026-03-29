@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Shift, MilitaryPreference, Holiday } from '../types';
 import { supabase } from '../supabase';
+import { fetchAllRows } from '../utils/supabaseUtils';
 
 interface ShiftContextType {
     shifts: Shift[];
@@ -30,8 +31,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const fetchHolidays = async () => {
         try {
-            const { data, error } = await supabase.from('holidays').select('*');
-            if (error) throw error;
+            const data = await fetchAllRows('holidays');
             if (data) setHolidays(data);
         } catch (error) {
             console.error('Error fetching holidays:', error);
@@ -41,11 +41,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const fetchShifts = async () => {
         try {
             setIsLoading(true);
-            const { data, error } = await supabase
-                .from('shifts')
-                .select('*');
-
-            if (error) throw error;
+            const data = await fetchAllRows('shifts');
 
             if (data) {
                 const formattedShifts: Shift[] = data.map(s => ({
@@ -70,11 +66,7 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const fetchPreferences = async () => {
         try {
-            const { data, error } = await supabase
-                .from('military_preferences')
-                .select('*');
-
-            if (error) throw error;
+            const data = await fetchAllRows('military_preferences');
 
             if (data) {
                 const formatted: MilitaryPreference[] = data.map(p => ({

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Military } from '../types';
 import { supabase } from '../supabase';
+import { fetchAllRows } from '../utils/supabaseUtils';
 
 interface MilitaryContextType {
     militaries: Military[];
@@ -22,15 +23,12 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
     const fetchMilitaries = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('militaries')
-                .select('*')
-                .order('antiguidade', { ascending: true, nullsFirst: false })
-                .order('name', { ascending: true });
+            const data = await fetchAllRows('militaries', '*', q => 
+                q.order('antiguidade', { ascending: true, nullsFirst: false })
+                 .order('name', { ascending: true })
+            );
 
-            if (error) {
-                console.error('Erro ao buscar militares:', error);
-            } else if (data) {
+            if (data) {
                 const mappedData: Military[] = data.map(m => ({
                     id: m.id,
                     name: m.name,

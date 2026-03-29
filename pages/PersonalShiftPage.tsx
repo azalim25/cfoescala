@@ -10,6 +10,7 @@ import { Shift, MilitaryPreference } from '../types';
 import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
 import { stripGroupId } from '../utils/formatUtils';
+import { fetchAllRows } from '../utils/supabaseUtils';
 
 interface ExtraHourRecord {
   id: string;
@@ -252,23 +253,23 @@ const PersonalShiftPage: React.FC = () => {
 
   const fetchPersonalStages = async () => {
     setIsLoadingStages(true);
-    const { data, error } = await supabase
-      .from('stages')
-      .select('*')
-      .eq('military_id', selectedMilitaryId)
-      .order('date', { ascending: false });
-    if (!error && data) setPersonalStages(data);
+    try {
+      const data = await fetchAllRows('stages', '*', q => q.eq('military_id', selectedMilitaryId).order('date', { ascending: false }));
+      if (data) setPersonalStages(data);
+    } catch (e) {
+      console.error(e);
+    }
     setIsLoadingStages(false);
   };
 
   const fetchExtraHours = async () => {
     setIsLoadingExtra(true);
-    const { data, error } = await supabase
-      .from('extra_hours')
-      .select('*')
-      .eq('military_id', selectedMilitaryId)
-      .order('date', { ascending: false });
-    if (!error && data) setExtraHours(data);
+    try {
+      const data = await fetchAllRows('extra_hours', '*', q => q.eq('military_id', selectedMilitaryId).order('date', { ascending: false }));
+      if (data) setExtraHours(data);
+    } catch (e) {
+      console.error(e);
+    }
     setIsLoadingExtra(false);
   };
 
