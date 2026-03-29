@@ -13,6 +13,7 @@ interface ExtraHourRecord {
     minutes: number;
     category: string;
     date: string;
+    created_at?: string;
 }
 
 const RankingPage: React.FC = () => {
@@ -112,7 +113,7 @@ const RankingPage: React.FC = () => {
         const filteredExtraHours = selectedMonths.length === 0
             ? extraHours
             : extraHours.filter(e => {
-                const extraMonth = safeParseISO(e.date || '').getMonth();
+                const extraMonth = safeParseISO(e.date || e.created_at).getMonth();
                 return selectedMonths.includes(extraMonth);
             });
 
