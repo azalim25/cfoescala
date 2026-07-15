@@ -9,6 +9,29 @@ interface Assignment {
     role: string;
 }
 
+export const ROLE_WEIGHTS: Record<string, { points: number; color: string; bgClass: string; textClass: string; dotClass: string }> = {
+    'B1': { points: 3, color: 'Vermelho', bgClass: 'bg-red-50 dark:bg-red-950/20', textClass: 'text-red-500 dark:text-red-400', dotClass: 'bg-red-500' },
+    'B3': { points: 3, color: 'Vermelho', bgClass: 'bg-red-50 dark:bg-red-950/20', textClass: 'text-red-500 dark:text-red-400', dotClass: 'bg-red-500' },
+    'B4': { points: 3, color: 'Vermelho', bgClass: 'bg-red-50 dark:bg-red-950/20', textClass: 'text-red-500 dark:text-red-400', dotClass: 'bg-red-500' },
+    'B5': { points: 3, color: 'Vermelho', bgClass: 'bg-red-50 dark:bg-red-950/20', textClass: 'text-red-500 dark:text-red-400', dotClass: 'bg-red-500' },
+    'TCA': { points: 3, color: 'Vermelho', bgClass: 'bg-red-50 dark:bg-red-950/20', textClass: 'text-red-500 dark:text-red-400', dotClass: 'bg-red-500' },
+    'B2': { points: 2, color: 'Laranja', bgClass: 'bg-orange-50 dark:bg-orange-950/20', textClass: 'text-orange-500 dark:text-orange-400', dotClass: 'bg-orange-500' },
+    'Tesoureiro': { points: 2, color: 'Laranja', bgClass: 'bg-orange-50 dark:bg-orange-950/20', textClass: 'text-orange-500 dark:text-orange-400', dotClass: 'bg-orange-500' },
+    'Controlador de Notas': { points: 2, color: 'Laranja', bgClass: 'bg-orange-50 dark:bg-orange-950/20', textClass: 'text-orange-500 dark:text-orange-400', dotClass: 'bg-orange-500' },
+    'Parte de Doentes': { points: 2, color: 'Laranja', bgClass: 'bg-orange-50 dark:bg-orange-950/20', textClass: 'text-orange-500 dark:text-orange-400', dotClass: 'bg-orange-500' },
+    'Controlador de Viagens': { points: 2, color: 'Laranja', bgClass: 'bg-orange-50 dark:bg-orange-950/20', textClass: 'text-orange-500 dark:text-orange-400', dotClass: 'bg-orange-500' },
+    'Secretário': { points: 1, color: 'Amarelo', bgClass: 'bg-amber-50 dark:bg-amber-955/25', textClass: 'text-amber-500 dark:text-amber-400', dotClass: 'bg-amber-400' },
+    'Fiscal de Alojamento Masculino': { points: 1, color: 'Amarelo', bgClass: 'bg-amber-50 dark:bg-amber-955/25', textClass: 'text-amber-500 dark:text-amber-400', dotClass: 'bg-amber-400' },
+    'Fiscal de Alojamento Feminino': { points: 1, color: 'Amarelo', bgClass: 'bg-amber-50 dark:bg-amber-955/25', textClass: 'text-amber-500 dark:text-amber-400', dotClass: 'bg-amber-400' },
+    'Auxiliar TCA': { points: 1, color: 'Amarelo', bgClass: 'bg-amber-50 dark:bg-amber-955/25', textClass: 'text-amber-500 dark:text-amber-400', dotClass: 'bg-amber-400' },
+    'Informática': { points: 1, color: 'Amarelo', bgClass: 'bg-amber-50 dark:bg-amber-955/25', textClass: 'text-amber-500 dark:text-amber-400', dotClass: 'bg-amber-400' },
+    'Auxiliar B1': { points: 0, color: 'Branco', bgClass: 'bg-slate-50 dark:bg-slate-800/40', textClass: 'text-slate-400 dark:text-slate-500', dotClass: 'bg-slate-350 dark:bg-slate-650' },
+    'Auxiliar B4': { points: 0, color: 'Branco', bgClass: 'bg-slate-50 dark:bg-slate-800/40', textClass: 'text-slate-400 dark:text-slate-500', dotClass: 'bg-slate-350 dark:bg-slate-650' },
+    'Auxiliar B5': { points: 0, color: 'Branco', bgClass: 'bg-slate-50 dark:bg-slate-800/40', textClass: 'text-slate-400 dark:text-slate-500', dotClass: 'bg-slate-350 dark:bg-slate-650' }
+};
+
+export const AVAILABLE_ROLES = Object.keys(ROLE_WEIGHTS);
+
 interface Semestre {
     id: string;
     name: string;
@@ -217,6 +240,36 @@ const FuncoesTurmaPage: React.FC = () => {
         return assignment?.role || '-';
     };
 
+    // Calculate weights ranking
+    const roleRanking = useMemo(() => {
+        return militaries.map(military => {
+            const totalPoints = semestres.reduce((sum, sem) => {
+                const assignment = sem.assignments.find(a => a.militaryId === military.id);
+                const role = assignment?.role || '';
+                const pts = ROLE_WEIGHTS[role]?.points || 0;
+                return sum + pts;
+            }, 0);
+
+            const activeRoles = semestres
+                .map(sem => {
+                    const asg = sem.assignments.find(a => a.militaryId === military.id);
+                    return asg ? { semestre: sem.name, role: asg.role } : null;
+                })
+                .filter(Boolean) as { semestre: string; role: string }[];
+
+            return { military, totalPoints, activeRoles };
+        })
+        .filter(item => item.totalPoints > 0)
+        .sort((a, b) => {
+            if (b.totalPoints !== a.totalPoints) {
+                return b.totalPoints - a.totalPoints;
+            }
+            const aAnt = a.military.antiguidade || 999999;
+            const bAnt = b.military.antiguidade || 999999;
+            return aAnt - bAnt;
+        });
+    }, [militaries, semestres]);
+
     return (
         <MainLayout activePage="funcoes-turma">
             <MainLayout.Content>
@@ -242,137 +295,237 @@ const FuncoesTurmaPage: React.FC = () => {
                     )}
                 </div>
 
-                {/* Content */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-8 sm:mb-0">
-                    {isLoading ? (
-                        <div className="text-center py-12">
-                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-                            <p className="text-slate-400 text-sm mt-4">Carregando...</p>
-                        </div>
-                    ) : semestres.length === 0 ? (
-                        <div className="py-20 text-center text-slate-400">
-                            <span className="material-symbols-outlined text-5xl mb-2">school</span>
-                            <p className="text-sm font-bold">Nenhuma função de turma cadastrada.</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Desktop Table View */}
-                            <div className="hidden lg:block overflow-x-auto">
-                                <table className="w-full text-left border-collapse min-w-[700px]">
-                                    <thead>
-                                        <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                            <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest sticky left-0 bg-slate-50/50 dark:bg-slate-800/50 z-10 w-64">
-                                                Militar
-                                            </th>
-                                            {semestres.map(sem => (
-                                                <th key={sem.id} className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center min-w-[180px]">
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <span className="flex-1 text-center">{sem.name}</span>
-                                                        {isModerator && (
-                                                            <div className="flex gap-1 shrink-0">
-                                                                <button
-                                                                    onClick={() => handleOpenEditModal(sem)}
-                                                                    className="p-1 text-slate-400 hover:text-primary transition-colors"
-                                                                    title="Editar semestre"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-sm">edit</span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDeleteSemestre(sem.id)}
-                                                                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                                                                    title="Excluir semestre"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-sm">delete</span>
-                                                                </button>
+                {/* Cont                {/* Content */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* List Section */}
+                    <div className="lg:col-span-2 order-1 lg:order-1">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-8 sm:mb-0">
+                            {isLoading ? (
+                                <div className="text-center py-12">
+                                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                    <p className="text-slate-400 text-sm mt-4">Carregando...</p>
+                                </div>
+                            ) : semestres.length === 0 ? (
+                                <div className="py-20 text-center text-slate-400">
+                                    <span className="material-symbols-outlined text-5xl mb-2">school</span>
+                                    <p className="text-sm font-bold">Nenhuma função de turma cadastrada.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Desktop Table View */}
+                                    <div className="hidden lg:block overflow-x-auto">
+                                        <table className="w-full text-left border-collapse min-w-[700px]">
+                                            <thead>
+                                                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                                                    <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest sticky left-0 bg-slate-50/50 dark:bg-slate-800/50 z-10 w-64">
+                                                        Militar
+                                                    </th>
+                                                    {semestres.map(sem => (
+                                                        <th key={sem.id} className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center min-w-[180px]">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <span className="flex-1 text-center">{sem.name}</span>
+                                                                {isModerator && (
+                                                                    <div className="flex gap-1 shrink-0">
+                                                                        <button
+                                                                            onClick={() => handleOpenEditModal(sem)}
+                                                                            className="p-1 text-slate-400 hover:text-primary transition-colors"
+                                                                            title="Editar semestre"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDeleteSemestre(sem.id)}
+                                                                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                                            title="Excluir semestre"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {sortedMilitaries.map(military => (
-                                            <tr key={military.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                                <td className="p-4 sticky left-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                                {sortedMilitaries.map(military => (
+                                                    <tr key={military.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                                        <td className="p-4 sticky left-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
+                                                                    <span className="material-symbols-outlined text-sm">person</span>
+                                                                </div>
+                                                                <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                                                    {military.rank} {military.name}
+                                                                </p>
+                                                            </div>
+                                                        </td>
+                                                        {semestres.map(sem => {
+                                                            const role = getMilitaryRole(military.id, sem.id);
+                                                            const roleConfig = ROLE_WEIGHTS[role];
+                                                            const textColor = roleConfig ? roleConfig.textClass : 'text-primary';
+                                                            return (
+                                                                <td key={sem.id} className="p-4 text-center">
+                                                                    <span className={`text-xs font-bold leading-tight ${role !== '-' ? textColor : 'text-slate-400'}`}>
+                                                                        {role}
+                                                                    </span>
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Mobile/Tablet Card View */}
+                                    <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                                        {sortedMilitaries.map(military => {
+                                            const assignments = semestres
+                                                .map(sem => ({ semestre: sem.name, role: getMilitaryRole(military.id, sem.id), id: sem.id, raw: sem }))
+                                                .filter(a => a.role !== '-');
+
+                                            if (assignments.length === 0) return null;
+
+                                            return (
+                                                <div key={military.id} className="p-4 space-y-3">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
-                                                            <span className="material-symbols-outlined text-sm">person</span>
+                                                        <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
+                                                            <span className="material-symbols-outlined text-base">person</span>
                                                         </div>
-                                                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                                        <p className="font-black text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight">
                                                             {military.rank} {military.name}
                                                         </p>
                                                     </div>
-                                                </td>
-                                                {semestres.map(sem => {
-                                                    const role = getMilitaryRole(military.id, sem.id);
-                                                    return (
-                                                        <td key={sem.id} className="p-4 text-center">
-                                                            <span className={`text-xs font-bold leading-tight ${role !== '-' ? 'text-primary' : 'text-slate-400'}`}>
-                                                                {role}
-                                                            </span>
-                                                        </td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Mobile/Tablet Card View */}
-                            <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                                {sortedMilitaries.map(military => {
-                                    const assignments = semestres
-                                        .map(sem => ({ semestre: sem.name, role: getMilitaryRole(military.id, sem.id), id: sem.id, raw: sem }))
-                                        .filter(a => a.role !== '-');
-
-                                    if (assignments.length === 0) return null;
-
-                                    return (
-                                        <div key={military.id} className="p-4 space-y-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
-                                                    <span className="material-symbols-outlined text-base">person</span>
-                                                </div>
-                                                <p className="font-black text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight">
-                                                    {military.rank} {military.name}
-                                                </p>
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {assignments.map(a => (
-                                                    <div key={a.id} className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex justify-between items-center group">
-                                                        <div>
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{a.semestre}</p>
-                                                            <p className="text-xs font-bold text-primary uppercase">{a.role}</p>
-                                                        </div>
-                                                        {isModerator && (
-                                                            <div className="flex gap-2">
-                                                                <button
-                                                                    onClick={() => handleOpenEditModal(a.raw)}
-                                                                    className="p-1.5 text-slate-400 hover:text-primary transition-colors"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-lg">edit</span>
-                                                                </button>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {assignments.map(a => (
+                                                            <div key={a.id} className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex justify-between items-center group">
+                                                                <div>
+                                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{a.semestre}</p>
+                                                                    <p className={`text-xs font-bold uppercase ${ROLE_WEIGHTS[a.role]?.textClass || 'text-primary'}`}>{a.role}</p>
+                                                                </div>
+                                                                {isModerator && (
+                                                                    <div className="flex gap-2">
+                                                                        <button
+                                                                            onClick={() => handleOpenEditModal(a.raw)}
+                                                                            className="p-1.5 text-slate-400 hover:text-primary transition-colors"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-lg">edit</span>
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
+                                                        ))}
                                                     </div>
-                                                ))}
+                                                </div>
+                                            );
+                                        })}
+
+                                        {sortedMilitaries.every(military =>
+                                            semestres.every(sem => getMilitaryRole(military.id, sem.id) === '-')
+                                        ) && (
+                                                <div className="py-12 text-center text-slate-400">
+                                                    <p className="text-xs font-bold px-6">Nenhuma função atribuída neste período.</p>
+                                                </div>
+                                            )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Sidebar section */}
+                    <div className="lg:col-span-1 order-2 lg:order-2 space-y-6">
+                        {/* Legenda de pesos */}
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden text-left">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-xs sm:text-sm uppercase tracking-tight">
+                                    <span className="material-symbols-outlined text-primary text-lg">info</span>
+                                    Legenda de Pesos
+                                </h3>
+                            </div>
+                            <div className="p-4 space-y-3.5">
+                                <div className="flex items-start gap-2.5">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 mt-1"></span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-350">Pesadas (3 pontos)</p>
+                                        <p className="text-[10px] text-slate-550 dark:text-slate-500 mt-0.5">B1, B3, B4, B5, TCA</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-2.5">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0 mt-1"></span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-350">Médias (2 pontos)</p>
+                                        <p className="text-[10px] text-slate-555 dark:text-slate-500 mt-0.5">B2, Tesoureiro, Controlador de Notas, Parte de Doentes, Controlador de Viagens</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-2.5">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 mt-1"></span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-350">Leves (1 ponto)</p>
+                                        <p className="text-[10px] text-slate-555 dark:text-slate-500 mt-0.5">Secretário, Fiscal de Alojamento Masculino, Fiscal de Alojamento Feminino, Auxiliar TCA, Informática</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-2.5">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0 mt-1"></span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-bold text-slate-705 dark:text-slate-355">Isentas (0 pontos)</p>
+                                        <p className="text-[10px] text-slate-555 dark:text-slate-500 mt-0.5">Auxiliar B1, Auxiliar B4, Auxiliar B5</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Ranking Card */}
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden text-left">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-xs sm:text-sm uppercase tracking-tight">
+                                    <span className="material-symbols-outlined text-primary text-lg">leaderboard</span>
+                                    Ranking de Pesos
+                                </h3>
+                            </div>
+                            <div className="p-4 space-y-3 max-h-[380px] overflow-y-auto custom-scrollbar">
+                                {roleRanking.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400">
+                                        <span className="material-symbols-outlined text-4xl opacity-40">emoji_events</span>
+                                        <p className="text-xs mt-2">Nenhuma pontuação registrada.</p>
+                                    </div>
+                                ) : (
+                                    roleRanking.map((item, index) => (
+                                        <div key={item.military.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                                                index === 0 ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300' :
+                                                index === 1 ? 'bg-slate-200 text-slate-700 border-2 border-slate-300' :
+                                                index === 2 ? 'bg-orange-100 text-orange-700 border-2 border-orange-300' :
+                                                'bg-slate-100 dark:bg-slate-750 text-slate-600 dark:text-slate-400'
+                                            }`}>
+                                                {index + 1}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
+                                                    {item.military.rank} {item.military.name}
+                                                </p>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {item.activeRoles.map((ar, idx) => {
+                                                        const colorConfig = ROLE_WEIGHTS[ar.role] || { dotClass: 'bg-slate-300' };
+                                                        return (
+                                                            <span key={idx} className="flex items-center gap-1 text-[9px] font-black text-slate-500 uppercase tracking-tighter bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-1.5 py-0.5 rounded">
+                                                                <span className={`w-1 h-1 rounded-full ${colorConfig.dotClass}`}></span>
+                                                                {ar.role}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                            <div className="shrink-0 bg-primary/10 text-primary border border-primary/20 text-[10px] font-black px-2 py-0.5 rounded">
+                                                {item.totalPoints} {item.totalPoints === 1 ? 'pt' : 'pts'}
                                             </div>
                                         </div>
-                                    );
-                                })}
-
-                                {sortedMilitaries.every(military =>
-                                    semestres.every(sem => getMilitaryRole(military.id, sem.id) === '-')
-                                ) && (
-                                        <div className="py-12 text-center text-slate-400">
-                                            <p className="text-xs font-bold px-6">Nenhuma função atribuída neste período.</p>
-                                        </div>
-                                    )}
+                                    ))
+                                )}
                             </div>
-                        </>
-                    )}
+                        </div>
+                    </div>
                 </div>
             </MainLayout.Content>
 
@@ -436,13 +589,18 @@ const FuncoesTurmaPage: React.FC = () => {
                                                         <option key={m.id} value={m.id}>{m.rank} {m.name}</option>
                                                     ))}
                                                 </select>
-                                                <input
-                                                    type="text"
+                                                <select
                                                     value={assignment.role}
                                                     onChange={(e) => handleAssignmentChange(index, 'role', e.target.value)}
-                                                    placeholder="Função (ex: Chefe de Turma, Subchefe...)"
                                                     className="w-full h-10 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                                />
+                                                >
+                                                    <option value="">Selecione uma função...</option>
+                                                    {AVAILABLE_ROLES.map(r => (
+                                                        <option key={r} value={r}>
+                                                            {r} ({ROLE_WEIGHTS[r].points} {ROLE_WEIGHTS[r].points === 1 ? 'pt' : 'pts'})
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
                                             {formAssignments.length > 1 && (
                                                 <button
