@@ -154,6 +154,12 @@ const PersonalShiftPage: React.FC = () => {
   const [isLoadingStages, setIsLoadingStages] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
 
+  // New academic details states
+  const [classRoles, setClassRoles] = useState<any[]>([]);
+  const [emAssignments, setEmAssignments] = useState<any[]>([]);
+  const [isLoadingAcademicDetails, setIsLoadingAcademicDetails] = useState(false);
+  const [activeDetailsTab, setActiveDetailsTab] = useState<'funcoes' | 'estados-maiores'>('funcoes');
+
   // Pref State
   const [prefDate, setPrefDate] = useState(new Date().toISOString().split('T')[0]);
   const [prefType, setPrefType] = useState<'restriction' | 'priority'>('restriction');
@@ -244,10 +250,99 @@ const PersonalShiftPage: React.FC = () => {
     militaries.find(m => m.id === selectedMilitaryId) || (isModerator ? militaries[0] : null)
     , [militaries, selectedMilitaryId, isModerator]);
 
+  const getCurrentPeriodSemesterName = () => {
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1; // 1-indexed (1 = Jan)
+    const day = currentDate.getDate();
+
+    if (year === 2025) {
+      if (month >= 3 && month <= 7) {
+        if (month === 7 && day >= 15) {
+          return '2° 2025 - CFO I';
+        }
+        return '1° 2025 - CFO I';
+      }
+      if (month > 7) {
+        return '2° 2025 - CFO I';
+      }
+    } else if (year === 2026) {
+      if (month >= 1 && month <= 7) {
+        return '1° 2026 - CFO II';
+      }
+      if (month >= 8 && month <= 12) {
+        return '2° 2026 - CFO II';
+      }
+    }
+    return '';
+  };
+
+  const fetchAcademicDetails = async (milId: string) => {
+    setIsLoadingAcademicDetails(true);
+    try {
+      // 1. Fetch semesters
+      const { data: semesters, error: semError } = await supabase
+        .from('funcoes_turma_semestre')
+        .select('*');
+      if (semError) throw semError;
+
+      // 2. Fetch assignments for this military member
+      const { data: assignments, error: assignError } = await supabase
+        .from('funcoes_turma_assignments')
+        .select('*')
+        .eq('military_id', milId);
+      if (assignError) throw assignError;
+
+      // Zip them
+      const zippedRoles = (assignments || []).map(asg => {
+        const semObj = (semesters || []).find(s => s.id === asg.semestre_id);
+        return {
+          id: asg.id,
+          role: asg.role,
+          semestreName: semObj ? semObj.name : 'Outro Período',
+          semestreId: asg.semestre_id,
+          createdAt: asg.created_at
+        };
+      });
+      setClassRoles(zippedRoles);
+
+      // 3. Fetch Estados Maiores and assignments
+      const { data: ems, error: emError } = await supabase
+        .from('estado_maior')
+        .select('*');
+      if (emError) throw emError;
+
+      const { data: emAsgs, error: emAsgError } = await supabase
+        .from('estado_maior_assignments')
+        .select('*')
+        .eq('military_id', milId);
+      if (emAsgError) throw emAsgError;
+
+      const zippedEM = (emAsgs || []).map(asg => {
+        const emObj = (ems || []).find(e => e.id === asg.estado_maior_id);
+        return {
+          id: asg.id,
+          role: asg.role,
+          emName: emObj ? emObj.name : 'Estado Maior Indefinido',
+          emDescription: emObj ? emObj.description : '',
+          emId: asg.estado_maior_id,
+          createdAt: asg.created_at
+        };
+      });
+      setEmAssignments(zippedEM);
+
+    } catch (error) {
+      console.error('Error fetching academic details:', error);
+    } finally {
+      setIsLoadingAcademicDetails(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedMilitaryId) {
       fetchExtraHours();
       fetchPersonalStages();
+      fetchAcademicDetails(selectedMilitaryId);
     }
   }, [selectedMilitaryId]);
 
@@ -976,6 +1071,141 @@ const PersonalShiftPage: React.FC = () => {
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <div className="flex items-center justify-between mb-4 px-1">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-xl">military_tech</span>
+                  Funções e Atribuições
+                </h2>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                {/* Tab Headers */}
+                <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                  <button
+                    onClick={() => setActiveDetailsTab('funcoes')}
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${
+                      activeDetailsTab === 'funcoes'
+                        ? 'border-primary text-primary bg-white dark:bg-slate-900 font-extrabold'
+                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">school</span>
+                    Função de Turma
+                  </button>
+                  <button
+                    onClick={() => setActiveDetailsTab('estados-maiores')}
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${
+                      activeDetailsTab === 'estados-maiores'
+                        ? 'border-primary text-primary bg-white dark:bg-slate-900 font-extrabold'
+                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">workspace_premium</span>
+                    Estados Maiores
+                  </button>
+                </div>
+
+                <div className="p-4 sm:p-6">
+                  {isLoadingAcademicDetails ? (
+                    <div className="text-center py-8">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                      <p className="text-slate-400 text-xs mt-2">Carregando detalhes...</p>
+                    </div>
+                  ) : activeDetailsTab === 'funcoes' ? (
+                    <div className="space-y-6">
+                      {/* Current active period class role assignment */}
+                      <div>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
+                          Período Atual ({getCurrentPeriodSemesterName() || 'Não Identificado'})
+                        </h3>
+                        {(() => {
+                          const currentPeriod = getCurrentPeriodSemesterName();
+                          const currentAssign = classRoles.find(r => r.semestreName === currentPeriod);
+                          if (currentAssign) {
+                            return (
+                              <div className="flex items-center gap-3 bg-primary/5 dark:bg-primary/10 rounded-xl p-4 border border-primary/20">
+                                <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0">
+                                  <span className="material-symbols-outlined text-xl">star</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-black text-primary uppercase tracking-widest mb-0.5">Função exercida</p>
+                                  <p className="text-sm font-extrabold text-slate-800 dark:text-white uppercase leading-none">{currentAssign.role}</p>
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div className="flex items-center gap-2 px-3 py-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-slate-400 text-xs italic">
+                                <span className="material-symbols-outlined text-sm">info</span>
+                                Nenhuma função de turma exercida no período atual.
+                              </div>
+                            );
+                          }
+                        })()}
+                      </div>
+
+                      {/* History of class roles ("funções já exercidas") */}
+                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
+                          Funções já exercidas (Histórico)
+                        </h3>
+                        {classRoles.length === 0 ? (
+                          <div className="py-6 text-center text-slate-400 text-xs italic bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-slate-100 dark:border-slate-800">
+                            Nenhum histórico de funções de turma registrado.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {classRoles.map(item => (
+                              <div key={item.id} className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                <div>
+                                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{item.semestreName}</p>
+                                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase">{item.role}</p>
+                                </div>
+                                <span className="material-symbols-outlined text-slate-350 dark:text-slate-650 text-lg">check_circle</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* General Staff / Estado Maior assigned */
+                    <div>
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
+                        Estados Maiores Ativos
+                      </h3>
+                      {emAssignments.length === 0 ? (
+                        <div className="py-10 text-center text-slate-400 text-xs italic bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <span className="material-symbols-outlined text-4xl opacity-50 mb-2">folder_open</span>
+                          <p>O militar não integra nenhum Estado Maior atualmente.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {emAssignments.map(item => (
+                            <div key={item.id} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-start gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-500 border border-indigo-100 dark:border-indigo-900/50 shrink-0">
+                                <span className="material-symbols-outlined text-lg">groups</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate">{item.emName}</h4>
+                                  <span className="shrink-0 bg-indigo-50 dark:bg-indigo-955/35 text-indigo-600 dark:text-indigo-400 text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-900/50">
+                                    {item.role}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{item.emDescription || 'Sem descrição cadastrada.'}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
