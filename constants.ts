@@ -95,7 +95,7 @@ export const SHIFT_TYPE_PRIORITY: Record<string, number> = {
   'Barra': 8
 };
 
-export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'barra-fixa' | 'statistics' | 'relatorio';
+export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'estado-maior-horas' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'barra-fixa' | 'statistics' | 'relatorio';
 
 export const STAGE_LOCATIONS = [
   'ABM',
@@ -112,6 +112,7 @@ export const NAV_LINKS = [
   { to: '/extra-hours', label: 'Registro de Horas', icon: 'more_time', id: 'extra-hours' as PageId },
   { to: '/ranking', label: 'Ranking', icon: 'leaderboard', id: 'ranking' as PageId },
   { to: '/estado-maior', label: 'Estado Maior', icon: 'military_tech', id: 'estado-maior' as PageId },
+  { to: '/estado-maior-horas', label: 'Estado Maior - Horas', icon: 'more_time', id: 'estado-maior-horas' as PageId },
   { to: '/funcoes-turma', label: 'Funções de Turma', icon: 'school', id: 'funcoes-turma' as PageId },
   { to: '/stage', label: 'Estágio - Local', icon: 'location_city', id: 'stage' as PageId },
   { to: '/stage-quantity', label: 'Estágio - Qtde', icon: 'analytics', id: 'stage-quantity' as PageId },

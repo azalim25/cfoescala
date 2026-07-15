@@ -63,7 +63,8 @@ const RankingPage: React.FC = () => {
     const allExtraCategories = [
         'CFO I - Sentinela',
         'CFO I - Acumulado',
-        'CFO II - Registro de Horas'
+        'CFO II - Registro de Horas',
+        'Estado Maior'
     ];
 
     const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>(() => {

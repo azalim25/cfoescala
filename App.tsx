@@ -10,6 +10,7 @@ const GenerateScalePage = lazy(() => import('./pages/GenerateScalePage'));
 const ExtraHoursPage = lazy(() => import('./pages/ExtraHoursPage'));
 const RankingPage = lazy(() => import('./pages/RankingPage'));
 const EstadoMaiorPage = lazy(() => import('./pages/EstadoMaiorPage'));
+const EstadoMaiorHorasPage = lazy(() => import('./pages/EstadoMaiorHorasPage'));
 const FuncoesTurmaPage = lazy(() => import('./pages/FuncoesTurmaPage'));
 const StageLocalPage = lazy(() => import('./pages/StageLocalPage'));
 const StageQuantityPage = lazy(() => import('./pages/StageQuantityPage'));
@@ -88,6 +89,12 @@ const App: React.FC = () => {
                   <Route path="/estado-maior" element={
                     <ProtectedRoute>
                       <EstadoMaiorPage />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/estado-maior-horas" element={
+                    <ProtectedRoute>
+                      <EstadoMaiorHorasPage />
                     </ProtectedRoute>
                   } />
 
