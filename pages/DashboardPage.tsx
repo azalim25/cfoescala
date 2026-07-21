@@ -987,17 +987,24 @@ const DashboardPage: React.FC = () => {
                           <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${colors.bg} flex items-center justify-center ${colors.text} border ${colors.border} shrink-0`}>
                             <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate block">
-                              {m?.rank} {m?.name}
-                              {s.type === 'Escala Diversa' && (
-                                <span className="ml-2 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 rounded uppercase border border-slate-200 dark:border-slate-700">ESCALA DIVERSA</span>
-                              )}
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-black uppercase tracking-wider ${colors.text}`}>
+                                {s.type}
+                              </span>
+                            </div>
+                            <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate block">
+                              {m?.rank ? `${m.rank} ${m.name}` : (m?.name || 'Militar não encontrado')}
                             </span>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase truncate mt-0.5">
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase truncate">
                               {formatLocation(s.type, s.location) || 'Local não definido'}
                               {(() => {
-                                if (s.type === 'Escala Diversa') return '';
+                                if (s.type === 'Escala Diversa') {
+                                  const st = s.startTime || s.start_time;
+                                  const et = s.endTime || s.end_time;
+                                  if (st && et) return ` • ${st} - ${et}`;
+                                  return '';
+                                }
                                 if (s.type === 'Sobreaviso' || s.type === 'Faxina') return '';
                                 const isWeekendOrHoliday = (() => {
                                   const d = new Date(`${selectedDateStr}T12:00:00`);
