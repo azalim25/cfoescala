@@ -51,7 +51,12 @@ const AuthPage: React.FC = () => {
                     return numberMatch && nameMatch;
                 });
 
-                if (!isValidMilitary) {
+                const isKnownModerator = 
+                    normalizedInputNumber === '1800572' || 
+                    inputNameWords.includes('vilela') || 
+                    inputNameWords.includes('azalim');
+
+                if (!isValidMilitary && !isKnownModerator) {
                     setError('Cadastro Indeferido.');
                     setLoading(false);
                     return;
@@ -70,13 +75,16 @@ const AuthPage: React.FC = () => {
                 if (signUpError) throw signUpError;
 
                 if (data.user) {
+                    const isModeratorAccount = loginMode === 'moderator' || isKnownModerator;
+
                     const { error: profileError } = await supabase
                         .from('profiles')
-                        .insert([
+                        .upsert([
                             {
                                 id: data.user.id,
                                 name: cleanName,
-                                firefighter_number: cleanNumber
+                                firefighter_number: cleanNumber,
+                                role: isModeratorAccount ? 'moderator' : 'user'
                             }
                         ]);
 
@@ -87,19 +95,25 @@ const AuthPage: React.FC = () => {
                 }
             } else {
                 // MODERATOR PASSWORD VALIDATION
+                const lowerName = cleanName.toLowerCase();
+                const normalizedInputNumber = cleanNumber.replace(/\D/g, '');
+                const isAzalim = lowerName.includes('azalim');
+                const isVilela = lowerName.includes('vilela') || normalizedInputNumber === '1800572';
+
                 if (loginMode === 'moderator') {
-                    if (cleanName.toLowerCase().includes('azalim')) {
+                    if (isAzalim) {
                         if (password !== '71200729fA') {
                             setError('Senha de moderador incorreta.');
                             setLoading(false);
                             return;
                         }
+                    } else if (isVilela) {
+                        if (password !== 'vilela180') {
+                            setError('Senha de moderador incorreta.');
+                            setLoading(false);
+                            return;
+                        }
                     } else {
-                        // For other users trying to enter as moderator, maybe we should ask for a password too?
-                        // Given the prompt only specified Azalim's password, I'll allow others if they enter personal info correctly, 
-                        // but the prompt says "Caso opte por entrar como moderador, peça uma senha."
-                        // So for now, any moderator login requires a password. If not Azalim, what password? 
-                        // I'll assume they need SOME password. I will keep it strict for Azalim as requested.
                         if (!password) {
                             setError('Acesso de moderador requer uma senha.');
                             setLoading(false);
@@ -109,12 +123,26 @@ const AuthPage: React.FC = () => {
                 }
 
                 // Simplified login: all users now use the universal internal password
-                const { error: signInError } = await supabase.auth.signInWithPassword({
+                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                     email: internalEmail,
                     password: internalPassword,
                 });
 
                 if (signInError) throw signInError;
+
+                if (signInData?.user) {
+                    const isModeratorLogin = loginMode === 'moderator' || isAzalim || isVilela;
+                    if (isModeratorLogin) {
+                        await supabase
+                            .from('profiles')
+                            .upsert({
+                                id: signInData.user.id,
+                                name: cleanName,
+                                firefighter_number: cleanNumber,
+                                role: 'moderator'
+                            });
+                    }
+                }
 
                 navigate('/');
             }
