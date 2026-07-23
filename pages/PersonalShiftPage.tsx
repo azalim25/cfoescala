@@ -159,7 +159,7 @@ const PersonalShiftPage: React.FC = () => {
   const [emAssignments, setEmAssignments] = useState<any[]>([]);
   const [allEstadosMaiores, setAllEstadosMaiores] = useState<any[]>([]);
   const [isLoadingAcademicDetails, setIsLoadingAcademicDetails] = useState(false);
-  const [activeDetailsTab, setActiveDetailsTab] = useState<'funcoes' | 'estados-maiores' | 'hora-extra'>('funcoes');
+  const [activeDetailsTab, setActiveDetailsTab] = useState<'funcoes' | 'estados-maiores'>('funcoes');
 
   // Pref State
   const [prefDate, setPrefDate] = useState(new Date().toISOString().split('T')[0]);
@@ -597,8 +597,8 @@ const PersonalShiftPage: React.FC = () => {
   const extraHoursData = useMemo(() => {
     if (!selectedMilitaryId) return { cfo1: [], cfo1Total: 0, cfo2: [], cfo2Total: 0, em: [], emTotal: 0 };
 
-    // 1. CFO I - Horas Extras
-    const cfo1 = extraHours.filter(e => (e.category || '').startsWith('CFO I'));
+    // 1. CFO I - Horas Extras (Apenas CFO I - Acumulado)
+    const cfo1 = extraHours.filter(e => (e.category || '') === 'CFO I - Acumulado');
     const cfo1Total = cfo1.reduce((sum, e) => sum + Number(e.hours || 0) + (Number(e.minutes || 0) / 60), 0);
 
     // 2. CFO II - Horas Extras (Escala Diversa)
@@ -1204,17 +1204,6 @@ const PersonalShiftPage: React.FC = () => {
                     <span className="material-symbols-outlined text-lg">workspace_premium</span>
                     Estados Maiores
                   </button>
-                  <button
-                    onClick={() => setActiveDetailsTab('hora-extra')}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${
-                      activeDetailsTab === 'hora-extra'
-                        ? 'border-primary text-primary bg-white dark:bg-slate-900 font-extrabold'
-                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-lg">more_time</span>
-                    Hora Extra
-                  </button>
                 </div>
 
                 <div className="p-4 sm:p-6">
@@ -1280,7 +1269,7 @@ const PersonalShiftPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                  ) : activeDetailsTab === 'estados-maiores' ? (
+                  ) : (
                     /* General Staff / Estado Maior assigned */
                     <div>
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
@@ -1312,234 +1301,219 @@ const PersonalShiftPage: React.FC = () => {
                         </div>
                       )}
                     </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Standalone Hora Extra Section */}
+            <section className="mb-8">
+              <div className="flex items-center justify-between mb-4 px-1">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-xl">more_time</span>
+                  Hora Extra
+                </h2>
+              </div>
+
+              <div className="space-y-6">
+                {/* Section 1: CFO I - Horas Extras (Apenas CFO I - Acumulado, sem Data) */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h3 className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                        <span className="material-symbols-outlined text-amber-500 text-lg">star</span>
+                        CFO I - Horas Extras
+                      </h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium mt-0.5">Horas acumuladas provenientes do CFO I (Ranking)</p>
+                    </div>
+                    <div className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 rounded-xl border border-amber-200 dark:border-amber-900/50 flex items-center gap-2 self-start sm:self-auto">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Somatório:</span>
+                      <span className="text-base font-black font-mono">{extraHoursData.cfo1Total.toFixed(1)}h</span>
+                    </div>
+                  </div>
+
+                  {extraHoursData.cfo1.length === 0 ? (
+                    <div className="py-6 text-center text-slate-400 text-xs italic bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-slate-100 dark:border-slate-800">
+                      Nenhum registro de horas acumuladas do CFO I encontrado.
+                    </div>
                   ) : (
-                    /* Hora Extra Tab */
-                    <div className="space-y-8">
-                      {/* Section 1: CFO I - Horas Extras */}
-                      <div className="bg-slate-50/50 dark:bg-slate-800/20 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-                          <div>
-                            <h3 className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                              <span className="material-symbols-outlined text-amber-500 text-lg">star</span>
-                              CFO I - Horas Extras
-                            </h3>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium mt-0.5">Horas acumuladas provenientes do CFO I (Ranking)</p>
-                          </div>
-                          <div className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 rounded-xl border border-amber-200 dark:border-amber-900/50 flex items-center gap-2 self-start sm:self-auto">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Somatório:</span>
-                            <span className="text-base font-black font-mono">{extraHoursData.cfo1Total.toFixed(1)}h</span>
-                          </div>
-                        </div>
-
-                        {extraHoursData.cfo1.length === 0 ? (
-                          <div className="py-6 text-center text-slate-400 text-xs italic bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-                            Nenhum registro de horas extras do CFO I encontrado.
-                          </div>
-                        ) : (
-                          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                            <div className="hidden sm:block overflow-x-auto">
-                              <table className="w-full text-left">
-                                <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                                  <tr>
-                                    <th className="px-4 py-3">Data</th>
-                                    <th className="px-4 py-3">Categoria</th>
-                                    <th className="px-4 py-3">Observação / Detalhes</th>
-                                    <th className="px-4 py-3 text-right">Horas</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                                  {extraHoursData.cfo1.map(r => (
-                                    <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                      <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-200">
-                                        {safeParseISO(r.date || r.created_at).toLocaleDateString('pt-BR')}
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-[10px] font-extrabold border border-amber-200 dark:border-amber-800">
-                                          {r.category}
-                                        </span>
-                                      </td>
-                                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                                        {stripGroupId(r.description) || '-'}
-                                      </td>
-                                      <td className="px-4 py-3 text-right font-black font-mono text-slate-800 dark:text-slate-200">
-                                        {r.hours}h {r.minutes > 0 ? `${r.minutes}m` : ''}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-
-                            <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                              {extraHoursData.cfo1.map(r => (
-                                <div key={r.id} className="p-3.5 space-y-1.5">
-                                  <div className="flex justify-between items-center">
-                                    <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-[10px] font-extrabold border border-amber-200 dark:border-amber-800">
-                                      {r.category}
-                                    </span>
-                                    <span className="text-xs font-black font-mono text-slate-800 dark:text-slate-200">
-                                      {r.hours}h {r.minutes > 0 ? `${r.minutes}m` : ''}
-                                    </span>
-                                  </div>
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                                    Data: {safeParseISO(r.date || r.created_at).toLocaleDateString('pt-BR')}
-                                  </p>
-                                  {r.description && (
-                                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                      {stripGroupId(r.description)}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                    <div className="bg-slate-50/50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-100/80 dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                              <th className="px-4 py-3">Categoria</th>
+                              <th className="px-4 py-3">Observação / Detalhes</th>
+                              <th className="px-4 py-3 text-right">Horas</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                            {extraHoursData.cfo1.map(r => (
+                              <tr key={r.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors">
+                                <td className="px-4 py-3">
+                                  <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-[10px] font-extrabold border border-amber-200 dark:border-amber-800">
+                                    {r.category}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                                  {stripGroupId(r.description) || '-'}
+                                </td>
+                                <td className="px-4 py-3 text-right font-black font-mono text-slate-800 dark:text-slate-200">
+                                  {r.hours}h {r.minutes > 0 ? `${r.minutes}m` : ''}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
 
-                      {/* Section 2: CFO II - Horas Extras */}
-                      <div className="bg-slate-50/50 dark:bg-slate-800/20 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-                          <div>
-                            <h3 className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                              <span className="material-symbols-outlined text-blue-500 text-lg">event_repeat</span>
-                              CFO II - Horas Extras
-                            </h3>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium mt-0.5">Empenhos extras registrados como Escala Diversa (Calendário e Registro de Horas)</p>
-                          </div>
-                          <div className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-200 dark:border-blue-900/50 flex items-center gap-2 self-start sm:self-auto">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Somatório:</span>
-                            <span className="text-base font-black font-mono">{extraHoursData.cfo2Total.toFixed(1)}h</span>
-                          </div>
-                        </div>
-
-                        {extraHoursData.cfo2.length === 0 ? (
-                          <div className="py-6 text-center text-slate-400 text-xs italic bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-                            Nenhum empenho extra de Escala Diversa encontrado.
-                          </div>
-                        ) : (
-                          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                            <div className="hidden sm:block overflow-x-auto">
-                              <table className="w-full text-left">
-                                <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                                  <tr>
-                                    <th className="px-4 py-3">Data</th>
-                                    <th className="px-4 py-3">Tipo / Descrição</th>
-                                    <th className="px-4 py-3">Horário</th>
-                                    <th className="px-4 py-3 text-right">Carga Horária</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                                  {extraHoursData.cfo2.map(item => (
-                                    <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                      <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-200">
-                                        {safeParseISO(item.date).toLocaleDateString('pt-BR')}
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <div className="flex flex-col">
-                                          <span className="font-bold text-slate-800 dark:text-slate-200">Escala Diversa</span>
-                                          {(item.location || item.description) && (
-                                            <span className="text-[10px] text-slate-500 font-medium">{item.location || item.description}</span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-3 text-slate-500 font-medium">
-                                        {item.startTime} - {item.endTime}
-                                      </td>
-                                      <td className="px-4 py-3 text-right font-black font-mono text-slate-800 dark:text-slate-200">
-                                        {item.hours.toFixed(1)}h
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                      <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                        {extraHoursData.cfo1.map(r => (
+                          <div key={r.id} className="p-3.5 space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-[10px] font-extrabold border border-amber-200 dark:border-amber-800">
+                                {r.category}
+                              </span>
+                              <span className="text-xs font-black font-mono text-slate-800 dark:text-slate-200">
+                                {r.hours}h {r.minutes > 0 ? `${r.minutes}m` : ''}
+                              </span>
                             </div>
-
-                            <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                              {extraHoursData.cfo2.map(item => (
-                                <div key={item.id} className="p-3.5 space-y-1">
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-black text-xs text-slate-800 dark:text-white uppercase">Escala Diversa</span>
-                                    <span className="text-xs font-black font-mono text-slate-800 dark:text-slate-200">{item.hours.toFixed(1)}h</span>
-                                  </div>
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                                    Data: {safeParseISO(item.date).toLocaleDateString('pt-BR')} ({item.startTime} - {item.endTime})
-                                  </p>
-                                  {(item.location || item.description) && (
-                                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                      {item.location || item.description}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+                            {r.description && (
+                              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                {stripGroupId(r.description)}
+                              </p>
+                            )}
                           </div>
-                        )}
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: CFO II - Horas Extras (Com Data, Apenas Descrição) */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h3 className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                        <span className="material-symbols-outlined text-blue-500 text-lg">event_repeat</span>
+                        CFO II - Horas Extras
+                      </h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium mt-0.5">Empenhos extras registrados como Escala Diversa (Calendário e Registro de Horas)</p>
+                    </div>
+                    <div className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-200 dark:border-blue-900/50 flex items-center gap-2 self-start sm:self-auto">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Somatório:</span>
+                      <span className="text-base font-black font-mono">{extraHoursData.cfo2Total.toFixed(1)}h</span>
+                    </div>
+                  </div>
+
+                  {extraHoursData.cfo2.length === 0 ? (
+                    <div className="py-6 text-center text-slate-400 text-xs italic bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-slate-100 dark:border-slate-800">
+                      Nenhum empenho extra de Escala Diversa encontrado.
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50/50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-100/80 dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                              <th className="px-4 py-3">Data</th>
+                              <th className="px-4 py-3">Descrição</th>
+                              <th className="px-4 py-3">Horário</th>
+                              <th className="px-4 py-3 text-right">Carga Horária</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                            {extraHoursData.cfo2.map(item => (
+                              <tr key={item.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors">
+                                <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-200">
+                                  {safeParseISO(item.date).toLocaleDateString('pt-BR')}
+                                </td>
+                                <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200">
+                                  {item.location || item.description || '-'}
+                                </td>
+                                <td className="px-4 py-3 text-slate-500 font-medium">
+                                  {item.startTime} - {item.endTime}
+                                </td>
+                                <td className="px-4 py-3 text-right font-black font-mono text-slate-800 dark:text-slate-200">
+                                  {item.hours.toFixed(1)}h
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
 
-                      {/* Section 3: CFO II - Estado Maior */}
-                      <div className="bg-slate-50/50 dark:bg-slate-800/20 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-                          <div>
-                            <h3 className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                              <span className="material-symbols-outlined text-indigo-500 text-lg">workspace_premium</span>
-                              CFO II - Estado Maior
-                            </h3>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium mt-0.5">Horas extras provenientes de participações em Estado Maior (Estado Maior - Horas)</p>
-                          </div>
-                          <div className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-200 dark:border-indigo-900/50 flex items-center gap-2 self-start sm:self-auto">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Somatório:</span>
-                            <span className="text-base font-black font-mono">{extraHoursData.emTotal.toFixed(1)}h</span>
-                          </div>
-                        </div>
-
-                        {extraHoursData.em.length === 0 ? (
-                          <div className="py-6 text-center text-slate-400 text-xs italic bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-                            Nenhuma participação em Estado Maior registrada.
-                          </div>
-                        ) : (
-                          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                            <div className="hidden sm:block overflow-x-auto">
-                              <table className="w-full text-left">
-                                <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                                  <tr>
-                                    <th className="px-4 py-3">Data</th>
-                                    <th className="px-4 py-3">Estado Maior</th>
-                                    <th className="px-4 py-3 text-right">Horas Lançadas</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                                  {extraHoursData.em.map(item => (
-                                    <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                      <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-200">
-                                        {safeParseISO(item.date).toLocaleDateString('pt-BR')}
-                                      </td>
-                                      <td className="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400">
-                                        {item.emName}
-                                      </td>
-                                      <td className="px-4 py-3 text-right font-black font-mono text-slate-800 dark:text-slate-200">
-                                        {item.hours.toFixed(1)}h
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                      <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                        {extraHoursData.cfo2.map(item => (
+                          <div key={item.id} className="p-3.5 space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-xs text-slate-800 dark:text-white">
+                                {item.location || item.description || '-'}
+                              </span>
+                              <span className="text-xs font-black font-mono text-slate-800 dark:text-slate-200">{item.hours.toFixed(1)}h</span>
                             </div>
-
-                            <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                              {extraHoursData.em.map(item => (
-                                <div key={item.id} className="p-3.5 space-y-1">
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-bold text-xs text-indigo-600 dark:text-indigo-400">{item.emName}</span>
-                                    <span className="text-xs font-black font-mono text-slate-800 dark:text-slate-200">{item.hours.toFixed(1)}h</span>
-                                  </div>
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                                    Data: {safeParseISO(item.date).toLocaleDateString('pt-BR')}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">
+                              Data: {safeParseISO(item.date).toLocaleDateString('pt-BR')} ({item.startTime} - {item.endTime})
+                            </p>
                           </div>
-                        )}
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 3: CFO II - Estado Maior (Sem Data) */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h3 className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                        <span className="material-symbols-outlined text-indigo-500 text-lg">workspace_premium</span>
+                        CFO II - Estado Maior
+                      </h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium mt-0.5">Horas extras provenientes de participações em Estado Maior (Estado Maior - Horas)</p>
+                    </div>
+                    <div className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-200 dark:border-indigo-900/50 flex items-center gap-2 self-start sm:self-auto">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Somatório:</span>
+                      <span className="text-base font-black font-mono">{extraHoursData.emTotal.toFixed(1)}h</span>
+                    </div>
+                  </div>
+
+                  {extraHoursData.em.length === 0 ? (
+                    <div className="py-6 text-center text-slate-400 text-xs italic bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-slate-100 dark:border-slate-800">
+                      Nenhuma participação em Estado Maior registrada.
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50/50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-100/80 dark:bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                              <th className="px-4 py-3">Estado Maior</th>
+                              <th className="px-4 py-3 text-right">Horas Lançadas</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                            {extraHoursData.em.map(item => (
+                              <tr key={item.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors">
+                                <td className="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400">
+                                  {item.emName}
+                                </td>
+                                <td className="px-4 py-3 text-right font-black font-mono text-slate-800 dark:text-slate-200">
+                                  {item.hours.toFixed(1)}h
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                        {extraHoursData.em.map(item => (
+                          <div key={item.id} className="p-3.5 flex justify-between items-center">
+                            <span className="font-bold text-xs text-indigo-600 dark:text-indigo-400">{item.emName}</span>
+                            <span className="text-xs font-black font-mono text-slate-800 dark:text-slate-200">{item.hours.toFixed(1)}h</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
