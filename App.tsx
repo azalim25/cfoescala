@@ -23,6 +23,7 @@ const QtmPage = lazy(() => import('./pages/QtmPage'));
 const QdchPage = lazy(() => import('./pages/QdchPage'));
 const RelatorioPage = lazy(() => import('./pages/RelatorioPage'));
 const PingPongPage = lazy(() => import('./pages/PingPongPage'));
+const SudokuPage = lazy(() => import('./pages/SudokuPage'));
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -168,6 +169,12 @@ const App: React.FC = () => {
                   <Route path="/ping-pong" element={
                     <ProtectedRoute>
                       <PingPongPage />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/sudoku" element={
+                    <ProtectedRoute>
+                      <SudokuPage />
                     </ProtectedRoute>
                   } />
 

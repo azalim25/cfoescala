@@ -95,7 +95,7 @@ export const SHIFT_TYPE_PRIORITY: Record<string, number> = {
   'Barra': 8
 };
 
-export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'estado-maior-horas' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'barra-fixa' | 'statistics' | 'relatorio' | 'ping-pong';
+export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'estado-maior-horas' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'barra-fixa' | 'statistics' | 'relatorio' | 'ping-pong' | 'sudoku';
 
 export const STAGE_LOCATIONS = [
   'ABM',
@@ -109,7 +109,6 @@ export const NAV_LINKS = [
   { to: '/', label: 'Calendário', icon: 'calendar_month', id: 'dashboard' as PageId },
   { to: '/contacts', label: 'Contatos', icon: 'contact_page', id: 'contacts' as PageId },
   { to: '/personal', label: 'Minha Escala', icon: 'person_pin', id: 'personal' as PageId },
-  { to: '/ping-pong', label: 'Ping Pong', icon: 'sports_esports', id: 'ping-pong' as PageId },
   { to: '/extra-hours', label: 'Registro de Horas', icon: 'more_time', id: 'extra-hours' as PageId },
   { to: '/ranking', label: 'Ranking', icon: 'leaderboard', id: 'ranking' as PageId },
   { to: '/estado-maior', label: 'Estado Maior', icon: 'military_tech', id: 'estado-maior' as PageId },
@@ -124,4 +123,6 @@ export const NAV_LINKS = [
   { to: '/barra-fixa', label: 'Barra Fixa', icon: 'fitness_center', id: 'barra-fixa' as PageId },
   { to: '/statistics', label: 'Estatísticas', icon: 'analytics', id: 'statistics' as PageId },
   { to: '/relatorio', label: 'Relatório', icon: 'description', id: 'relatorio' as PageId },
+  { to: '/ping-pong', label: 'Ping Pong', icon: 'sports_esports', id: 'ping-pong' as PageId },
+  { to: '/sudoku', label: 'Sudoku', icon: 'extension', id: 'sudoku' as PageId },
 ];
