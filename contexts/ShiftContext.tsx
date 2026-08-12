@@ -12,6 +12,9 @@ interface ShiftContextType {
     toggleMonthHidden: (year: number, month: number) => Promise<void>;
     setMonthHidden: (year: number, month: number, hidden: boolean) => Promise<void>;
     fetchHiddenMonths: () => Promise<void>;
+    isComandanteGuardaHidden: boolean;
+    toggleComandanteGuardaHidden: () => Promise<void>;
+    setComandanteGuardaHidden: (hidden: boolean) => Promise<void>;
     addShifts: (newShifts: Shift[]) => Promise<void>;
     createShift: (shift: Omit<Shift, 'id'>) => Promise<void>;
     createShifts: (shifts: Omit<Shift, 'id'>[]) => Promise<void>;
@@ -40,7 +43,32 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             return [];
         }
     });
+    const [isComandanteGuardaHidden, setIsComandanteGuardaHidden] = useState<boolean>(() => {
+        try {
+            const cached = localStorage.getItem('@cfo_hidden_page_comandante_guarda');
+            return cached ? JSON.parse(cached) : false;
+        } catch {
+            return false;
+        }
+    });
     const [isLoading, setIsLoading] = useState(true);
+
+    const fetchHiddenPages = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('extra_hours')
+                .select('description')
+                .eq('category', 'CONFIG_HIDDEN_PAGES');
+
+            if (!error && data) {
+                const isHidden = data.some(d => d.description === 'PAGE_COMANDANTE_GUARDA');
+                setIsComandanteGuardaHidden(isHidden);
+                localStorage.setItem('@cfo_hidden_page_comandante_guarda', JSON.stringify(isHidden));
+            }
+        } catch (error) {
+            console.error('Error fetching hidden pages:', error);
+        }
+    };
 
     const fetchHiddenMonths = async () => {
         try {
@@ -117,7 +145,44 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         fetchPreferences();
         fetchHolidays();
         fetchHiddenMonths();
+        fetchHiddenPages();
     }, []);
+
+    const setComandanteGuardaHidden = async (hidden: boolean) => {
+        setIsComandanteGuardaHidden(hidden);
+        localStorage.setItem('@cfo_hidden_page_comandante_guarda', JSON.stringify(hidden));
+
+        try {
+            const { data: milData } = await supabase.from('militaries').select('id').limit(1);
+            const milId = milData?.[0]?.id;
+            if (!milId) throw new Error('Nenhum militar cadastrado para vincular registro');
+
+            await supabase.from('extra_hours')
+                .delete()
+                .eq('category', 'CONFIG_HIDDEN_PAGES')
+                .eq('description', 'PAGE_COMANDANTE_GUARDA');
+
+            if (hidden) {
+                const { error: insertErr } = await supabase.from('extra_hours').insert({
+                    military_id: milId,
+                    category: 'CONFIG_HIDDEN_PAGES',
+                    description: 'PAGE_COMANDANTE_GUARDA',
+                    date: '2099-01-01',
+                    hours: 0,
+                    minutes: 0
+                });
+                if (insertErr) throw insertErr;
+            }
+        } catch (error) {
+            console.error('Error updating comandante da guarda visibility in Supabase:', error);
+            await fetchHiddenPages();
+            alert('Erro ao atualizar visibilidade da página.');
+        }
+    };
+
+    const toggleComandanteGuardaHidden = async () => {
+        await setComandanteGuardaHidden(!isComandanteGuardaHidden);
+    };
 
     const isMonthHidden = (year: number, month: number) => {
         const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -406,6 +471,9 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             toggleMonthHidden,
             setMonthHidden,
             fetchHiddenMonths,
+            isComandanteGuardaHidden,
+            toggleComandanteGuardaHidden,
+            setComandanteGuardaHidden,
             addShifts,
             clearShifts,
             isLoading,
