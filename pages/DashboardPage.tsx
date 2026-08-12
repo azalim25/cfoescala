@@ -15,7 +15,21 @@ const formatLocation = (type: string, location: string | null | undefined) => {
 };
 
 const DashboardPage: React.FC = () => {
-  const { shifts: allShifts, createShift, createShifts, updateShift, removeShift, preferences, holidays, addHoliday, removeHoliday } = useShift();
+  const { 
+    shifts: allShifts, 
+    createShift, 
+    createShifts, 
+    updateShift, 
+    removeShift, 
+    preferences, 
+    holidays, 
+    addHoliday, 
+    removeHoliday,
+    hiddenMonths,
+    isMonthHidden,
+    toggleMonthHidden,
+    setMonthHidden
+  } = useShift();
   const { militaries } = useMilitary();
   const { isModerator } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -24,6 +38,28 @@ const DashboardPage: React.FC = () => {
   const [stages, setStages] = useState<any[]>([]);
   const [extraHours, setExtraHours] = useState<any[]>([]);
   const [isLoadingStages, setIsLoadingStages] = useState(false);
+
+  // Month Visibility States
+  const isCurrentMonthHidden = isMonthHidden(currentYear, currentMonth);
+  const [isManageMonthsModalOpen, setIsManageMonthsModalOpen] = useState(false);
+  const [modalYear, setModalYear] = useState(new Date().getFullYear());
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
+
+  const handleToggleCurrentMonthVisibility = async () => {
+    if (!isModerator || isTogglingVisibility) return;
+    const confirmMsg = isCurrentMonthHidden
+      ? `Deseja liberar e MOSTRAR a escala de ${months[currentMonth]}/${currentYear} para todos os militares?`
+      : `Deseja OCULTAR a escala de ${months[currentMonth]}/${currentYear}? Quando oculta, apenas moderadores poderão visualizá-la.`;
+
+    if (confirm(confirmMsg)) {
+      setIsTogglingVisibility(true);
+      try {
+        await toggleMonthHidden(currentYear, currentMonth);
+      } finally {
+        setIsTogglingVisibility(false);
+      }
+    }
+  };
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -620,7 +656,8 @@ const DashboardPage: React.FC = () => {
     onEditShift,
     isModerator,
     militaries,
-    visibleTypes
+    visibleTypes,
+    isMonthHidden
   }: {
     day: number,
     dateStr: string,
@@ -632,8 +669,35 @@ const DashboardPage: React.FC = () => {
     onEditShift: (s: Shift) => void,
     isModerator: boolean,
     militaries: any[],
-    visibleTypes: string[]
+    visibleTypes: string[],
+    isMonthHidden?: boolean
   }) => {
+    if (!isModerator && isMonthHidden) {
+      return (
+        <button
+          onClick={onClick}
+          className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-all group relative text-left bg-slate-50/20 dark:bg-slate-800/10 hover:bg-slate-50 dark:hover:bg-slate-800/30 ${isSelected ? 'ring-2 ring-primary ring-inset z-20 bg-primary/5' : ''}`}
+        >
+          <div className="flex justify-between items-start mb-0.5 sm:mb-1">
+            <div className="flex flex-col items-start gap-1">
+              <span className={`text-[10px] sm:text-xs font-bold ${isToday ? 'bg-primary text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center' : 'text-slate-400 dark:text-slate-500'}`}>
+                {day}
+              </span>
+              {holiday && (
+                <div className="flex items-center gap-0.5 px-1 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded ring-1 ring-red-100 dark:ring-red-900/30">
+                  <span className="material-symbols-outlined text-[8px] sm:text-[10px] font-black">event_busy</span>
+                  <span className="text-[6px] sm:text-[7px] font-black uppercase tracking-tighter">Feriado</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-center justify-center h-8 sm:h-16 text-slate-300 dark:text-slate-600/40">
+            <span className="material-symbols-outlined text-sm sm:text-lg">lock</span>
+          </div>
+        </button>
+      );
+    }
+
     const isShiftVisibleLocal = (type: string) => visibleTypes.includes(type);
 
     const combined = useMemo(() => {
@@ -782,8 +846,82 @@ const DashboardPage: React.FC = () => {
                 <span className="material-symbols-outlined text-sm">restart_alt</span>
                 Voltar para Hoje
               </button>
+
+              {isModerator && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleToggleCurrentMonthVisibility}
+                    disabled={isTogglingVisibility}
+                    className={`px-3.5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border flex items-center gap-2 shadow-sm ${
+                      isCurrentMonthHidden
+                        ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/20 shadow-lg ring-2 ring-amber-400/30'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-primary'
+                    }`}
+                    title={isCurrentMonthHidden ? `Clique para tornar pública a escala de ${months[currentMonth]}` : `Clique para ocultar a escala de ${months[currentMonth]}`}
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {isCurrentMonthHidden ? 'visibility_off' : 'visibility'}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {isCurrentMonthHidden ? `Escala Oculta (${months[currentMonth]})` : `Ocultar ${months[currentMonth]}`}
+                    </span>
+                    <span className="sm:hidden">
+                      {isCurrentMonthHidden ? 'Oculta' : 'Ocultar'}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setModalYear(currentYear);
+                      setIsManageMonthsModalOpen(true);
+                    }}
+                    className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-slate-700 transition-all shadow-sm flex items-center justify-center"
+                    title="Gerenciar bloqueio de outros meses"
+                  >
+                    <span className="material-symbols-outlined text-base">lock_clock</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Moderator Banner when month is hidden */}
+          {isModerator && isCurrentMonthHidden && (
+            <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/5 border border-amber-400/30 text-amber-800 dark:text-amber-300 px-4 py-3 rounded-xl flex items-center justify-between gap-3 text-xs shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-xl text-amber-500 animate-pulse">lock</span>
+                <div>
+                  <span className="font-extrabold uppercase tracking-wide">Modo Moderador:</span>{' '}
+                  <span className="font-medium">A escala de <strong>{months[currentMonth]} de {currentYear}</strong> está oculta para os demais usuários. Apenas moderadores têm acesso.</span>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleCurrentMonthVisibility}
+                disabled={isTogglingVisibility}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] uppercase font-black tracking-wider transition-all shadow-sm shrink-0 flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-sm">lock_open</span>
+                Publicar Escala
+              </button>
+            </div>
+          )}
+
+          {/* Non-Moderator Banner when month is hidden */}
+          {!isModerator && isCurrentMonthHidden && (
+            <div className="bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-4 py-4 rounded-xl flex items-center gap-3 text-xs shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-xl">lock</span>
+              </div>
+              <div className="space-y-0.5">
+                <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wide">
+                  Escala em Elaboração
+                </h4>
+                <p className="text-slate-500 dark:text-slate-400">
+                  A escala do mês de <strong>{months[currentMonth]} de {currentYear}</strong> está temporariamente oculta pela moderação e será liberada em breve.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2 px-1">
             {[...allShiftTypes, 'Escala Diversa'].map(type => {
@@ -833,6 +971,7 @@ const DashboardPage: React.FC = () => {
                   isModerator={isModerator || false}
                   militaries={militaries}
                   visibleTypes={selectedShiftTypes}
+                  isMonthHidden={isCurrentMonthHidden}
                 />
               );
             })}
@@ -927,108 +1066,127 @@ const DashboardPage: React.FC = () => {
               )}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 sm:space-y-6">
-            <section className="space-y-3">
-              <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({(groupedData[selectedDateStr]?.shifts.length || 0) + (groupedData[selectedDateStr]?.extraHours.length || 0)})
+          {!isModerator && isCurrentMonthHidden ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-4 my-auto">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-sm">
+                <span className="material-symbols-outlined text-3xl">lock</span>
               </div>
+              <div className="space-y-1 max-w-[240px]">
+                <h4 className="font-extrabold text-sm text-slate-800 dark:text-white">
+                  Escala Oculta
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  A escala do mês de <strong>{months[currentMonth]}/{currentYear}</strong> está em elaboração e ainda não foi liberada pela moderação.
+                </p>
+              </div>
+              <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Acesso Restrito a Moderadores
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 sm:space-y-6">
+              <section className="space-y-3">
+                <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <span className="material-symbols-outlined text-sm">military_tech</span> SERVIÇO ({(groupedData[selectedDateStr]?.shifts.length || 0) + (groupedData[selectedDateStr]?.extraHours.length || 0)})
+                </div>
 
-              {(() => {
-                const dayData = groupedData[selectedDateStr];
-                if (!dayData || (dayData.shifts.length === 0 && dayData.extraHours.length === 0 && dayData.stages.length === 0)) {
-                  return <p className="text-xs text-slate-400 italic text-center py-6">Nenhum serviço escalado para este dia.</p>;
-                }
+                {(() => {
+                  const dayData = groupedData[selectedDateStr];
+                  if (!dayData || (dayData.shifts.length === 0 && dayData.extraHours.length === 0 && dayData.stages.length === 0)) {
+                    return <p className="text-xs text-slate-400 italic text-center py-6">Nenhum serviço escalado para este dia.</p>;
+                  }
 
-                const dayShifts = dayData.shifts.filter(s => isShiftVisible(s.type));
-                const dayStages = dayData.stages.filter(st => isShiftVisible('Estágio'));
-                const dayExtraHours = dayData.extraHours.filter(eh => isShiftVisible('Escala Diversa'));
+                  const dayShifts = dayData.shifts.filter(s => isShiftVisible(s.type));
+                  const dayStages = dayData.stages.filter(st => isShiftVisible('Estágio'));
+                  const dayExtraHours = dayData.extraHours.filter(eh => isShiftVisible('Escala Diversa'));
 
-                const unifiedList = [
-                  ...dayShifts
-                    .filter(s => !(s.type === 'Estágio' && dayStages.some(st => st.military_id === s.militaryId)))
-                    .map(s => ({ ...s, isStage: s.type === 'Estágio' })),
-                  ...dayStages.map(s => ({ ...s, isStage: true, type: 'Estágio' as const, militaryId: s.military_id, location: s.location })),
-                  ...dayExtraHours.map(eh => ({
-                    id: eh.id,
-                    militaryId: eh.military_id,
-                    type: 'Escala Diversa' as const,
-                    location: eh.description.replace('Escala Diversa: ', ''),
-                    startTime: '08:00',
-                    endTime: '12:00',
-                    isStage: false,
-                    isExtra: true,
-                    date: eh.date
-                  }))
-                ].sort((a, b) => {
-                  const typePrio = (SHIFT_TYPE_PRIORITY[a.type] || 99) - (SHIFT_TYPE_PRIORITY[b.type] || 99);
-                  if (typePrio !== 0) return typePrio;
+                  const unifiedList = [
+                    ...dayShifts
+                      .filter(s => !(s.type === 'Estágio' && dayStages.some(st => st.military_id === s.militaryId)))
+                      .map(s => ({ ...s, isStage: s.type === 'Estágio' })),
+                    ...dayStages.map(s => ({ ...s, isStage: true, type: 'Estágio' as const, militaryId: s.military_id, location: s.location })),
+                    ...dayExtraHours.map(eh => ({
+                      id: eh.id,
+                      militaryId: eh.military_id,
+                      type: 'Escala Diversa' as const,
+                      location: eh.description.replace('Escala Diversa: ', ''),
+                      startTime: '08:00',
+                      endTime: '12:00',
+                      isStage: false,
+                      isExtra: true,
+                      date: eh.date
+                    }))
+                  ].sort((a, b) => {
+                    const typePrio = (SHIFT_TYPE_PRIORITY[a.type] || 99) - (SHIFT_TYPE_PRIORITY[b.type] || 99);
+                    if (typePrio !== 0) return typePrio;
 
-                  const milA = militaries.find(m => m.id === (a.militaryId || a.military_id));
-                  const milB = militaries.find(m => m.id === (b.militaryId || b.military_id));
-                  const antA = milA?.antiguidade ?? 999999;
-                  const antB = milB?.antiguidade ?? 999999;
+                    const milA = militaries.find(m => m.id === (a.militaryId || a.military_id));
+                    const milB = militaries.find(m => m.id === (b.militaryId || b.military_id));
+                    const antA = milA?.antiguidade ?? 999999;
+                    const antB = milB?.antiguidade ?? 999999;
 
-                  if (antA !== antB) return antA - antB;
-                  return (milA?.name || '').localeCompare(milB?.name || '');
-                });
+                    if (antA !== antB) return antA - antB;
+                    return (milA?.name || '').localeCompare(milB?.name || '');
+                  });
 
-                return unifiedList.map((s: any) => {
-                  const m = militaries.find(mil => mil.id === s.militaryId);
-                  const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
+                  return unifiedList.map((s: any) => {
+                    const m = militaries.find(mil => mil.id === s.militaryId);
+                    const colors = SHIFT_TYPE_COLORS[s.type] || SHIFT_TYPE_COLORS['Escala Geral'];
 
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => isModerator && handleOpenEditModal(s)}
-                      className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${colors.border} dark:border-slate-700 p-3 sm:p-4 space-y-3 shadow-sm relative overflow-hidden transition-all group ${isModerator ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'}`}
-                    >
-                      <div className="flex items-start justify-between relative z-10 w-full overflow-hidden">
-                        <div className="flex gap-2 sm:gap-3 items-center min-w-0 flex-1">
-                          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${colors.bg} flex items-center justify-center ${colors.text} border ${colors.border} shrink-0`}>
-                            <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
-                          </div>
-                          <div className="min-w-0 flex-1 space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[10px] font-black uppercase tracking-wider ${colors.text}`}>
-                                {s.type}
-                              </span>
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => isModerator && handleOpenEditModal(s)}
+                        className={`w-full text-left bg-white dark:bg-slate-800 rounded-xl border ${colors.border} dark:border-slate-700 p-3 sm:p-4 space-y-3 shadow-sm relative overflow-hidden transition-all group ${isModerator ? 'hover:opacity-90 cursor-pointer' : 'cursor-default'}`}
+                      >
+                        <div className="flex items-start justify-between relative z-10 w-full overflow-hidden">
+                          <div className="flex gap-2 sm:gap-3 items-center min-w-0 flex-1">
+                            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${colors.bg} flex items-center justify-center ${colors.text} border ${colors.border} shrink-0`}>
+                              <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
                             </div>
-                            <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate block">
-                              {m?.rank ? `${m.rank} ${m.name}` : (m?.name || 'Militar não encontrado')}
-                            </span>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase truncate">
-                              {formatLocation(s.type, s.location) || 'Local não definido'}
-                              {(() => {
-                                if (s.type === 'Escala Diversa') {
+                            <div className="min-w-0 flex-1 space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-black uppercase tracking-wider ${colors.text}`}>
+                                  {s.type}
+                                </span>
+                              </div>
+                              <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate block">
+                                {m?.rank ? `${m.rank} ${m.name}` : (m?.name || 'Militar não encontrado')}
+                              </span>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase truncate">
+                                {formatLocation(s.type, s.location) || 'Local não definido'}
+                                {(() => {
+                                  if (s.type === 'Escala Diversa') {
+                                    const st = s.startTime || s.start_time;
+                                    const et = s.endTime || s.end_time;
+                                    if (st && et) return ` • ${st} - ${et}`;
+                                    return '';
+                                  }
+                                  if (s.type === 'Sobreaviso' || s.type === 'Faxina') return '';
+                                  const isWeekendOrHoliday = (() => {
+                                    const d = new Date(`${selectedDateStr}T12:00:00`);
+                                    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                                    return isWeekend || holidays.some(h => h.date === selectedDateStr);
+                                  })();
+                                  if (s.type === 'Comandante da Guarda') return isWeekendOrHoliday ? ' • 06:30 - 06:30' : ' • 20:00 - 06:30';
+                                  if (s.type === 'Manutenção') return ' • 06:00 - 07:30';
                                   const st = s.startTime || s.start_time;
                                   const et = s.endTime || s.end_time;
                                   if (st && et) return ` • ${st} - ${et}`;
                                   return '';
-                                }
-                                if (s.type === 'Sobreaviso' || s.type === 'Faxina') return '';
-                                const isWeekendOrHoliday = (() => {
-                                  const d = new Date(`${selectedDateStr}T12:00:00`);
-                                  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                                  return isWeekend || holidays.some(h => h.date === selectedDateStr);
-                                })();
-                                if (s.type === 'Comandante da Guarda') return isWeekendOrHoliday ? ' • 06:30 - 06:30' : ' • 20:00 - 06:30';
-                                if (s.type === 'Manutenção') return ' • 06:00 - 07:30';
-                                const st = s.startTime || s.start_time;
-                                const et = s.endTime || s.end_time;
-                                if (st && et) return ` • ${st} - ${et}`;
-                                return '';
-                              })()}
-                            </p>
+                                })()}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className={`absolute top-0 right-0 w-1 h-full ${colors.dot}`}></div>
-                    </button>
-                  );
-                });
-              })()}
-            </section>
-          </div>
+                        <div className={`absolute top-0 right-0 w-1 h-full ${colors.dot}`}></div>
+                      </button>
+                    );
+                  });
+                })()}
+              </section>
+            </div>
+          )}
         </div>
       </MainLayout.Sidebar>
 
@@ -1316,6 +1474,120 @@ const DashboardPage: React.FC = () => {
                 </button>
               )}
               <button onClick={handleSaveShift} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Gerenciamento de Meses Bloqueados (Exclusivo Moderador) */}
+      {isManageMonthsModalOpen && isModerator && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
+            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/70 dark:bg-slate-800/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-xl">lock_clock</span>
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-white leading-tight">
+                    Gerenciar Visibilidade da Escala
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    Bloquear ou liberar acesso por mês
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsManageMonthsModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-red-500 transition-colors"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[75vh]">
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider pl-2">
+                  Ano de Referência:
+                </span>
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+                  {[2024, 2025, 2026, 2027].map(y => (
+                    <button
+                      key={y}
+                      onClick={() => setModalYear(y)}
+                      className={`px-2.5 py-1 rounded-md text-xs font-black transition-all ${
+                        modalYear === y
+                          ? 'bg-primary text-white shadow-sm'
+                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                      }`}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Selecione os meses que devem ficar <strong>ocultos</strong> para usuários comuns. Quando um mês está bloqueado, apenas moderadores conseguem visualizar sua escala.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {months.map((mName, mIdx) => {
+                  const isHidden = isMonthHidden(modalYear, mIdx);
+                  return (
+                    <div
+                      key={mIdx}
+                      className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                        isHidden
+                          ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50'
+                          : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          isHidden
+                            ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
+                            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                        }`}>
+                          <span className="material-symbols-outlined text-base">
+                            {isHidden ? 'lock' : 'lock_open'}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs font-extrabold text-slate-800 dark:text-white block truncate">
+                            {mName}
+                          </span>
+                          <span className={`text-[9px] font-black uppercase tracking-wider ${
+                            isHidden ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
+                          }`}>
+                            {isHidden ? 'Oculto (Moderador)' : 'Público'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => toggleMonthHidden(modalYear, mIdx)}
+                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border shrink-0 ${
+                          isHidden
+                            ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-sm'
+                            : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'
+                        }`}
+                      >
+                        {isHidden ? 'Desbloquear' : 'Bloquear'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end">
+              <button
+                onClick={() => setIsManageMonthsModalOpen(false)}
+                className="px-5 py-2 bg-primary text-white rounded-xl text-xs font-bold shadow-md hover:opacity-90 transition-opacity"
+              >
+                Concluir
+              </button>
             </div>
           </div>
         </div>

@@ -69,3 +69,11 @@ export interface Holiday {
   date: string;
   description: string;
 }
+
+export interface ScaleVisibilityConfig {
+  id?: string;
+  month: string; // Formato YYYY-MM
+  hidden: boolean;
+  updatedAt?: string;
+}
+

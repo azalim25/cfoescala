@@ -143,7 +143,7 @@ const ShiftCard = React.memo(({ s, holidays }: { s: any, holidays: any[] }) => {
 
 const PersonalShiftPage: React.FC = () => {
   const { militaries } = useMilitary();
-  const { shifts: allShifts, preferences, addPreference, removePreference, holidays } = useShift();
+  const { shifts: allShifts, preferences, addPreference, removePreference, holidays, isMonthHidden } = useShift();
   const { schedule, disciplines } = useAcademic();
   const { isModerator, session } = useAuth();
   const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
@@ -497,12 +497,22 @@ const PersonalShiftPage: React.FC = () => {
       return { ...item, startTime, endTime, hours: calculateShiftHours(item) };
     });
 
+    const isItemMonthHidden = (dateStr: string) => {
+      const d = safeParseISO(dateStr);
+      return isMonthHidden(d.getFullYear(), d.getMonth());
+    };
+
+    // Filter hidden months for non-moderators
+    const displayItems = isModerator
+      ? allItems
+      : allItems.filter(item => !isItemMonthHidden(item.date));
+
     // 3. Split into Today, Upcoming, Past
-    const todayItems = allItems.filter(s => s.date.split('T')[0] === today);
-    const upcomingItems = allItems
+    const todayItems = displayItems.filter(s => s.date.split('T')[0] === today);
+    const upcomingItems = displayItems
       .filter(s => s.date.split('T')[0] >= today && selectedShiftTypes.includes(s.type))
       .sort((a, b) => a.date.localeCompare(b.date));
-    const pastItems = allItems
+    const pastItems = displayItems
       .filter(s => s.date.split('T')[0] < today && selectedPastTypes.includes(s.type))
       .sort((a, b) => b.date.localeCompare(a.date));
 

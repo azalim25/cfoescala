@@ -7,6 +7,11 @@ interface ShiftContextType {
     shifts: Shift[];
     preferences: MilitaryPreference[];
     holidays: Holiday[];
+    hiddenMonths: string[];
+    isMonthHidden: (year: number, month: number) => boolean;
+    toggleMonthHidden: (year: number, month: number) => Promise<void>;
+    setMonthHidden: (year: number, month: number, hidden: boolean) => Promise<void>;
+    fetchHiddenMonths: () => Promise<void>;
     addShifts: (newShifts: Shift[]) => Promise<void>;
     createShift: (shift: Omit<Shift, 'id'>) => Promise<void>;
     createShifts: (shifts: Omit<Shift, 'id'>[]) => Promise<void>;
@@ -27,7 +32,32 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [preferences, setPreferences] = useState<MilitaryPreference[]>([]);
     const [holidays, setHolidays] = useState<Holiday[]>([]);
+    const [hiddenMonths, setHiddenMonths] = useState<string[]>(() => {
+        try {
+            const cached = localStorage.getItem('@cfo_hidden_scale_months');
+            return cached ? JSON.parse(cached) : [];
+        } catch {
+            return [];
+        }
+    });
     const [isLoading, setIsLoading] = useState(true);
+
+    const fetchHiddenMonths = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('extra_hours')
+                .select('description')
+                .eq('category', 'CONFIG_HIDDEN_SCALE_MONTHS');
+
+            if (!error && data) {
+                const months = Array.from(new Set(data.map(d => d.description).filter(Boolean)));
+                setHiddenMonths(months);
+                localStorage.setItem('@cfo_hidden_scale_months', JSON.stringify(months));
+            }
+        } catch (error) {
+            console.error('Error fetching hidden scale months:', error);
+        }
+    };
 
     const fetchHolidays = async () => {
         try {
@@ -86,7 +116,61 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         fetchShifts();
         fetchPreferences();
         fetchHolidays();
+        fetchHiddenMonths();
     }, []);
+
+    const isMonthHidden = (year: number, month: number) => {
+        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        return hiddenMonths.includes(monthKey);
+    };
+
+    const setMonthHidden = async (year: number, month: number, hidden: boolean) => {
+        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const nextMonths = hidden
+            ? Array.from(new Set([...hiddenMonths, monthKey]))
+            : hiddenMonths.filter(m => m !== monthKey);
+
+        setHiddenMonths(nextMonths);
+        localStorage.setItem('@cfo_hidden_scale_months', JSON.stringify(nextMonths));
+
+        try {
+            if (hidden) {
+                const { data: milData } = await supabase.from('militaries').select('id').limit(1);
+                const milId = milData?.[0]?.id;
+                if (!milId) throw new Error('Nenhum militar cadastrado para vincular registro');
+
+                await supabase.from('extra_hours')
+                    .delete()
+                    .eq('category', 'CONFIG_HIDDEN_SCALE_MONTHS')
+                    .eq('description', monthKey);
+
+                const { error: insertErr } = await supabase.from('extra_hours').insert({
+                    military_id: milId,
+                    category: 'CONFIG_HIDDEN_SCALE_MONTHS',
+                    description: monthKey,
+                    date: '2099-01-01',
+                    hours: 0,
+                    minutes: 0
+                });
+                if (insertErr) throw insertErr;
+            } else {
+                const { error: delErr } = await supabase.from('extra_hours')
+                    .delete()
+                    .eq('category', 'CONFIG_HIDDEN_SCALE_MONTHS')
+                    .eq('description', monthKey);
+                if (delErr) throw delErr;
+            }
+        } catch (error) {
+            console.error('Error updating month visibility in Supabase:', error);
+            await fetchHiddenMonths();
+            alert('Erro ao atualizar visibilidade da escala.');
+        }
+    };
+
+    const toggleMonthHidden = async (year: number, month: number) => {
+        const currentlyHidden = isMonthHidden(year, month);
+        await setMonthHidden(year, month, !currentlyHidden);
+    };
 
     const addShifts = async (newShifts: Shift[]) => {
         try {
@@ -317,6 +401,11 @@ export const ShiftProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             shifts,
             preferences,
             holidays,
+            hiddenMonths,
+            isMonthHidden,
+            toggleMonthHidden,
+            setMonthHidden,
+            fetchHiddenMonths,
             addShifts,
             clearShifts,
             isLoading,
