@@ -5,7 +5,7 @@ import { useShift } from '../contexts/ShiftContext';
 import { supabase } from '../supabase';
 import { SHIFT_TYPE_COLORS } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
-import HorseRaceModal, { HorseCompetitor } from '../components/HorseRaceModal';
+import HorseRaceModal from '../components/HorseRaceModal';
 
 interface ExtraHourRecord {
     id: string;
@@ -19,7 +19,7 @@ interface ExtraHourRecord {
 
 const RankingPage: React.FC = () => {
     const { militaries } = useMilitary();
-    const { shifts } = useShift();
+    const { shifts, holidays } = useShift();
     const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
     const [stages, setStages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -194,48 +194,6 @@ const RankingPage: React.FC = () => {
         }).sort((a, b) => b.totalHours - a.totalHours);
     }, [militaries, shifts, extraHours, stages, selectedShiftTypes, selectedExtraCategories, selectedMonths]);
 
-    const horseCompetitors: HorseCompetitor[] = useMemo(() => {
-        return militaries.map(mil => {
-            const milExtra = extraHours.filter(e => e.military_id === mil.id);
-            
-            let cfo1Hours = 0;
-            let cfo2Hours = 0;
-
-            milExtra.forEach(e => {
-                const hoursVal = Number(e.hours || 0) + (Number(e.minutes || 0) / 60);
-                if (e.category === 'CFO I - Acumulado') {
-                    cfo1Hours += hoursVal;
-                } else if (e.category === 'CFO II - Registro de Horas') {
-                    cfo2Hours += hoursVal;
-                }
-            });
-
-            const totalExtraHours = cfo1Hours + cfo2Hours;
-
-            return {
-                id: mil.id,
-                name: mil.name,
-                rank: mil.rank || 'Cadete',
-                battalion: mil.battalion,
-                antiguidade: mil.antiguidade,
-                cfo1Hours,
-                cfo2Hours,
-                totalExtraHours,
-                position: 0
-            };
-        })
-        .sort((a, b) => {
-            if (b.totalExtraHours !== a.totalExtraHours) {
-                return b.totalExtraHours - a.totalExtraHours;
-            }
-            return (a.antiguidade || 999) - (b.antiguidade || 999);
-        })
-        .map((comp, idx) => ({
-            ...comp,
-            position: idx + 1
-        }));
-    }, [militaries, extraHours]);
-
     const toggleShiftType = (type: string) => {
         setSelectedShiftTypes(prev => {
             const next = prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type];
@@ -372,10 +330,10 @@ const RankingPage: React.FC = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                             <span className="block text-xs font-black uppercase tracking-tight leading-tight">
-                                Veja como está a competição de horas extras
+                                Veja a competição
                             </span>
                             <span className="block text-[9px] font-bold text-amber-100 uppercase tracking-wider mt-0.5">
-                                CFO I + CFO II • 21 Cadetes
+                                Escolha os rankings e acompanhe a disputa • 21 Cadetes
                             </span>
                         </div>
                         <span className="material-symbols-outlined text-base text-white">
@@ -527,10 +485,10 @@ const RankingPage: React.FC = () => {
                             </div>
                             <div className="min-w-0 flex-1">
                                 <span className="block text-[11px] font-black uppercase tracking-tight text-white leading-tight">
-                                    Veja como está a competição de horas extras
+                                    Veja a competição
                                 </span>
                                 <span className="block text-[9px] font-bold text-amber-100 uppercase tracking-widest mt-0.5 opacity-90">
-                                    CFO I + CFO II • 21 Cadetes
+                                    Escolha os rankings e acompanhe a disputa • 21 Cadetes
                                 </span>
                             </div>
                             <span className="material-symbols-outlined text-base text-amber-100 group-hover:translate-x-1 transition-transform">
@@ -545,7 +503,12 @@ const RankingPage: React.FC = () => {
             <HorseRaceModal
                 isOpen={isRaceModalOpen}
                 onClose={() => setIsRaceModalOpen(false)}
-                competitors={horseCompetitors}
+                militaries={militaries}
+                shifts={shifts}
+                extraHours={extraHours}
+                stages={stages}
+                holidays={holidays}
+                selectedMonths={selectedMonths}
             />
         </MainLayout >
     );
