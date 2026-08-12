@@ -9,7 +9,7 @@ export interface HorseCompetitor {
   totalExtraHours: number;
   cfo1Hours: number;
   cfo2Hours: number;
-  position: number;
+  position: number; // 1 to 21
 }
 
 interface HorseRaceModalProps {
@@ -19,115 +19,112 @@ interface HorseRaceModalProps {
 }
 
 const JOCKEY_COLORS = [
-  { jacket: '#ef4444', cap: '#fca5a5' }, // Red
-  { jacket: '#3b82f6', cap: '#93c5fd' }, // Blue
-  { jacket: '#10b981', cap: '#6ee7b7' }, // Emerald
-  { jacket: '#f59e0b', cap: '#fde68a' }, // Amber
-  { jacket: '#8b5cf6', cap: '#c4b5fd' }, // Purple
-  { jacket: '#ec4899', cap: '#fbcfe8' }, // Pink
-  { jacket: '#06b6d4', cap: '#a5f3fc' }, // Cyan
-  { jacket: '#14b8a6', cap: '#99f6e4' }, // Teal
-  { jacket: '#f97316', cap: '#fed7aa' }, // Orange
-  { jacket: '#6366f1', cap: '#c7d2fe' }, // Indigo
-  { jacket: '#84cc16', cap: '#d9f99d' }, // Lime
-  { jacket: '#e11d48', cap: '#fecdd3' }, // Rose
-  { jacket: '#0284c7', cap: '#bae6fd' }, // Sky
-  { jacket: '#d97706', cap: '#fef3c7' }, // Yellow-amber
-  { jacket: '#7c3aed', cap: '#ddd6fe' }, // Violet
-  { jacket: '#059669', cap: '#a7f3d0' }, // Dark green
-  { jacket: '#db2777', cap: '#fbcfe8' }, // Fuchsia
-  { jacket: '#2563eb', cap: '#bfdbfe' }, // Royal Blue
-  { jacket: '#ea580c', cap: '#ffedd5' }, // Dark Orange
-  { jacket: '#4f46e5', cap: '#e0e7ff' }, // Deep Indigo
-  { jacket: '#16a34a', cap: '#bbf7d0' }, // Forest Green
+  { jacket: '#dc2626', cap: '#f87171', border: '#b91c1c' }, // Red
+  { jacket: '#2563eb', cap: '#60a5fa', border: '#1d4ed8' }, // Blue
+  { jacket: '#059669', cap: '#34d399', border: '#047857' }, // Emerald
+  { jacket: '#d97706', cap: '#fbbf24', border: '#b45309' }, // Amber
+  { jacket: '#7c3aed', cap: '#a78bfa', border: '#6d28d9' }, // Purple
+  { jacket: '#db2777', cap: '#f472b6', border: '#be185d' }, // Pink
+  { jacket: '#0891b2', cap: '#22d3ee', border: '#0e7490' }, // Cyan
+  { jacket: '#0d9488', cap: '#2dd4bf', border: '#0f766e' }, // Teal
+  { jacket: '#ea580c', cap: '#fb923c', border: '#c2410c' }, // Orange
+  { jacket: '#4f46e5', cap: '#818cf8', border: '#4338ca' }, // Indigo
+  { jacket: '#65a30d', cap: '#a3e635', border: '#4d7c0f' }, // Lime
+  { jacket: '#e11d48', cap: '#fb7185', border: '#be123c' }, // Rose
+  { jacket: '#0284c7', cap: '#38bdf8', border: '#0369a1' }, // Sky
+  { jacket: '#ca8a04', cap: '#facc15', border: '#a16207' }, // Yellow
+  { jacket: '#9333ea', cap: '#c084fc', border: '#7e22ce' }, // Violet
+  { jacket: '#16a34a', cap: '#4ade80', border: '#15803d' }, // Green
+  { jacket: '#c026d3', cap: '#e879f9', border: '#a21caf' }, // Fuchsia
+  { jacket: '#1d4ed8', cap: '#93c5fd', border: '#1e40af' }, // Royal Blue
+  { jacket: '#c2410c', cap: '#fdba74', border: '#9a3412' }, // Dark Orange
+  { jacket: '#3730a3', cap: '#a5b4fc', border: '#312e81' }, // Deep Indigo
+  { jacket: '#14532d', cap: '#86efac', border: '#166534' }, // Forest
 ];
 
-// Animated Horse SVG Component
-const AnimatedHorseSVG: React.FC<{ isRunning: boolean; colorIndex: number }> = ({ isRunning, colorIndex }) => {
+// Rich Animated Galloping Horse Component
+const GallopingHorse: React.FC<{ isRunning: boolean; colorIndex: number }> = ({ isRunning, colorIndex }) => {
   const colors = JOCKEY_COLORS[colorIndex % JOCKEY_COLORS.length];
 
   return (
     <div className="relative flex items-center select-none pointer-events-none">
       <svg
-        viewBox="0 0 120 70"
-        className={`w-14 h-9 sm:w-20 sm:h-12 drop-shadow-md transition-transform ${
+        viewBox="0 0 100 55"
+        className={`w-14 h-8 sm:w-16 sm:h-9 drop-shadow-md transition-transform ${
           isRunning ? 'animate-horse-gallop' : ''
         }`}
       >
-        {/* Shadow */}
-        <ellipse cx="60" cy="65" rx="35" ry="4" fill="rgba(0,0,0,0.18)" />
+        {/* Ground shadow */}
+        <ellipse cx="50" cy="52" rx="30" ry="3" fill="rgba(0,0,0,0.25)" />
 
-        {/* Horse Body */}
-        <g fill="#6d4c41">
+        {/* Horse Legs & Body */}
+        <g fill="#5c3826">
           {/* Back Legs */}
           <path
-            d={isRunning ? "M30 40 L18 62 L12 60 L24 38 Z" : "M30 40 L22 62 L16 60 L26 38 Z"}
-            fill="#54382e"
+            d={isRunning ? "M24 32 L12 48 L8 46 L18 30 Z" : "M24 32 L16 48 L12 46 L20 30 Z"}
+            fill="#422517"
             className={isRunning ? "animate-horse-backleg" : ""}
           />
           <path
-            d={isRunning ? "M36 40 L28 62 L22 60 L32 38 Z" : "M34 40 L30 62 L24 60 L30 38 Z"}
-            fill="#6d4c41"
+            d={isRunning ? "M30 32 L22 48 L18 46 L26 30 Z" : "M28 32 L24 48 L20 46 L26 30 Z"}
+            fill="#5c3826"
           />
 
-          {/* Main Torso */}
-          <ellipse cx="52" cy="38" rx="26" ry="14" fill="#6d4c41" />
+          {/* Torso */}
+          <ellipse cx="44" cy="30" rx="22" ry="11" fill="#6d4229" />
 
           {/* Front Legs */}
           <path
-            d={isRunning ? "M68 40 L82 62 L88 60 L74 38 Z" : "M66 40 L72 62 L78 60 L70 38 Z"}
-            fill="#54382e"
+            d={isRunning ? "M58 32 L70 48 L74 46 L64 30 Z" : "M56 32 L62 48 L66 46 L60 30 Z"}
+            fill="#422517"
             className={isRunning ? "animate-horse-frontleg" : ""}
           />
           <path
-            d={isRunning ? "M74 40 L88 60 L94 58 L78 38 Z" : "M72 40 L76 60 L82 58 L74 38 Z"}
-            fill="#7b5548"
+            d={isRunning ? "M64 32 L76 46 L80 44 L68 30 Z" : "M62 32 L66 46 L70 44 L64 30 Z"}
+            fill="#6d4229"
           />
 
           {/* Neck & Head */}
-          <path d="M68 36 L86 16 L98 22 L82 44 Z" fill="#6d4c41" />
-          <polygon points="94,14 108,20 102,28 88,22" fill="#6d4c41" />
-
+          <path d="M58 28 L74 12 L84 17 L70 34 Z" fill="#6d4229" />
+          <polygon points="80,11 92,15 86,22 74,17" fill="#6d4229" />
           {/* Ears */}
-          <polygon points="92,12 96,6 98,14" fill="#54382e" />
-
+          <polygon points="78,9 81,4 83,10" fill="#422517" />
           {/* Mane */}
-          <path d="M72 30 L84 14 L88 18 L76 34 Z" fill="#2d1b15" />
-
+          <path d="M62 24 L72 10 L75 13 L65 27 Z" fill="#26140b" />
           {/* Tail */}
           <path
-            d={isRunning ? "M26 34 Q8 26 12 48 Q20 40 28 38 Z" : "M26 34 Q14 36 18 52 Q24 44 28 38 Z"}
-            fill="#2d1b15"
+            d={isRunning ? "M22 28 Q4 22 8 40 Q16 34 24 32 Z" : "M22 28 Q10 30 14 42 Q18 36 24 32 Z"}
+            fill="#26140b"
             className={isRunning ? "animate-horse-tail" : ""}
           />
-
-          {/* Muzzle & Reins */}
-          <circle cx="106" cy="22" r="2" fill="#3e2723" />
-          <path d="M102 24 L76 32" stroke="#d7ccc8" strokeWidth="1.2" fill="none" />
+          {/* Eye */}
+          <circle cx="84" cy="14" r="1.2" fill="#0f172a" />
+          {/* Reins */}
+          <path d="M86 18 L64 24" stroke="#e2e8f0" strokeWidth="1" fill="none" opacity="0.8" />
         </g>
 
-        {/* Saddle & Blanket */}
-        <rect x="42" y="27" width="18" height="12" rx="3" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
-        <rect x="44" y="29" width="14" height="8" rx="2" fill={colors.jacket} />
+        {/* Saddle Blanket */}
+        <rect x="36" y="22" width="16" height="10" rx="2" fill="#ffffff" stroke="#cbd5e1" strokeWidth="0.8" />
+        <rect x="38" y="24" width="12" height="6" rx="1.5" fill={colors.jacket} />
 
         {/* Jockey Rider */}
         <g>
           {/* Body */}
-          <path d="M46 22 L56 16 L62 26 L52 28 Z" fill={colors.jacket} />
-          {/* Head & Helmet */}
-          <circle cx="58" cy="12" r="5" fill="#f8fafc" />
-          <path d="M54 10 Q58 6 63 10 L65 12 L53 12 Z" fill={colors.cap} />
-          <polygon points="63,11 68,12 64,14" fill="#0f172a" />
-          {/* Arms */}
-          <path d="M52 20 L64 24 L76 30" stroke={colors.jacket} strokeWidth="3" strokeLinecap="round" fill="none" />
-          <circle cx="76" cy="30" r="2" fill="#fcd34d" />
+          <path d="M40 18 L48 12 L54 20 L45 22 Z" fill={colors.jacket} />
+          {/* Helmet & Head */}
+          <circle cx="50" cy="8" r="4" fill="#f8fafc" />
+          <path d="M47 6 Q50 3 54 6 L56 8 L46 8 Z" fill={colors.cap} />
+          <polygon points="54,7 58,8 55,10" fill="#0f172a" />
+          {/* Arms & Hands */}
+          <path d="M44 16 L54 20 L64 24" stroke={colors.jacket} strokeWidth="2.5" strokeLinecap="round" fill="none" />
+          <circle cx="64" cy="24" r="1.5" fill="#fcd34d" />
         </g>
       </svg>
 
-      {/* Dust particles when running */}
+      {/* Dust particles while running */}
       {isRunning && (
-        <div className="absolute -left-3 bottom-0 flex gap-1 animate-pulse">
-          <span className="text-[10px] opacity-70">💨</span>
+        <div className="absolute -left-2 bottom-0 animate-pulse text-[8px] opacity-80 select-none">
+          💨
         </div>
       )}
     </div>
@@ -136,9 +133,10 @@ const AnimatedHorseSVG: React.FC<{ isRunning: boolean; colorIndex: number }> = (
 
 export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose, competitors }) => {
   const [raceStatus, setRaceStatus] = useState<'idle' | 'countdown' | 'running' | 'finished'>('idle');
-  const [countdown, setCountdown] = useState(3);
+  const [countdown, setCountdown] = useState<number>(3);
   const [raceSpeed, setRaceSpeed] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<'track' | 'podium' | 'table'>('track');
+  const [viewOrdering, setViewOrdering] = useState<'antiguidade' | 'ranking'>('antiguidade');
   const [searchFilter, setSearchFilter] = useState('');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
@@ -147,42 +145,70 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
 
+  // 1. Initial order: Sorted strictly by ANTIGUIDADE (1 to 21)
+  const competitorsByAntiguidade = useMemo(() => {
+    return [...competitors].sort((a, b) => (a.antiguidade || 999) - (b.antiguidade || 999));
+  }, [competitors]);
+
+  // 2. Ranking order: Sorted by TOTAL EXTRA HOURS (1st to 21st)
+  const competitorsByRanking = useMemo(() => {
+    return [...competitors].sort((a, b) => {
+      if (b.totalExtraHours !== a.totalExtraHours) {
+        return b.totalExtraHours - a.totalExtraHours;
+      }
+      return (a.antiguidade || 999) - (b.antiguidade || 999);
+    });
+  }, [competitors]);
+
   // Maximum hours for 100% track distance normalization
   const maxHours = useMemo(() => {
     return Math.max(...competitors.map(c => c.totalExtraHours), 1);
   }, [competitors]);
 
-  // Target normalized final position for each horse (scaled between 30% and 94% of the track)
+  // Target final distance across the track for each horse
+  // 1st place reaches ~92% (just past the finish line), others proportional (min ~22%)
   const targetPositions = useMemo(() => {
     const map: Record<string, number> = {};
     competitors.forEach(c => {
-      // Leader reaches 93%, lowest gets proportional space (min 20%)
       const ratio = c.totalExtraHours / maxHours;
-      map[c.id] = Math.max(0.18, Math.min(0.93, ratio * 0.93));
+      map[c.id] = Math.max(0.18, Math.min(0.92, ratio * 0.92));
     });
     return map;
   }, [competitors, maxHours]);
 
-  // Reset or Start Countdown
-  const startRace = () => {
-    setRaceStatus('countdown');
+  // Reset to initial gate state
+  const resetToGates = () => {
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    setRaceStatus('idle');
     setCountdown(3);
-    setActiveTab('track');
-    
-    // Reset positions to starting gates
+    setViewOrdering('antiguidade');
+
     const initial: Record<string, number> = {};
-    competitors.forEach(c => { initial[c.id] = 0.02; });
+    competitors.forEach(c => { initial[c.id] = 0; });
     setHorseProgress(initial);
   };
 
-  // Countdown timer logic
+  // Start the countdown & race
+  const startRace = () => {
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    setRaceStatus('countdown');
+    setCountdown(3);
+    setActiveTab('track');
+    setViewOrdering('antiguidade');
+
+    const initial: Record<string, number> = {};
+    competitors.forEach(c => { initial[c.id] = 0; });
+    setHorseProgress(initial);
+  };
+
+  // Countdown timer effect
   useEffect(() => {
     if (raceStatus !== 'countdown') return;
 
     if (countdown > 0) {
       const timer = setTimeout(() => {
         setCountdown(prev => prev - 1);
-      }, 700 / raceSpeed);
+      }, 750 / raceSpeed);
       return () => clearTimeout(timer);
     } else {
       // Countdown finished -> Start Running!
@@ -195,33 +221,35 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
   useEffect(() => {
     if (raceStatus !== 'running') return;
 
-    const baseDuration = 6500 / raceSpeed; // Total race time in ms
+    const baseDuration = 7000 / raceSpeed; // Total race time in ms
 
-    const animate = (time: number) => {
-      const elapsed = time - startTimeRef.current;
+    const animate = (now: number) => {
+      const elapsed = now - startTimeRef.current;
       const t = Math.min(elapsed / baseDuration, 1);
 
-      // Smooth cubic ease out with slight natural fluctuating surge for excitement
-      const easeOut = 1 - Math.pow(1 - t, 2.5);
+      // Smooth custom ease-out with dramatic race tension
+      const easeOut = 1 - Math.pow(1 - t, 2.8);
 
-      const currentProg: Record<string, number> = {};
+      const currentMap: Record<string, number> = {};
+
       competitors.forEach((c, idx) => {
         const finalTarget = targetPositions[c.id] || 0.5;
-        // Natural gallop fluctuation surge during middle of race (t < 0.85)
-        const fluctuation = (t < 0.88)
-          ? Math.sin(t * Math.PI * 4 + idx * 1.5) * 0.04 * (1 - t)
+
+        // Dynamic exciting surges during middle of the race (t between 0.15 and 0.85)
+        const surge = (t > 0.1 && t < 0.88)
+          ? Math.sin(t * Math.PI * 4 + idx * 1.7) * 0.05 * (1 - t)
           : 0;
 
-        const p = 0.02 + (finalTarget - 0.02) * easeOut + fluctuation;
-        currentProg[c.id] = Math.max(0.02, Math.min(finalTarget, p));
+        const currentPos = finalTarget * easeOut + surge;
+        currentMap[c.id] = Math.max(0, Math.min(finalTarget, currentPos));
       });
 
-      setHorseProgress(currentProg);
+      setHorseProgress(currentMap);
 
       if (t < 1) {
         animationFrameRef.current = requestAnimationFrame(animate);
       } else {
-        // Race finished!
+        // Race finished! Settle exact final positions
         const finalMap: Record<string, number> = {};
         competitors.forEach(c => { finalMap[c.id] = targetPositions[c.id]; });
         setHorseProgress(finalMap);
@@ -236,40 +264,46 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
     };
   }, [raceStatus, raceSpeed, competitors, targetPositions]);
 
-  // Reset race when modal opens
+  // Modal open/close reset
   useEffect(() => {
     if (isOpen) {
-      startRace();
+      resetToGates();
     } else {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       setRaceStatus('idle');
     }
   }, [isOpen]);
 
-  // Filtered Competitors for search
-  const filteredCompetitors = useMemo(() => {
-    if (!searchFilter.trim()) return competitors;
-    return competitors.filter(c =>
+  // Displayed competitors list depending on active viewOrdering
+  const displayedCompetitors = useMemo(() => {
+    const list = (raceStatus === 'finished' && viewOrdering === 'ranking')
+      ? competitorsByRanking
+      : competitorsByAntiguidade;
+
+    if (!searchFilter.trim()) return list;
+    return list.filter(c =>
       c.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
       c.rank.toLowerCase().includes(searchFilter.toLowerCase())
     );
-  }, [competitors, searchFilter]);
+  }, [raceStatus, viewOrdering, competitorsByRanking, competitorsByAntiguidade, searchFilter]);
 
   // Top 3 for podium
   const top3 = useMemo(() => {
-    return competitors.slice(0, 3);
-  }, [competitors]);
+    return competitorsByRanking.slice(0, 3);
+  }, [competitorsByRanking]);
 
   if (!isOpen) return null;
 
+  const isFinished = raceStatus === 'finished';
+
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-700/80 text-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-6xl flex flex-col overflow-hidden max-h-[95vh] ring-1 ring-white/10">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-slate-900 border border-slate-700 text-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-6xl flex flex-col overflow-hidden max-h-[96vh] ring-1 ring-white/10">
         
         {/* Header Bar */}
         <div className="p-3 sm:p-5 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl shadow-lg shadow-amber-500/10">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/10">
               🏇
             </div>
             <div>
@@ -282,14 +316,14 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
                 </h2>
               </div>
               <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                CFO I - Acumulado + CFO II - Registro de Horas • {competitors.length} Militares
+                {isFinished ? 'Classificação Final Revelada!' : 'Ordem de Largada por Antiguidade • 21 Cadetes'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {/* View Tab Buttons */}
-            <div className="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700 text-xs font-bold">
+            <div className="flex bg-slate-800/90 p-1 rounded-xl border border-slate-700 text-xs font-bold">
               <button
                 onClick={() => setActiveTab('track')}
                 className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
@@ -329,21 +363,32 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
           </div>
         </div>
 
-        {/* Live Race Control & Toolbar */}
-        <div className="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
+        {/* Live Race Controls & Toolbar */}
+        <div className="px-4 py-2.5 bg-slate-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            
+            {/* Start / Replay Button */}
             <button
               onClick={startRace}
               disabled={raceStatus === 'countdown' || raceStatus === 'running'}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black text-[11px] uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5"
+              className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 ${
+                raceStatus === 'idle'
+                  ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-emerald-500/20 animate-pulse'
+                  : raceStatus === 'finished'
+                  ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-amber-500/20'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+              }`}
             >
-              <span className="material-symbols-outlined text-sm">
+              <span className="material-symbols-outlined text-base">
                 {raceStatus === 'finished' ? 'replay' : 'play_arrow'}
               </span>
-              {raceStatus === 'finished' ? 'Reiniciar Corrida' : (raceStatus === 'running' ? 'Correndo...' : 'Iniciar Corrida')}
+              {raceStatus === 'idle' && 'Iniciar Corrida'}
+              {raceStatus === 'countdown' && 'Preparando...'}
+              {raceStatus === 'running' && 'Correndo...'}
+              {raceStatus === 'finished' && 'Correr Novamente'}
             </button>
 
-            {/* Speed selector */}
+            {/* Speed Selector */}
             <div className="flex items-center bg-slate-800/80 rounded-xl p-0.5 border border-slate-700 text-[10px] font-black">
               {[1, 1.5, 2].map(speed => (
                 <button
@@ -358,29 +403,51 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
               ))}
             </div>
 
-            {/* Status pill */}
+            {/* Toggle Ordering (Only available after race finishes) */}
+            {isFinished && (
+              <div className="flex items-center bg-slate-800 rounded-xl p-0.5 border border-slate-700 text-[10px] font-black">
+                <button
+                  onClick={() => setViewOrdering('antiguidade')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    viewOrdering === 'antiguidade' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Ordem de Baias
+                </button>
+                <button
+                  onClick={() => setViewOrdering('ranking')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    viewOrdering === 'ranking' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  🏆 Ordem de Chegada
+                </button>
+              </div>
+            )}
+
+            {/* Status Pill */}
             <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
               raceStatus === 'running'
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse'
-                : raceStatus === 'finished'
+                : isFinished
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                 : 'bg-slate-800 text-slate-400 border-slate-700'
             }`}>
-              {raceStatus === 'countdown' && '🚦 Preparar...'}
-              {raceStatus === 'running' && '🏇 Em Andamento!'}
-              {raceStatus === 'finished' && '🏁 Corrida Finalizada!'}
-              {raceStatus === 'idle' && 'Pronto'}
+              {raceStatus === 'idle' && '🚦 Aguardando Largada'}
+              {raceStatus === 'countdown' && '🚦 Atenção...'}
+              {raceStatus === 'running' && '🏇 Corrida em Andamento!'}
+              {isFinished && '🏁 Corrida Finalizada!'}
             </span>
           </div>
 
-          {/* Quick Search in modal */}
-          <div className="relative w-48 sm:w-60">
+          {/* Quick Search */}
+          <div className="relative w-44 sm:w-56">
             <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
               search
             </span>
             <input
               type="text"
-              placeholder="Destacar militar..."
+              placeholder="Buscar militar..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               className="w-full h-8 pl-8 pr-3 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-primary transition-all font-semibold"
@@ -389,13 +456,26 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5 space-y-4 relative">
+
+          {/* Large Countdown Overlay */}
+          {raceStatus === 'countdown' && (
+            <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-150">
+              <div className="w-32 h-32 rounded-full bg-amber-500/20 border-4 border-amber-400 flex items-center justify-center text-6xl font-black text-amber-300 shadow-2xl shadow-amber-500/40 animate-pulse">
+                {countdown > 0 ? countdown : '🚩'}
+              </div>
+              <p className="text-base sm:text-xl font-black text-white uppercase tracking-widest mt-4">
+                {countdown > 0 ? 'PREPARAR PARA A LARGADA...' : 'LARGADA! 🏁'}
+              </p>
+            </div>
+          )}
 
           {/* Tab 1: Race Track Arena */}
           {activeTab === 'track' && (
             <div className="space-y-4">
-              {/* Winner Announcement Banner */}
-              {raceStatus === 'finished' && top3[0] && (
+              
+              {/* Winner Announcement Banner (Only when finished) */}
+              {isFinished && top3[0] && (
                 <div className="bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border-2 border-amber-500/50 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-xl shadow-amber-500/10 animate-in zoom-in-95 duration-300">
                   <div className="flex items-center gap-3">
                     <div className="text-3xl sm:text-4xl animate-bounce">🏆</div>
@@ -409,49 +489,59 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
                         {top3[0].rank} {top3[0].name}
                       </h3>
                       <p className="text-xs text-amber-200/90 font-bold">
-                        Liderança absoluta com <strong className="text-amber-400">{top3[0].totalExtraHours.toFixed(1)}h</strong> extras acumuladas!
+                        Vencedor do Grande Prêmio com <strong className="text-amber-400 text-sm">{top3[0].totalExtraHours.toFixed(1)}h</strong> extras acumuladas!
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setActiveTab('podium')}
-                    className="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:scale-105 transition-transform flex items-center gap-1.5"
-                  >
-                    <span className="material-symbols-outlined text-base font-black">emoji_events</span>
-                    Ver Pódio Completo
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setActiveTab('podium')}
+                      className="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:scale-105 transition-transform flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-base font-black">emoji_events</span>
+                      Ver Pódio
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('table')}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:scale-105 transition-transform flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-base">leaderboard</span>
+                      Classificação Completa
+                    </button>
+                  </div>
                 </div>
               )}
 
               {/* Racetrack Turf Field */}
-              <div className="bg-[#1b4324] dark:bg-[#13331b] border-4 border-[#2f663c] rounded-2xl p-2 sm:p-4 shadow-2xl relative overflow-hidden">
+              <div className="bg-[#1b4324] dark:bg-[#112d17] border-4 border-[#2d6139] rounded-2xl p-2 sm:p-4 shadow-2xl relative overflow-hidden">
                 
                 {/* Turf Grass Patterns */}
-                <div className="absolute inset-0 opacity-20 pointer-events-none bg-[repeating-linear-gradient(45deg,#000_0,#000_20px,transparent_20px,transparent_40px)]"></div>
+                <div className="absolute inset-0 opacity-15 pointer-events-none bg-[repeating-linear-gradient(45deg,#000_0,#000_20px,transparent_20px,transparent_40px)]"></div>
 
-                {/* Track Headers & Distance Markers */}
+                {/* Track Header / Distance Markers */}
                 <div className="relative flex justify-between items-center text-[9px] sm:text-[11px] font-black uppercase text-emerald-300/80 px-2 sm:px-6 py-2 border-b border-emerald-600/40 mb-2">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span> BAIAS DE LARGADA
+                  <span className="flex items-center gap-1.5 text-emerald-300 font-bold">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"></span>
+                    PORTÃO DE LARGADA
                   </span>
-                  <div className="flex gap-8 sm:gap-16">
-                    <span className="hidden sm:inline opacity-60">250m (25%)</span>
-                    <span className="hidden sm:inline opacity-60">500m (50%)</span>
-                    <span className="hidden sm:inline opacity-60">750m (75%)</span>
+                  <div className="flex gap-8 sm:gap-16 opacity-60">
+                    <span className="hidden sm:inline">250m</span>
+                    <span className="hidden sm:inline">500m</span>
+                    <span className="hidden sm:inline">750m</span>
                   </div>
-                  <span className="flex items-center gap-1 text-amber-300 font-black">
+                  <span className="flex items-center gap-1.5 text-amber-300 font-black">
                     🏁 LINHA DE CHEGADA
                   </span>
                 </div>
 
                 {/* Finish Line Checkered Pattern Bar */}
-                <div className="absolute top-0 right-10 sm:right-16 bottom-0 w-3 sm:w-4 bg-[repeating-linear-gradient(0deg,#fff_0,#fff_8px,#000_8px,#000_16px)] opacity-70 z-10 pointer-events-none shadow-lg"></div>
+                <div className="absolute top-0 right-8 sm:right-16 bottom-0 w-3.5 sm:w-4 bg-[repeating-linear-gradient(0deg,#fff_0,#fff_8px,#000_8px,#000_16px)] opacity-70 z-10 pointer-events-none shadow-lg"></div>
 
                 {/* 21 Lanes */}
                 <div className="space-y-1.5 relative z-20">
-                  {filteredCompetitors.map((c, index) => {
-                    const prog = horseProgress[c.id] || 0.02;
-                    const isPodium = c.position <= 3;
+                  {displayedCompetitors.map((c, index) => {
+                    const prog = horseProgress[c.id] || 0;
+                    const isPodium = isFinished && c.position <= 3;
                     const isSelected = highlightedId === c.id;
 
                     return (
@@ -460,35 +550,51 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
                         onClick={() => setHighlightedId(c.id === highlightedId ? null : c.id)}
                         className={`relative rounded-xl border transition-all cursor-pointer group ${
                           isSelected
-                            ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400 shadow-lg'
+                            ? 'bg-amber-500/25 border-amber-400 ring-2 ring-amber-400 shadow-lg'
                             : isPodium
-                            ? 'bg-slate-900/80 border-amber-500/30 hover:border-amber-400/60'
-                            : 'bg-slate-900/60 border-emerald-800/40 hover:bg-slate-900/90'
+                            ? 'bg-slate-900/85 border-amber-500/40 hover:border-amber-400/70'
+                            : 'bg-slate-900/65 border-emerald-800/40 hover:bg-slate-900/90'
                         }`}
                       >
-                        {/* Lane Track */}
-                        <div className="h-12 sm:h-14 flex items-center relative overflow-hidden px-2">
+                        {/* Lane Track Box */}
+                        <div className="h-11 sm:h-13 flex items-center relative overflow-hidden px-2">
                           
-                          {/* Lane Number & Info Badge (Left) */}
-                          <div className="absolute left-2 z-20 flex items-center gap-1.5 sm:gap-2 bg-slate-950/90 px-2 py-1 rounded-lg border border-slate-700/80 shadow-md">
-                            <span className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md flex items-center justify-center font-black text-[10px] sm:text-xs ${
-                              c.position === 1
-                                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30'
-                                : c.position === 2
-                                ? 'bg-slate-300 text-slate-950'
-                                : c.position === 3
-                                ? 'bg-amber-700 text-white'
-                                : 'bg-slate-800 text-slate-300'
-                            }`}>
-                              {c.position}º
-                            </span>
+                          {/* Lane Tag (Left) - Shows Antiguidade / Baia before finish, Position ONLY after finish */}
+                          <div className="absolute left-1.5 sm:left-2 z-20 flex items-center gap-1.5 sm:gap-2 bg-slate-950/95 px-2 py-1 rounded-lg border border-slate-700/80 shadow-md">
+                            
+                            {/* Badge Number */}
+                            {isFinished ? (
+                              <span className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md flex items-center justify-center font-black text-[10px] sm:text-xs shrink-0 ${
+                                c.position === 1
+                                  ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30 font-black'
+                                  : c.position === 2
+                                  ? 'bg-slate-300 text-slate-950 font-black'
+                                  : c.position === 3
+                                  ? 'bg-amber-700 text-white font-black'
+                                  : 'bg-slate-800 text-slate-300'
+                              }`}>
+                                {c.position}º
+                              </span>
+                            ) : (
+                              <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-md flex items-center justify-center font-black text-[10px] sm:text-xs bg-slate-800 text-slate-300 shrink-0">
+                                #{c.antiguidade || (index + 1)}
+                              </span>
+                            )}
+
+                            {/* Name & Hours (Hours only revealed when finished) */}
                             <div className="flex flex-col">
                               <span className="text-[11px] sm:text-xs font-black text-white truncate max-w-[90px] sm:max-w-[140px] leading-tight">
                                 {c.name}
                               </span>
-                              <span className="text-[8px] sm:text-[9px] font-bold text-amber-400 uppercase leading-none">
-                                {c.totalExtraHours.toFixed(1)}h
-                              </span>
+                              {isFinished ? (
+                                <span className="text-[8px] sm:text-[9px] font-black text-amber-400 uppercase leading-none">
+                                  {c.totalExtraHours.toFixed(1)}h
+                                </span>
+                              ) : (
+                                <span className="text-[8px] sm:text-[9px] font-semibold text-slate-400 uppercase leading-none">
+                                  Baia {String(c.antiguidade || (index + 1)).padStart(2, '0')}
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -502,20 +608,22 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
                             className="absolute z-30 transition-all ease-linear"
                             style={{
                               left: `${prog * 100}%`,
-                              transform: 'translateX(-50%)',
-                              transitionDuration: raceStatus === 'running' ? '120ms' : '400ms'
+                              transform: 'translateX(0%)',
+                              transitionDuration: raceStatus === 'running' ? '120ms' : '300ms'
                             }}
                           >
-                            <AnimatedHorseSVG
+                            <GallopingHorse
                               isRunning={raceStatus === 'running'}
-                              colorIndex={index}
+                              colorIndex={(c.antiguidade || (index + 1)) - 1}
                             />
                           </div>
 
-                          {/* Finish Gate Indicator */}
-                          <div className="absolute right-2 z-20 text-[10px] sm:text-xs font-black text-amber-300 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-700">
-                            {c.totalExtraHours.toFixed(1)}h
-                          </div>
+                          {/* Finish Gate Indicator (Only revealed when finished) */}
+                          {isFinished && (
+                            <div className="absolute right-1.5 sm:right-2 z-20 text-[10px] sm:text-xs font-black text-amber-300 bg-slate-950/90 px-2 py-0.5 rounded border border-amber-500/40 shadow-md">
+                              {c.totalExtraHours.toFixed(1)}h
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -625,38 +733,42 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({ isOpen, onClose,
                     <tr>
                       <th className="py-3 px-4 text-center w-12">Pos.</th>
                       <th className="py-3 px-4">Militar</th>
+                      <th className="py-3 px-4 text-center">Antiguidade</th>
                       <th className="py-3 px-4 text-right">CFO I (Acumulado)</th>
-                      <th className="py-3 px-4 text-right">CFO II (Horas Extras)</th>
+                      <th className="py-3 px-4 text-right">CFO II (Registro)</th>
                       <th className="py-3 px-4 text-right">Total Horas Extras</th>
                       <th className="py-3 px-4 text-right">Diferença p/ Líder</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
-                    {competitors.map((c) => {
-                      const diffToLeader = competitors[0].totalExtraHours - c.totalExtraHours;
+                    {competitorsByRanking.map((c, idx) => {
+                      const diffToLeader = competitorsByRanking[0].totalExtraHours - c.totalExtraHours;
 
                       return (
                         <tr
                           key={c.id}
                           className={`hover:bg-slate-800/40 transition-colors ${
-                            c.position === 1 ? 'bg-amber-500/10' : ''
+                            idx === 0 ? 'bg-amber-500/10' : ''
                           }`}
                         >
                           <td className="py-3 px-4 text-center">
                             <span className={`inline-flex w-6 h-6 items-center justify-center rounded-md font-black text-[10px] ${
-                              c.position === 1 ? 'bg-amber-400 text-slate-950' :
-                              c.position === 2 ? 'bg-slate-300 text-slate-950' :
-                              c.position === 3 ? 'bg-amber-700 text-white' :
+                              idx === 0 ? 'bg-amber-400 text-slate-950' :
+                              idx === 1 ? 'bg-slate-300 text-slate-950' :
+                              idx === 2 ? 'bg-amber-700 text-white' :
                               'bg-slate-800 text-slate-400'
                             }`}>
-                              {c.position}º
+                              {idx + 1}º
                             </span>
                           </td>
                           <td className="py-3 px-4 font-bold text-white">
                             <div className="flex items-center gap-2">
                               <span>{c.rank} {c.name}</span>
-                              {c.position === 1 && <span className="text-xs">🏆</span>}
+                              {idx === 0 && <span className="text-xs">🏆</span>}
                             </div>
+                          </td>
+                          <td className="py-3 px-4 text-center text-slate-400 font-mono">
+                            #{c.antiguidade || '-'}
                           </td>
                           <td className="py-3 px-4 text-right text-slate-400 font-mono">
                             {c.cfo1Hours.toFixed(1)}h
