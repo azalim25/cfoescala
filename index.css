@@ -106,3 +106,68 @@
 .dark .responsive-table-container::-webkit-scrollbar-thumb {
   background: #475569;
 }
+
+/* Horse Race Animations */
+@keyframes horseGallop {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-4px) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-1px) rotate(1deg);
+  }
+  75% {
+    transform: translateY(-5px) rotate(-2deg);
+  }
+}
+
+@keyframes horseFrontLeg {
+  0%, 100% {
+    transform: rotate(0deg);
+    transform-origin: 70px 40px;
+  }
+  50% {
+    transform: rotate(-25deg);
+    transform-origin: 70px 40px;
+  }
+}
+
+@keyframes horseBackLeg {
+  0%, 100% {
+    transform: rotate(0deg);
+    transform-origin: 30px 40px;
+  }
+  50% {
+    transform: rotate(30deg);
+    transform-origin: 30px 40px;
+  }
+}
+
+@keyframes horseTail {
+  0%, 100% {
+    transform: rotate(0deg);
+    transform-origin: 26px 36px;
+  }
+  50% {
+    transform: rotate(15deg);
+    transform-origin: 26px 36px;
+  }
+}
+
+.animate-horse-gallop {
+  animation: horseGallop 0.4s infinite ease-in-out;
+}
+
+.animate-horse-frontleg {
+  animation: horseFrontLeg 0.4s infinite ease-in-out;
+}
+
+.animate-horse-backleg {
+  animation: horseBackLeg 0.4s infinite ease-in-out;
+}
+
+.animate-horse-tail {
+  animation: horseTail 0.4s infinite ease-in-out;
+}

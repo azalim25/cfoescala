@@ -5,6 +5,7 @@ import { useShift } from '../contexts/ShiftContext';
 import { supabase } from '../supabase';
 import { SHIFT_TYPE_COLORS } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
+import HorseRaceModal, { HorseCompetitor } from '../components/HorseRaceModal';
 
 interface ExtraHourRecord {
     id: string;
@@ -22,6 +23,7 @@ const RankingPage: React.FC = () => {
     const [extraHours, setExtraHours] = useState<ExtraHourRecord[]>([]);
     const [stages, setStages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRaceModalOpen, setIsRaceModalOpen] = useState(false);
     const [selectedMonths, setSelectedMonths] = useState<number[]>(() => {
         const saved = localStorage.getItem('@cfo_ranking_months');
         return saved ? JSON.parse(saved) : [];
@@ -192,6 +194,48 @@ const RankingPage: React.FC = () => {
         }).sort((a, b) => b.totalHours - a.totalHours);
     }, [militaries, shifts, extraHours, stages, selectedShiftTypes, selectedExtraCategories, selectedMonths]);
 
+    const horseCompetitors: HorseCompetitor[] = useMemo(() => {
+        return militaries.map(mil => {
+            const milExtra = extraHours.filter(e => e.military_id === mil.id);
+            
+            let cfo1Hours = 0;
+            let cfo2Hours = 0;
+
+            milExtra.forEach(e => {
+                const hoursVal = Number(e.hours || 0) + (Number(e.minutes || 0) / 60);
+                if (e.category === 'CFO I - Acumulado') {
+                    cfo1Hours += hoursVal;
+                } else if (e.category === 'CFO II - Registro de Horas') {
+                    cfo2Hours += hoursVal;
+                }
+            });
+
+            const totalExtraHours = cfo1Hours + cfo2Hours;
+
+            return {
+                id: mil.id,
+                name: mil.name,
+                rank: mil.rank || 'Cadete',
+                battalion: mil.battalion,
+                antiguidade: mil.antiguidade,
+                cfo1Hours,
+                cfo2Hours,
+                totalExtraHours,
+                position: 0
+            };
+        })
+        .sort((a, b) => {
+            if (b.totalExtraHours !== a.totalExtraHours) {
+                return b.totalExtraHours - a.totalExtraHours;
+            }
+            return (a.antiguidade || 999) - (b.antiguidade || 999);
+        })
+        .map((comp, idx) => ({
+            ...comp,
+            position: idx + 1
+        }));
+    }, [militaries, extraHours]);
+
     const toggleShiftType = (type: string) => {
         setSelectedShiftTypes(prev => {
             const next = prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type];
@@ -311,13 +355,33 @@ const RankingPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="lg:hidden grid grid-cols-1 mb-6 text-center">
+                <div className="lg:hidden grid grid-cols-1 mb-6 text-center space-y-3">
                     <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm">
                         <span className="text-[10px] text-slate-500 uppercase font-black block mb-1">Média p/ Mil</span>
                         <span className="text-xl font-black text-slate-800 dark:text-white">
                             {(rankingData.length > 0 ? rankingData.reduce((acc, curr) => acc + curr.totalHours, 0) / rankingData.length : 0).toFixed(1)}h
                         </span>
                     </div>
+
+                    <button
+                        onClick={() => setIsRaceModalOpen(true)}
+                        className="w-full p-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-white rounded-xl shadow-lg shadow-amber-500/20 text-left flex items-center gap-3 border border-amber-400/40 active:scale-98 transition-transform"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl shrink-0">
+                            🏇
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <span className="block text-xs font-black uppercase tracking-tight leading-tight">
+                                Veja como está a competição de horas extras
+                            </span>
+                            <span className="block text-[9px] font-bold text-amber-100 uppercase tracking-wider mt-0.5">
+                                CFO I + CFO II • 21 Cadetes
+                            </span>
+                        </div>
+                        <span className="material-symbols-outlined text-base text-white">
+                            sports_score
+                        </span>
+                    </button>
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -452,9 +516,37 @@ const RankingPage: React.FC = () => {
                                 {(rankingData.length > 0 ? rankingData.reduce((acc, curr) => acc + curr.totalHours, 0) / rankingData.length : 0).toFixed(1)}h
                             </span>
                         </div>
+
+                        {/* Horse Race Competition CTA Button */}
+                        <button
+                            onClick={() => setIsRaceModalOpen(true)}
+                            className="w-full group relative overflow-hidden p-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white rounded-xl shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] border border-amber-400/40 text-left flex items-center gap-3"
+                        >
+                            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl shrink-0 group-hover:rotate-12 transition-transform shadow-inner">
+                                🏇
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <span className="block text-[11px] font-black uppercase tracking-tight text-white leading-tight">
+                                    Veja como está a competição de horas extras
+                                </span>
+                                <span className="block text-[9px] font-bold text-amber-100 uppercase tracking-widest mt-0.5 opacity-90">
+                                    CFO I + CFO II • 21 Cadetes
+                                </span>
+                            </div>
+                            <span className="material-symbols-outlined text-base text-amber-100 group-hover:translate-x-1 transition-transform">
+                                chevron_right
+                            </span>
+                        </button>
                     </div>
                 </div>
             </MainLayout.Sidebar>
+
+            {/* Horse Race Modal Section */}
+            <HorseRaceModal
+                isOpen={isRaceModalOpen}
+                onClose={() => setIsRaceModalOpen(false)}
+                competitors={horseCompetitors}
+            />
         </MainLayout >
     );
 };
