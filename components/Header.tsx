@@ -69,14 +69,16 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         </div>
 
         <div className="flex items-center gap-2 lg:gap-4">
-          <div className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-            <button onClick={() => toggleDarkMode('light')} className="p-1.5 rounded-md text-slate-500 hover:bg-white dark:hover:bg-slate-700">
-              <span className="material-symbols-outlined text-lg">light_mode</span>
-            </button>
-            <button onClick={() => toggleDarkMode('dark')} className="p-1.5 rounded-md text-slate-500 hover:bg-white dark:hover:bg-slate-700">
-              <span className="material-symbols-outlined text-lg">dark_mode</span>
-            </button>
-          </div>
+          {interfaceTheme !== 'nova' && (
+            <div className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+              <button onClick={() => toggleDarkMode('light')} className="p-1.5 rounded-md text-slate-500 hover:bg-white dark:hover:bg-slate-700">
+                <span className="material-symbols-outlined text-lg">light_mode</span>
+              </button>
+              <button onClick={() => toggleDarkMode('dark')} className="p-1.5 rounded-md text-slate-500 hover:bg-white dark:hover:bg-slate-700">
+                <span className="material-symbols-outlined text-lg">dark_mode</span>
+              </button>
+            </div>
+          )}
 
           <button
             onClick={toggleInterfaceTheme}
@@ -194,17 +196,19 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           </div>
 
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-xs font-bold text-slate-500 uppercase">Tema</span>
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                <button onClick={() => toggleDarkMode('light')} className="p-1 px-3 rounded-md text-slate-500 hover:bg-white dark:hover:bg-slate-700">
-                  <span className="material-symbols-outlined text-lg">light_mode</span>
-                </button>
-                <button onClick={() => toggleDarkMode('dark')} className="p-1 px-3 rounded-md text-slate-500 hover:bg-white dark:hover:bg-slate-700">
-                  <span className="material-symbols-outlined text-lg">dark_mode</span>
-                </button>
+            {interfaceTheme !== 'nova' && (
+              <div className="flex items-center justify-between px-2">
+                <span className="text-xs font-bold text-slate-500 uppercase">Tema</span>
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                  <button onClick={() => toggleDarkMode('light')} className="p-1 px-3 rounded-md text-slate-500 hover:bg-white dark:hover:bg-slate-700">
+                    <span className="material-symbols-outlined text-lg">light_mode</span>
+                  </button>
+                  <button onClick={() => toggleDarkMode('dark')} className="p-1 px-3 rounded-md text-slate-500 hover:bg-white dark:hover:bg-slate-700">
+                    <span className="material-symbols-outlined text-lg">dark_mode</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             <button
               onClick={toggleInterfaceTheme}

@@ -14,8 +14,11 @@ const InterfaceThemeContext = createContext<InterfaceThemeContextType | undefine
 
 const applyTheme = (theme: InterfaceTheme) => {
     document.documentElement.setAttribute('data-theme', theme);
+    // Nova Interface is a fixed light, warm/editorial theme — it doesn't
+    // follow the separate light/dark toggle (that toggle is hidden while
+    // nova is active, see Header.tsx).
     if (theme === 'nova') {
-        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('dark');
     }
 };
 
