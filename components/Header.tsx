@@ -57,9 +57,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
       <div className="w-full px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-4 lg:gap-8">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 lg:w-10 lg:h-10 bg-primary rounded-lg flex items-center justify-center text-white shrink-0">
-              <span className="material-symbols-outlined text-xl lg:text-2xl">shield</span>
-            </div>
+            <img src="/guarani-emblem.png" alt="Brasão Guarani" className="w-9 h-9 lg:w-10 lg:h-10 rounded-lg shrink-0 object-cover" />
             <div className="truncate">
               <h1 className="font-bold text-sm lg:text-lg leading-tight tracking-tight text-slate-900 dark:text-white truncate">CFO • GUARANI</h1>
               <p className="text-[8px] lg:text-[10px] text-slate-500 font-medium tracking-widest uppercase">Sistema de Gestão</p>
@@ -146,9 +144,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         <div className="p-4 flex flex-col h-full">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-lg">shield</span>
-              </div>
+              <img src="/guarani-emblem.png" alt="Brasão Guarani" className="w-8 h-8 rounded object-cover" />
               <span className="font-bold text-sm dark:text-white">GUARANI</span>
             </div>
             <button
