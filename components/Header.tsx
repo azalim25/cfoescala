@@ -5,6 +5,7 @@ import { supabase } from '../supabase';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { PageId, NAV_LINKS } from '../constants';
+import { useInterfaceTheme } from '../contexts/InterfaceThemeContext';
 
 interface HeaderProps {
   activePage: PageId;
@@ -13,6 +14,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const { militaries } = useMilitary();
   const { isModerator, logout } = useAuth();
+  const { interfaceTheme, toggleInterfaceTheme } = useInterfaceTheme();
   const [profile, setProfile] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -73,6 +75,18 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               <span className="material-symbols-outlined text-lg">dark_mode</span>
             </button>
           </div>
+
+          <button
+            onClick={toggleInterfaceTheme}
+            title={interfaceTheme === 'nova' ? 'Voltar para a interface clássica' : 'Experimentar a nova interface'}
+            className={`hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-xs transition-all ${interfaceTheme === 'nova'
+              ? 'bg-primary text-white shadow-sm'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary'
+              }`}
+          >
+            <span className="material-symbols-outlined text-lg">auto_awesome</span>
+            {interfaceTheme === 'nova' ? 'Interface Clássica' : 'Nova Interface'}
+          </button>
 
           {isModerator && (
             <Link
@@ -186,6 +200,17 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                 </button>
               </div>
             </div>
+
+            <button
+              onClick={toggleInterfaceTheme}
+              className={`flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-colors ${interfaceTheme === 'nova'
+                ? 'bg-primary text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+            >
+              <span className="material-symbols-outlined text-lg">auto_awesome</span>
+              {interfaceTheme === 'nova' ? 'Voltar à Interface Clássica' : 'Experimentar Nova Interface'}
+            </button>
 
             <button
               onClick={async () => {

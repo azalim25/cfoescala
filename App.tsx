@@ -31,6 +31,7 @@ import { MilitaryProvider } from './contexts/MilitaryContext';
 import { ShiftProvider } from './contexts/ShiftContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AcademicProvider } from './contexts/AcademicContext';
+import { InterfaceThemeProvider } from './contexts/InterfaceThemeContext';
 
 const LoadingFallback = () => (
   <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
@@ -43,6 +44,7 @@ const LoadingFallback = () => (
 
 const App: React.FC = () => {
   return (
+    <InterfaceThemeProvider>
     <AuthProvider>
       <AcademicProvider>
         <MilitaryProvider>
@@ -186,6 +188,7 @@ const App: React.FC = () => {
         </MilitaryProvider>
       </AcademicProvider>
     </AuthProvider>
+    </InterfaceThemeProvider>
   );
 };
 
