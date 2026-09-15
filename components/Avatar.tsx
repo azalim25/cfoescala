@@ -27,7 +27,6 @@ const Avatar: React.FC<AvatarProps> = ({ seed, size = 40, className = '', fallba
     // their avatar (Minha Escala), use their chosen traits instead so the
     // same avatar shows up consistently everywhere they appear in the app.
     const avatarConfig = militaries.find(m => m.id === seed)?.avatarConfig;
-    const dataUri = avatarConfig ? getAvatarDataUriFromConfig(avatarConfig, seed) : getAvatarDataUri(seed);
 
     if (interfaceTheme !== 'nova') {
         if (fallback === 'none') return null;
@@ -40,6 +39,19 @@ const Avatar: React.FC<AvatarProps> = ({ seed, size = 40, className = '', fallba
             </div>
         );
     }
+
+    if (avatarConfig?.kind === 'animal') {
+        return (
+            <div
+                className={`rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0 ${className}`}
+                style={{ width: size, height: size, backgroundColor: `#${avatarConfig.background}` }}
+            >
+                <span style={{ fontSize: Math.round(size * 0.55), lineHeight: 1 }}>{avatarConfig.animal}</span>
+            </div>
+        );
+    }
+
+    const dataUri = avatarConfig ? getAvatarDataUriFromConfig(avatarConfig, seed) : getAvatarDataUri(seed);
 
     return (
         <img
