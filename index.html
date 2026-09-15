@@ -12,7 +12,11 @@
     <script>
         (function () {
             try {
-                var theme = localStorage.getItem('cfo-interface-theme') || 'nova';
+                // sessionStorage: a "voltar para a interface clássica" choice
+                // only lasts for the current tab/session — closing and
+                // reopening the system always starts back on Nova Interface.
+                localStorage.removeItem('cfo-interface-theme');
+                var theme = sessionStorage.getItem('cfo-interface-theme') || 'nova';
                 document.documentElement.setAttribute('data-theme', theme);
                 if (theme === 'nova') {
                     document.documentElement.classList.remove('dark');
