@@ -188,8 +188,8 @@ const BarraFixaPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 flex-1 justify-end max-w-2xl">
-                        <div className="flex-1 max-w-sm">
+                    <div className="flex flex-wrap items-center gap-3 flex-1 justify-end max-w-2xl">
+                        <div className="flex-1 min-w-[180px] max-w-sm">
                             <div className="relative group">
                                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-500 transition-colors">search</span>
                                 <input

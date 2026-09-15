@@ -345,7 +345,7 @@ const SudokuPage: React.FC = () => {
           {/* Left Column: Sudoku Board & Virtual Keypad */}
           <div className="lg:col-span-2 space-y-4">
             {/* Top Control Bar with Timer */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-indigo-500 text-2xl">timer</span>
                 <div>

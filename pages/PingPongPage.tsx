@@ -533,7 +533,7 @@ const PingPongPage: React.FC = () => {
           <div className="lg:col-span-2 space-y-4">
             {/* Mode & Difficulty Selector Bar */}
             <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => { setGameMode('vs-ai'); handleResetGame(); }}
                   className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase transition-all flex items-center gap-2 border ${
