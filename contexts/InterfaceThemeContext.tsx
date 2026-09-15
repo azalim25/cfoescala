@@ -24,8 +24,12 @@ const applyTheme = (theme: InterfaceTheme) => {
 
 export const InterfaceThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [interfaceTheme, setInterfaceThemeState] = useState<InterfaceTheme>(() => {
-        if (typeof window === 'undefined') return 'classic';
-        return (localStorage.getItem(STORAGE_KEY) as InterfaceTheme) || 'classic';
+        if (typeof window === 'undefined') return 'nova';
+        // sessionStorage (not localStorage): switching to classic only lasts
+        // for the current browser tab/session — closing and reopening the
+        // system always lands back on Nova Interface, even for someone who
+        // had previously chosen classic.
+        return (sessionStorage.getItem(STORAGE_KEY) as InterfaceTheme) || 'nova';
     });
 
     useEffect(() => {
@@ -33,7 +37,7 @@ export const InterfaceThemeProvider: React.FC<{ children: React.ReactNode }> = (
     }, [interfaceTheme]);
 
     const setInterfaceTheme = (theme: InterfaceTheme) => {
-        localStorage.setItem(STORAGE_KEY, theme);
+        sessionStorage.setItem(STORAGE_KEY, theme);
         setInterfaceThemeState(theme);
     };
 
