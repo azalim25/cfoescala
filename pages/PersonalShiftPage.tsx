@@ -235,16 +235,23 @@ const PersonalShiftPage: React.FC = () => {
     }
   }, [session]);
 
+  // Finds a military by fuzzy name match — resilient to a profile's
+  // firefighter_number not digit-matching the militaries table exactly
+  // (typos/formatting from signup), unlike a strict number comparison.
+  const findMilitaryByName = (name: string | undefined) => {
+    if (!name) return null;
+    const nameParts = name.toLowerCase().split(/\s+/).filter((part: string) => part.length >= 3);
+    return militaries.find(m => {
+      const milNameLower = m.name.toLowerCase();
+      return nameParts.some((part: string) => milNameLower.includes(part));
+    }) || null;
+  };
+
   // Initial selection
   useEffect(() => {
     if (userProfile && militaries.length > 0 && !selectedMilitaryId) {
       // Find military by smart name matching first (for everyone)
-      const userNameParts = userProfile.name.toLowerCase().split(/\s+/).filter((part: string) => part.length >= 3);
-
-      const matchedMilitary = militaries.find(m => {
-        const milNameLower = m.name.toLowerCase();
-        return userNameParts.some((part: string) => milNameLower.includes(part));
-      });
+      const matchedMilitary = findMilitaryByName(userProfile.name);
 
       if (matchedMilitary) {
         setSelectedMilitaryId(matchedMilitary.id);
@@ -261,12 +268,16 @@ const PersonalShiftPage: React.FC = () => {
 
   // The military profile linked to the logged-in account, regardless of
   // which profile is currently being viewed — only this person may edit
-  // their own avatar.
+  // their own avatar. Matches by number first, falling back to the same
+  // name-based match used above so a number-formatting mismatch doesn't
+  // silently hide "editar avatar" from someone viewing their own page.
   const myMilitary = useMemo(() => {
     if (!userProfile) return null;
     const cleanProfileNumber = userProfile.firefighter_number?.replace(/\D/g, '');
-    if (!cleanProfileNumber) return null;
-    return militaries.find(m => m.firefighterNumber?.replace(/\D/g, '') === cleanProfileNumber) || null;
+    const byNumber = cleanProfileNumber
+      ? militaries.find(m => m.firefighterNumber?.replace(/\D/g, '') === cleanProfileNumber)
+      : undefined;
+    return byNumber || findMilitaryByName(userProfile.name);
   }, [userProfile, militaries]);
 
   const isViewingOwnProfile = !!selectedMilitary && !!myMilitary && selectedMilitary.id === myMilitary.id;
