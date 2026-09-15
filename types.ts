@@ -3,7 +3,8 @@ export enum Rank {
   CADETE = 'Cadete'
 }
 
-export interface AvatarConfig {
+export interface HumanAvatarConfig {
+  kind?: 'human'; // optional: pre-existing saved avatars have no `kind` and default to human
   hair: string;
   hairColor: string;
   eyes: string;
@@ -14,6 +15,14 @@ export interface AvatarConfig {
   clothingColor: string;
   body: string;
 }
+
+export interface AnimalAvatarConfig {
+  kind: 'animal';
+  animal: string; // emoji
+  background: string; // hex color, no leading #
+}
+
+export type AvatarConfig = HumanAvatarConfig | AnimalAvatarConfig;
 
 export interface Military {
   id: string;

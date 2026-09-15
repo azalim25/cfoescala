@@ -1,6 +1,6 @@
 import { createAvatar } from '@dicebear/core';
 import * as personas from '@dicebear/personas';
-import { AvatarConfig } from '../types';
+import { AvatarConfig, HumanAvatarConfig, AnimalAvatarConfig } from '../types';
 
 const cache = new Map<string, string>();
 
@@ -13,7 +13,7 @@ export function getAvatarDataUri(seed: string): string {
   return dataUri;
 }
 
-export function getAvatarDataUriFromConfig(config: AvatarConfig, seed = 'preview'): string {
+export function getAvatarDataUriFromConfig(config: HumanAvatarConfig, seed = 'preview'): string {
   const cacheKey = `config:${seed}:${JSON.stringify(config)}`;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
@@ -77,6 +77,7 @@ const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.le
 
 export function randomAvatarConfig(): AvatarConfig {
   return {
+    kind: 'human',
     hair: pick(AVATAR_OPTIONS.hair),
     hairColor: pick(AVATAR_OPTIONS.hairColor),
     eyes: pick(AVATAR_OPTIONS.eyes),
@@ -86,5 +87,27 @@ export function randomAvatarConfig(): AvatarConfig {
     skinColor: pick(AVATAR_OPTIONS.skinColor),
     clothingColor: pick(AVATAR_OPTIONS.clothingColor),
     body: pick(AVATAR_OPTIONS.body),
+  };
+}
+
+// Curated set of animal emojis for the "animal avatar" alternative style,
+// with the same badge-background palette used for human clothing colors.
+export const ANIMAL_OPTIONS = {
+  animal: ['🦁', '🐯', '🐻', '🐼', '🦊', '🐺', '🐨', '🐶', '🐱', '🦉', '🦅', '🦌', '🐴', '🦓', '🐷', '🐮', '🐸', '🦈', '🐧', '🐢'] as const,
+  background: ['456dff', '54d7c7', '7555ca', '6dbb58', 'e24553', 'f3b63a', 'f55d81'] as const,
+};
+
+export const ANIMAL_LABELS: Record<string, string> = {
+  '🦁': 'Leão', '🐯': 'Tigre', '🐻': 'Urso', '🐼': 'Panda', '🦊': 'Raposa',
+  '🐺': 'Lobo', '🐨': 'Coala', '🐶': 'Cachorro', '🐱': 'Gato', '🦉': 'Coruja',
+  '🦅': 'Águia', '🦌': 'Cervo', '🐴': 'Cavalo', '🦓': 'Zebra', '🐷': 'Porco',
+  '🐮': 'Vaca', '🐸': 'Sapo', '🦈': 'Tubarão', '🐧': 'Pinguim', '🐢': 'Tartaruga',
+};
+
+export function randomAnimalConfig(): AnimalAvatarConfig {
+  return {
+    kind: 'animal',
+    animal: pick(ANIMAL_OPTIONS.animal),
+    background: pick(ANIMAL_OPTIONS.background),
   };
 }

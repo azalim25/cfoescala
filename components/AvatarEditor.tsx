@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { AvatarConfig } from '../types';
-import { AVATAR_OPTIONS, AVATAR_LABELS, getAvatarDataUriFromConfig, randomAvatarConfig } from '../utils/avatarUtils';
+import { AvatarConfig, HumanAvatarConfig } from '../types';
+import {
+    AVATAR_OPTIONS, AVATAR_LABELS, getAvatarDataUriFromConfig, randomAvatarConfig,
+    ANIMAL_OPTIONS, ANIMAL_LABELS, randomAnimalConfig,
+} from '../utils/avatarUtils';
 
 interface AvatarEditorProps {
     initialConfig?: AvatarConfig;
@@ -30,9 +33,17 @@ const COLOR_SECTIONS: { key: ColorTrait; label: string }[] = [
 
 const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, targetName, isSaving, onSave, onClose }) => {
     const [draft, setDraft] = useState<AvatarConfig>(initialConfig || randomAvatarConfig());
+    const isAnimal = draft.kind === 'animal';
+    // Only read within the `!isAnimal` branches below, where this is safe.
+    const human = draft as HumanAvatarConfig;
 
-    const setTrait = <K extends keyof AvatarConfig>(key: K, value: AvatarConfig[K]) => {
-        setDraft(prev => ({ ...prev, [key]: value }));
+    const setTrait = <K extends keyof HumanAvatarConfig>(key: K, value: HumanAvatarConfig[K]) => {
+        setDraft(prev => (prev.kind === 'animal' ? prev : { ...prev, [key]: value }));
+    };
+
+    const switchKind = (kind: 'human' | 'animal') => {
+        if (kind === draft.kind || (kind === 'human' && draft.kind === undefined)) return;
+        setDraft(kind === 'animal' ? randomAnimalConfig() : randomAvatarConfig());
     };
 
     return (
@@ -58,15 +69,98 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, targetName, 
             </div>
 
             <div className="flex justify-center mb-6">
-                <img
-                    src={getAvatarDataUriFromConfig(draft)}
-                    alt="Prévia do avatar"
-                    width={112}
-                    height={112}
-                    className="w-28 h-28 rounded-full bg-slate-100 dark:bg-slate-800 border-4 border-slate-200 dark:border-slate-700 shadow-sm"
-                />
+                {isAnimal ? (
+                    <div
+                        className="w-28 h-28 rounded-full border-4 border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center"
+                        style={{ backgroundColor: `#${draft.background}` }}
+                    >
+                        <span style={{ fontSize: 56, lineHeight: 1 }}>{draft.animal}</span>
+                    </div>
+                ) : (
+                    <img
+                        src={getAvatarDataUriFromConfig(human)}
+                        alt="Prévia do avatar"
+                        width={112}
+                        height={112}
+                        className="w-28 h-28 rounded-full bg-slate-100 dark:bg-slate-800 border-4 border-slate-200 dark:border-slate-700 shadow-sm"
+                    />
+                )}
             </div>
 
+            <div className="flex justify-center gap-2 mb-6">
+                <button
+                    onClick={() => switchKind('human')}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${!isAnimal ? 'bg-primary text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary'
+                        }`}
+                >
+                    <span className="material-symbols-outlined text-lg">face</span>
+                    Humano
+                </button>
+                <button
+                    onClick={() => switchKind('animal')}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${isAnimal ? 'bg-primary text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary'
+                        }`}
+                >
+                    <span className="material-symbols-outlined text-lg">pets</span>
+                    Animal
+                </button>
+            </div>
+
+            {isAnimal ? (
+                <div className="space-y-5">
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-sm">pets</span>
+                            Bicho
+                        </p>
+                        <div className="grid grid-cols-5 sm:grid-cols-7 gap-2">
+                            {ANIMAL_OPTIONS.animal.map(option => {
+                                const isSelected = draft.animal === option;
+                                return (
+                                    <button
+                                        key={option}
+                                        title={ANIMAL_LABELS[option] || option}
+                                        onClick={() => setDraft(prev => (prev.kind === 'animal' ? { ...prev, animal: option } : prev))}
+                                        className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${isSelected ? 'bg-primary/10 ring-2 ring-primary' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                                            }`}
+                                    >
+                                        <span
+                                            className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
+                                            style={{ backgroundColor: `#${draft.background}` }}
+                                        >
+                                            {option}
+                                        </span>
+                                        <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 max-w-[56px] truncate">
+                                            {ANIMAL_LABELS[option] || option}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Cor de Fundo</p>
+                        <div className="flex gap-2 flex-wrap">
+                            {ANIMAL_OPTIONS.background.map(color => {
+                                const isSelected = draft.background === color;
+                                return (
+                                    <button
+                                        key={color}
+                                        title={`#${color}`}
+                                        onClick={() => setDraft(prev => (prev.kind === 'animal' ? { ...prev, background: color } : prev))}
+                                        className={`w-9 h-9 rounded-full transition-all flex items-center justify-center ${isSelected ? 'ring-2 ring-offset-2 ring-primary dark:ring-offset-slate-900' : ''
+                                            }`}
+                                        style={{ backgroundColor: `#${color}` }}
+                                    >
+                                        {isSelected && <span className="material-symbols-outlined text-white text-base drop-shadow">check</span>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            ) : (
             <div className="space-y-5">
                 {ENUM_SECTIONS.map(section => (
                     <div key={section.key}>
@@ -76,8 +170,8 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, targetName, 
                         </p>
                         <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
                             {AVATAR_OPTIONS[section.key].map(option => {
-                                const previewConfig = { ...draft, [section.key]: option };
-                                const isSelected = draft[section.key] === option;
+                                const previewConfig = { ...human, [section.key]: option };
+                                const isSelected = human[section.key] === option;
                                 return (
                                     <button
                                         key={option}
@@ -112,11 +206,11 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, targetName, 
                     <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
                         <button
                             onClick={() => setTrait('facialHair', null)}
-                            className={`shrink-0 flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${draft.facialHair === null ? 'bg-primary/10 ring-2 ring-primary' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                            className={`shrink-0 flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${human.facialHair === null ? 'bg-primary/10 ring-2 ring-primary' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
                                 }`}
                         >
                             <img
-                                src={getAvatarDataUriFromConfig({ ...draft, facialHair: null })}
+                                src={getAvatarDataUriFromConfig({ ...human, facialHair: null })}
                                 alt="Nenhuma"
                                 width={48}
                                 height={48}
@@ -125,8 +219,8 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, targetName, 
                             <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400">Nenhuma</span>
                         </button>
                         {AVATAR_OPTIONS.facialHair.map(option => {
-                            const previewConfig = { ...draft, facialHair: option };
-                            const isSelected = draft.facialHair === option;
+                            const previewConfig = { ...human, facialHair: option };
+                            const isSelected = human.facialHair === option;
                             return (
                                 <button
                                     key={option}
@@ -156,7 +250,7 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, targetName, 
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{section.label}</p>
                         <div className="flex gap-2 flex-wrap">
                             {AVATAR_OPTIONS[section.key].map(color => {
-                                const isSelected = draft[section.key] === color;
+                                const isSelected = human[section.key] === color;
                                 return (
                                     <button
                                         key={color}
@@ -174,10 +268,11 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, targetName, 
                     </div>
                 ))}
             </div>
+            )}
 
             <div className="flex gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
-                    onClick={() => setDraft(randomAvatarConfig())}
+                    onClick={() => setDraft(isAnimal ? randomAnimalConfig() : randomAvatarConfig())}
                     disabled={isSaving}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
                 >
