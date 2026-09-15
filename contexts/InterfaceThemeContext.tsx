@@ -24,8 +24,8 @@ const applyTheme = (theme: InterfaceTheme) => {
 
 export const InterfaceThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [interfaceTheme, setInterfaceThemeState] = useState<InterfaceTheme>(() => {
-        if (typeof window === 'undefined') return 'classic';
-        return (localStorage.getItem(STORAGE_KEY) as InterfaceTheme) || 'classic';
+        if (typeof window === 'undefined') return 'nova';
+        return (localStorage.getItem(STORAGE_KEY) as InterfaceTheme) || 'nova';
     });
 
     useEffect(() => {
