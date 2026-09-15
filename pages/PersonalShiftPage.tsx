@@ -2,13 +2,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
 import Avatar from '../components/Avatar';
+import AvatarEditor from '../components/AvatarEditor';
 import { useInterfaceTheme } from '../contexts/InterfaceThemeContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useAcademic } from '../contexts/AcademicContext';
 import { supabase } from '../supabase';
-import { Shift, MilitaryPreference } from '../types';
+import { Shift, MilitaryPreference, AvatarConfig } from '../types';
 import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
 import { stripGroupId } from '../utils/formatUtils';
@@ -144,7 +145,7 @@ const ShiftCard = React.memo(({ s, holidays }: { s: any, holidays: any[] }) => {
 });
 
 const PersonalShiftPage: React.FC = () => {
-  const { militaries, updateAvatarSeed } = useMilitary();
+  const { militaries, updateAvatarConfig } = useMilitary();
   const { interfaceTheme } = useInterfaceTheme();
   const { shifts: allShifts, preferences, addPreference, removePreference, holidays, isMonthHidden } = useShift();
   const { schedule, disciplines } = useAcademic();
@@ -159,7 +160,6 @@ const PersonalShiftPage: React.FC = () => {
 
   // Avatar editor (Nova Interface, own profile only)
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
-  const [avatarCandidates, setAvatarCandidates] = useState<string[]>([]);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
 
   // New academic details states
@@ -730,21 +730,10 @@ const PersonalShiftPage: React.FC = () => {
     preferences.filter(p => p.militaryId === selectedMilitaryId)
     , [preferences, selectedMilitaryId]);
 
-  const generateAvatarCandidates = () => {
-    setAvatarCandidates(
-      Array.from({ length: 8 }, () => Math.random().toString(36).slice(2, 10))
-    );
-  };
-
-  const handleOpenAvatarEditor = () => {
-    generateAvatarCandidates();
-    setIsEditingAvatar(true);
-  };
-
-  const handleSaveAvatar = async (seed: string) => {
+  const handleSaveAvatar = async (config: AvatarConfig) => {
     if (!myMilitary) return;
     setIsSavingAvatar(true);
-    await updateAvatarSeed(myMilitary.id, seed);
+    await updateAvatarConfig(myMilitary.id, config);
     setIsSavingAvatar(false);
     setIsEditingAvatar(false);
   };
@@ -843,7 +832,7 @@ const PersonalShiftPage: React.FC = () => {
                   <Avatar seed={selectedMilitary.id} size={64} fallback="none" className="sm:!w-20 sm:!h-20 border-2 sm:border-4 shadow-sm" />
                   {isViewingOwnProfile && interfaceTheme === 'nova' && (
                     <button
-                      onClick={handleOpenAvatarEditor}
+                      onClick={() => setIsEditingAvatar(true)}
                       title="Editar avatar"
                       className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary text-white flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm hover:opacity-90 transition-all"
                     >
@@ -868,41 +857,13 @@ const PersonalShiftPage: React.FC = () => {
 
             </div>
 
-            {isEditingAvatar && isViewingOwnProfile && interfaceTheme === 'nova' && (
-              <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">face_retouching_natural</span>
-                    Escolher Avatar
-                  </h3>
-                  <button
-                    onClick={() => setIsEditingAvatar(false)}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                  >
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
-                </div>
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-4">
-                  {avatarCandidates.map(candidateSeed => (
-                    <button
-                      key={candidateSeed}
-                      onClick={() => handleSaveAvatar(candidateSeed)}
-                      disabled={isSavingAvatar}
-                      className="group flex items-center justify-center rounded-full ring-2 ring-transparent hover:ring-primary transition-all disabled:opacity-50"
-                    >
-                      <Avatar seed={candidateSeed} size={56} fallback="none" />
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={generateAvatarCandidates}
-                  disabled={isSavingAvatar}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined text-lg">refresh</span>
-                  Ver Outras Opções
-                </button>
-              </div>
+            {isEditingAvatar && isViewingOwnProfile && interfaceTheme === 'nova' && myMilitary && (
+              <AvatarEditor
+                initialConfig={myMilitary.avatarConfig}
+                isSaving={isSavingAvatar}
+                onSave={handleSaveAvatar}
+                onClose={() => setIsEditingAvatar(false)}
+              />
             )}
 
             {/* Escalas de Hoje */}

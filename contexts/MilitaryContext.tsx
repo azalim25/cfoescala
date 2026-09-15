@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Military } from '../types';
+import { Military, AvatarConfig } from '../types';
 import { supabase } from '../supabase';
 import { fetchAllRows } from '../utils/supabaseUtils';
 
@@ -8,7 +8,7 @@ interface MilitaryContextType {
     addMilitary: (military: Omit<Military, 'id'>) => void;
     updateMilitary: (military: Military) => void;
     deleteMilitary: (id: string) => void;
-    updateAvatarSeed: (id: string, avatarSeed: string) => Promise<void>;
+    updateAvatarConfig: (id: string, avatarConfig: AvatarConfig) => Promise<void>;
 }
 
 const MilitaryContext = createContext<MilitaryContextType | undefined>(undefined);
@@ -39,7 +39,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
                     contact: m.contact || '',
                     battalion: m.battalion || '',
                     antiguidade: m.antiguidade || undefined,
-                    avatarSeed: m.avatar_seed || undefined
+                    avatarConfig: m.avatar_config || undefined
                 }));
                 setMilitaries(mappedData);
             }
@@ -93,17 +93,17 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     };
 
-    const updateAvatarSeed = async (id: string, avatarSeed: string) => {
+    const updateAvatarConfig = async (id: string, avatarConfig: AvatarConfig) => {
         const { error } = await supabase
             .from('militaries')
-            .update({ avatar_seed: avatarSeed })
+            .update({ avatar_config: avatarConfig })
             .eq('id', id);
 
         if (error) {
             console.error('Erro ao salvar avatar:', error);
             alert('Erro ao salvar avatar: ' + error.message);
         } else {
-            setMilitaries(prev => prev.map(m => m.id === id ? { ...m, avatarSeed } : m));
+            setMilitaries(prev => prev.map(m => m.id === id ? { ...m, avatarConfig } : m));
         }
     };
 
@@ -121,7 +121,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     return (
-        <MilitaryContext.Provider value={{ militaries, addMilitary, updateMilitary, deleteMilitary, updateAvatarSeed }}>
+        <MilitaryContext.Provider value={{ militaries, addMilitary, updateMilitary, deleteMilitary, updateAvatarConfig }}>
             {children}
         </MilitaryContext.Provider>
     );
