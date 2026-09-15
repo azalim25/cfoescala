@@ -270,6 +270,8 @@ const PersonalShiftPage: React.FC = () => {
   }, [userProfile, militaries]);
 
   const isViewingOwnProfile = !!selectedMilitary && !!myMilitary && selectedMilitary.id === myMilitary.id;
+  // Moderators may edit anyone's avatar; everyone else only their own.
+  const canEditAvatar = isViewingOwnProfile || isModerator;
 
   const getCurrentPeriodSemesterName = () => {
     const currentDate = new Date();
@@ -731,9 +733,9 @@ const PersonalShiftPage: React.FC = () => {
     , [preferences, selectedMilitaryId]);
 
   const handleSaveAvatar = async (config: AvatarConfig) => {
-    if (!myMilitary) return;
+    if (!selectedMilitary || !canEditAvatar) return;
     setIsSavingAvatar(true);
-    await updateAvatarConfig(myMilitary.id, config);
+    await updateAvatarConfig(selectedMilitary.id, config);
     setIsSavingAvatar(false);
     setIsEditingAvatar(false);
   };
@@ -830,10 +832,10 @@ const PersonalShiftPage: React.FC = () => {
               <div className="flex items-center gap-4 w-full sm:w-auto">
                 <div className="relative shrink-0">
                   <Avatar seed={selectedMilitary.id} size={64} fallback="none" className="sm:!w-20 sm:!h-20 border-2 sm:border-4 shadow-sm" />
-                  {isViewingOwnProfile && interfaceTheme === 'nova' && (
+                  {canEditAvatar && interfaceTheme === 'nova' && (
                     <button
                       onClick={() => setIsEditingAvatar(true)}
-                      title="Editar avatar"
+                      title={isViewingOwnProfile ? 'Editar avatar' : `Editar avatar de ${selectedMilitary.name}`}
                       className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary text-white flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm hover:opacity-90 transition-all"
                     >
                       <span className="material-symbols-outlined text-[14px] sm:text-base">edit</span>
@@ -857,9 +859,11 @@ const PersonalShiftPage: React.FC = () => {
 
             </div>
 
-            {isEditingAvatar && isViewingOwnProfile && interfaceTheme === 'nova' && myMilitary && (
+            {isEditingAvatar && canEditAvatar && interfaceTheme === 'nova' && (
               <AvatarEditor
-                initialConfig={myMilitary.avatarConfig}
+                key={selectedMilitary.id}
+                initialConfig={selectedMilitary.avatarConfig}
+                targetName={isViewingOwnProfile ? undefined : `${selectedMilitary.rank} ${selectedMilitary.name}`}
                 isSaving={isSavingAvatar}
                 onSave={handleSaveAvatar}
                 onClose={() => setIsEditingAvatar(false)}
