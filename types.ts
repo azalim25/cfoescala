@@ -12,6 +12,7 @@ export interface Military {
   contact: string;
   battalion: string;
   antiguidade?: number;
+  avatarSeed?: string;
 }
 
 export interface Shift {

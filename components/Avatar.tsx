@@ -1,6 +1,7 @@
 import React from 'react';
 import { getAvatarDataUri } from '../utils/avatarUtils';
 import { useInterfaceTheme } from '../contexts/InterfaceThemeContext';
+import { useMilitary } from '../contexts/MilitaryContext';
 
 interface AvatarProps {
     seed: string;
@@ -20,6 +21,12 @@ interface AvatarProps {
 
 const Avatar: React.FC<AvatarProps> = ({ seed, size = 40, className = '', fallback = 'icon' }) => {
     const { interfaceTheme } = useInterfaceTheme();
+    const { militaries } = useMilitary();
+
+    // `seed` is normally a military ID. If that military has picked a custom
+    // avatar (Minha Escala), use their chosen seed instead so the same
+    // avatar shows up consistently everywhere they appear in the app.
+    const resolvedSeed = militaries.find(m => m.id === seed)?.avatarSeed || seed;
 
     if (interfaceTheme !== 'nova') {
         if (fallback === 'none') return null;
@@ -35,7 +42,7 @@ const Avatar: React.FC<AvatarProps> = ({ seed, size = 40, className = '', fallba
 
     return (
         <img
-            src={getAvatarDataUri(seed)}
+            src={getAvatarDataUri(resolvedSeed)}
             alt=""
             width={size}
             height={size}

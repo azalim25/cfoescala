@@ -8,6 +8,7 @@ interface MilitaryContextType {
     addMilitary: (military: Omit<Military, 'id'>) => void;
     updateMilitary: (military: Military) => void;
     deleteMilitary: (id: string) => void;
+    updateAvatarSeed: (id: string, avatarSeed: string) => Promise<void>;
 }
 
 const MilitaryContext = createContext<MilitaryContextType | undefined>(undefined);
@@ -37,7 +38,8 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
                     firefighterNumber: m.firefighter_number,
                     contact: m.contact || '',
                     battalion: m.battalion || '',
-                    antiguidade: m.antiguidade || undefined
+                    antiguidade: m.antiguidade || undefined,
+                    avatarSeed: m.avatar_seed || undefined
                 }));
                 setMilitaries(mappedData);
             }
@@ -91,6 +93,20 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     };
 
+    const updateAvatarSeed = async (id: string, avatarSeed: string) => {
+        const { error } = await supabase
+            .from('militaries')
+            .update({ avatar_seed: avatarSeed })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erro ao salvar avatar:', error);
+            alert('Erro ao salvar avatar: ' + error.message);
+        } else {
+            setMilitaries(prev => prev.map(m => m.id === id ? { ...m, avatarSeed } : m));
+        }
+    };
+
     const deleteMilitary = async (id: string) => {
         const { error } = await supabase
             .from('militaries')
@@ -105,7 +121,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     return (
-        <MilitaryContext.Provider value={{ militaries, addMilitary, updateMilitary, deleteMilitary }}>
+        <MilitaryContext.Provider value={{ militaries, addMilitary, updateMilitary, deleteMilitary, updateAvatarSeed }}>
             {children}
         </MilitaryContext.Provider>
     );
