@@ -77,11 +77,11 @@ const ContactsPage: React.FC = () => {
           <div className="flex items-center gap-4">
             <h2 className="font-bold text-lg text-slate-800 dark:text-slate-100">Efetivo da Unidade</h2>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="relative w-full sm:w-auto">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
               <input
-                className="pl-10 pr-4 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary w-64 dark:text-white"
+                className="pl-10 pr-4 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary w-full sm:w-64 dark:text-white"
                 placeholder="Filtrar por nome ou número..."
                 type="text"
                 value={searchTerm}

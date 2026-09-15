@@ -300,19 +300,19 @@ const QtmPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {isModerator && (
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 <button
                                     onClick={() => setIsTimeSlotsModalOpen(true)}
-                                    className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-lg font-bold text-xs hover:bg-primary/20 transition-all mr-2"
+                                    className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-lg font-bold text-xs hover:bg-primary/20 transition-all"
                                     title="Gerenciar opções de horário"
                                 >
                                     <span className="material-symbols-outlined text-sm">schedule</span> Horários
                                 </button>
                                 <button
                                     onClick={handleSyncWeekends2026}
-                                    className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg font-bold text-xs hover:bg-primary/10 hover:text-primary transition-all mr-2"
+                                    className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg font-bold text-xs hover:bg-primary/10 hover:text-primary transition-all"
                                     title="Preencher finais de semana de 2026"
                                 >
                                     <span className="material-symbols-outlined text-sm">calendar_month</span> Sincronizar FDS 2026
@@ -410,7 +410,7 @@ const QtmPage: React.FC = () => {
             <MainLayout.Sidebar>
                 {/* Ficha do Dia */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden sticky top-20">
-                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex flex-wrap items-center justify-between gap-2">
                         <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase">
                             <span className="material-symbols-outlined text-primary text-xl">assignment</span>
                             Ficha do Dia

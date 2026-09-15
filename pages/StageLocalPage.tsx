@@ -203,7 +203,7 @@ const StageLocalPage: React.FC = () => {
                             <p className="text-xs text-slate-500 font-medium">Distribuição mensal por batalhão</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 mr-2">
                             <button onClick={handlePrevMonth} className="p-1 px-2 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all text-slate-600 dark:text-slate-300">
                                 <span className="material-symbols-outlined text-lg">chevron_left</span>
