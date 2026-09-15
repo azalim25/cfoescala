@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { Military, Shift } from '../types';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
@@ -511,15 +512,18 @@ const GenerateScalePage: React.FC = () => {
                                                         className={`text-[8px] sm:text-[9px] font-bold p-1 rounded-md ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer shadow-sm flex items-center justify-between min-h-[18px] sm:min-h-[22px]`}
                                                         title={`${military?.name || 'Não Encontrado'} - ${s.type}`}
                                                     >
-                                                        <span className="truncate">
-                                                            {military ? (
-                                                                <>
-                                                                    <span className="hidden sm:inline">{military.name.split(' ')[0]}</span>
-                                                                    <span className="inline sm:hidden">{military.name.charAt(0)}</span>
-                                                                </>
-                                                            ) : (
-                                                                <span className="text-red-500 italic">{displayName}</span>
-                                                            )}
+                                                        <span className="flex items-center gap-1 min-w-0">
+                                                            {military && <Avatar seed={military.id} size={12} fallback="none" className="!border-0" />}
+                                                            <span className="truncate">
+                                                                {military ? (
+                                                                    <>
+                                                                        <span className="hidden sm:inline">{military.name.split(' ')[0]}</span>
+                                                                        <span className="inline sm:hidden">{military.name.charAt(0)}</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="text-red-500 italic">{displayName}</span>
+                                                                )}
+                                                            </span>
                                                         </span>
                                                         <span className="material-symbols-outlined text-[8px] sm:text-[10px] opacity-20 shrink-0 ml-1">edit</span>
                                                     </div>

@@ -6,6 +6,7 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { PageId, NAV_LINKS } from '../constants';
 import { useInterfaceTheme } from '../contexts/InterfaceThemeContext';
+import Avatar from './Avatar';
 
 interface HeaderProps {
   activePage: PageId;
@@ -103,6 +104,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">{militaryProfile?.name || profile?.name || 'Usuário'}</p>
               <p className="text-[10px] text-slate-500 font-medium mt-1">{militaryProfile?.rank || profile?.rank || 'Militar'}</p>
             </div>
+            {militaryProfile?.id && <Avatar seed={militaryProfile.id} size={36} fallback="none" />}
             <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden text-orange-600 dark:text-orange-400 font-black text-xs">
               {militaryProfile?.antiguidade || '-'}
             </div>
@@ -158,6 +160,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
             <div className="px-2 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
+                {militaryProfile?.id && <Avatar seed={militaryProfile.id} size={40} fallback="none" />}
                 <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-sm border border-orange-200 dark:border-orange-800/50">
                   {militaryProfile?.antiguidade || '-'}
                 </div>

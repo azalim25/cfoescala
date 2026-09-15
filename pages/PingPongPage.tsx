@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useAuth } from '../contexts/AuthContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { supabase } from '../supabase';
@@ -723,9 +724,7 @@ const PingPongPage: React.FC = () => {
                         className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 hover:border-primary/30 transition-all"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-xs shrink-0 border border-emerald-200 dark:border-emerald-800">
-                            <span className="material-symbols-outlined text-base">person</span>
-                          </div>
+                          <Avatar seed={user.id} size={32} />
                           <div className="min-w-0">
                             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{user.name}</h4>
                             <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -293,9 +294,13 @@ const BarraFixaPage: React.FC = () => {
                                                             >
                                                                 <div className="flex items-center justify-between relative z-10">
                                                                     <div className="flex items-center gap-4 min-w-0">
-                                                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
-                                                                            <span className="material-symbols-outlined">person</span>
-                                                                        </div>
+                                                                        {military ? (
+                                                                            <Avatar seed={military.id} size={40} />
+                                                                        ) : (
+                                                                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                                                                                <span className="material-symbols-outlined">person</span>
+                                                                            </div>
+                                                                        )}
                                                                         <div className="min-w-0">
                                                                             <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate">
                                                                                 {military?.rank} {military?.name}

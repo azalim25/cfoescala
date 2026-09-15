@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { supabase } from '../supabase';
@@ -370,9 +371,7 @@ const RankingPage: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
-                                                    <span className="material-symbols-outlined">person</span>
-                                                </div>
+                                                <Avatar seed={mil.id} size={40} />
                                                 <div>
                                                     <h3 className="font-bold text-sm text-slate-900 dark:text-white">{mil.rank} {mil.name}</h3>
                                                     <p className="text-[10px] text-slate-500 font-bold uppercase">{mil.battalion} • {mil.firefighterNumber}</p>
@@ -425,9 +424,7 @@ const RankingPage: React.FC = () => {
                             <div key={mil.id} className="p-4 flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
                                     <div className="relative">
-                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
-                                            <span className="material-symbols-outlined text-xl">person</span>
-                                        </div>
+                                        <Avatar seed={mil.id} size={40} />
                                         <div className={`absolute -top-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black border shadow-sm ${index === 0 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
                                             index === 1 ? 'bg-slate-100 text-slate-700 border-slate-200' :
                                                 index === 2 ? 'bg-orange-100 text-orange-800 border-orange-200' :
