@@ -19,13 +19,13 @@ const NovaSidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
                 >
                     <span
                         className={`flex items-center justify-center w-11 h-11 rounded-2xl transition-all ${activePage === link.id
-                            ? 'bg-primary text-white shadow-lg shadow-primary/40 scale-105'
-                            : 'bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-primary'
+                            ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105'
+                            : 'bg-black/[0.03] text-slate-500 group-hover:bg-black/[0.06] group-hover:text-primary'
                             }`}
                     >
                         <span className="material-symbols-outlined text-[20px]">{link.icon}</span>
                     </span>
-                    <span className={`text-center text-[9px] font-bold leading-tight line-clamp-2 transition-colors ${activePage === link.id ? 'text-primary' : 'text-slate-500 group-hover:text-slate-300'
+                    <span className={`text-center text-[9px] font-bold leading-tight line-clamp-2 transition-colors ${activePage === link.id ? 'text-primary' : 'text-slate-500 group-hover:text-slate-700'
                         }`}>
                         {link.label}
                     </span>

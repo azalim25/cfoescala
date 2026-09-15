@@ -4,6 +4,8 @@ import { AVATAR_OPTIONS, AVATAR_LABELS, getAvatarDataUriFromConfig, randomAvatar
 
 interface AvatarEditorProps {
     initialConfig?: AvatarConfig;
+    /** When a moderator is editing someone else's avatar, show whose. */
+    targetName?: string;
     isSaving: boolean;
     onSave: (config: AvatarConfig) => void;
     onClose: () => void;
@@ -26,7 +28,7 @@ const COLOR_SECTIONS: { key: ColorTrait; label: string }[] = [
     { key: 'clothingColor', label: 'Cor da Roupa' },
 ];
 
-const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, isSaving, onSave, onClose }) => {
+const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, targetName, isSaving, onSave, onClose }) => {
     const [draft, setDraft] = useState<AvatarConfig>(initialConfig || randomAvatarConfig());
 
     const setTrait = <K extends keyof AvatarConfig>(key: K, value: AvatarConfig[K]) => {
@@ -36,10 +38,17 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ initialConfig, isSaving, on
     return (
         <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">face_retouching_natural</span>
-                    Editar Avatar
-                </h3>
+                <div>
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary">face_retouching_natural</span>
+                        Editar Avatar
+                    </h3>
+                    {targetName && (
+                        <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide mt-1 ml-6">
+                            Editando o avatar de {targetName}
+                        </p>
+                    )}
+                </div>
                 <button
                     onClick={onClose}
                     className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
