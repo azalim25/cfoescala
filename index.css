@@ -180,9 +180,9 @@
 
 [data-theme="nova"] body {
   background:
-    radial-gradient(1200px 600px at 15% -10%, rgba(59, 130, 246, 0.20), transparent 60%),
-    radial-gradient(1000px 600px at 100% 0%, rgba(99, 102, 241, 0.16), transparent 55%),
-    #0b1120;
+    radial-gradient(1200px 600px at 15% -10%, rgba(16, 185, 129, 0.20), transparent 60%),
+    radial-gradient(1000px 600px at 100% 0%, rgba(5, 150, 105, 0.16), transparent 55%),
+    #0b1712;
   min-height: 100vh;
 }
 
@@ -253,41 +253,41 @@
   box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.45) !important;
 }
 
-/* Accent color: swap the green "primary" brand color for a vivid blue,
-   matching the reference design, without touching the shared Tailwind
-   token used by the classic theme. */
-[data-theme="nova"] .bg-primary { background-color: #3b82f6 !important; }
-[data-theme="nova"] .bg-primary\/5 { background-color: rgba(59, 130, 246, 0.05) !important; }
+/* Accent color: a vivid green, distinct from the classic theme's dark
+   green "primary" but staying in the same color family, without
+   touching the shared Tailwind token used by the classic theme. */
+[data-theme="nova"] .bg-primary { background-color: #10b981 !important; }
+[data-theme="nova"] .bg-primary\/5 { background-color: rgba(16, 185, 129, 0.05) !important; }
 [data-theme="nova"] .bg-primary\/10,
-[data-theme="nova"] .dark\:bg-primary\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
-[data-theme="nova"] .bg-primary\/15 { background-color: rgba(59, 130, 246, 0.15) !important; }
-[data-theme="nova"] .bg-primary\/20 { background-color: rgba(59, 130, 246, 0.2) !important; }
-[data-theme="nova"] .border-primary { border-color: #3b82f6 !important; }
-[data-theme="nova"] .border-primary\/10 { border-color: rgba(59, 130, 246, 0.1) !important; }
-[data-theme="nova"] .border-primary\/20 { border-color: rgba(59, 130, 246, 0.2) !important; }
-[data-theme="nova"] .border-primary\/30 { border-color: rgba(59, 130, 246, 0.3) !important; }
-[data-theme="nova"] .border-t-primary { border-top-color: #3b82f6 !important; }
+[data-theme="nova"] .dark\:bg-primary\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
+[data-theme="nova"] .bg-primary\/15 { background-color: rgba(16, 185, 129, 0.15) !important; }
+[data-theme="nova"] .bg-primary\/20 { background-color: rgba(16, 185, 129, 0.2) !important; }
+[data-theme="nova"] .border-primary { border-color: #10b981 !important; }
+[data-theme="nova"] .border-primary\/10 { border-color: rgba(16, 185, 129, 0.1) !important; }
+[data-theme="nova"] .border-primary\/20 { border-color: rgba(16, 185, 129, 0.2) !important; }
+[data-theme="nova"] .border-primary\/30 { border-color: rgba(16, 185, 129, 0.3) !important; }
+[data-theme="nova"] .border-t-primary { border-top-color: #10b981 !important; }
 [data-theme="nova"] .text-primary,
-[data-theme="nova"] .dark\:text-primary { color: #60a5fa !important; }
-[data-theme="nova"] .ring-primary { --tw-ring-color: #3b82f6 !important; }
-[data-theme="nova"] .ring-primary\/20 { --tw-ring-color: rgba(59, 130, 246, 0.2) !important; }
-[data-theme="nova"] .shadow-primary\/20 { --tw-shadow-color: rgba(59, 130, 246, 0.2) !important; }
-[data-theme="nova"] .shadow-primary\/30 { --tw-shadow-color: rgba(59, 130, 246, 0.3) !important; }
-[data-theme="nova"] .shadow-primary\/40 { --tw-shadow-color: rgba(59, 130, 246, 0.4) !important; }
-[data-theme="nova"] .focus\:border-primary:focus { border-color: #3b82f6 !important; }
-[data-theme="nova"] .focus\:border-primary\/50:focus { border-color: rgba(59, 130, 246, 0.5) !important; }
-[data-theme="nova"] .focus\:ring-primary:focus { --tw-ring-color: #3b82f6 !important; }
-[data-theme="nova"] .focus\:ring-primary\/20:focus { --tw-ring-color: rgba(59, 130, 246, 0.2) !important; }
-[data-theme="nova"] .group:hover .group-hover\:text-primary { color: #60a5fa !important; }
-[data-theme="nova"] .hover\:bg-primary:hover { background-color: #3b82f6 !important; }
-[data-theme="nova"] .hover\:bg-primary\/5:hover { background-color: rgba(59, 130, 246, 0.05) !important; }
-[data-theme="nova"] .hover\:bg-primary\/10:hover { background-color: rgba(59, 130, 246, 0.1) !important; }
-[data-theme="nova"] .hover\:bg-primary\/20:hover { background-color: rgba(59, 130, 246, 0.2) !important; }
-[data-theme="nova"] .hover\:bg-primary\/90:hover { background-color: #2563eb !important; }
-[data-theme="nova"] .hover\:border-primary:hover { border-color: #3b82f6 !important; }
-[data-theme="nova"] .hover\:border-primary\/30:hover { border-color: rgba(59, 130, 246, 0.3) !important; }
-[data-theme="nova"] .hover\:ring-primary\/20:hover { --tw-ring-color: rgba(59, 130, 246, 0.2) !important; }
-[data-theme="nova"] .hover\:ring-primary\/30:hover { --tw-ring-color: rgba(59, 130, 246, 0.3) !important; }
-[data-theme="nova"] .hover\:shadow-primary\/40:hover { --tw-shadow-color: rgba(59, 130, 246, 0.4) !important; }
-[data-theme="nova"] .hover\:text-primary:hover { color: #60a5fa !important; }
-[data-theme="nova"] ::selection { background-color: rgba(59, 130, 246, 0.3); }
+[data-theme="nova"] .dark\:text-primary { color: #34d399 !important; }
+[data-theme="nova"] .ring-primary { --tw-ring-color: #10b981 !important; }
+[data-theme="nova"] .ring-primary\/20 { --tw-ring-color: rgba(16, 185, 129, 0.2) !important; }
+[data-theme="nova"] .shadow-primary\/20 { --tw-shadow-color: rgba(16, 185, 129, 0.2) !important; }
+[data-theme="nova"] .shadow-primary\/30 { --tw-shadow-color: rgba(16, 185, 129, 0.3) !important; }
+[data-theme="nova"] .shadow-primary\/40 { --tw-shadow-color: rgba(16, 185, 129, 0.4) !important; }
+[data-theme="nova"] .focus\:border-primary:focus { border-color: #10b981 !important; }
+[data-theme="nova"] .focus\:border-primary\/50:focus { border-color: rgba(16, 185, 129, 0.5) !important; }
+[data-theme="nova"] .focus\:ring-primary:focus { --tw-ring-color: #10b981 !important; }
+[data-theme="nova"] .focus\:ring-primary\/20:focus { --tw-ring-color: rgba(16, 185, 129, 0.2) !important; }
+[data-theme="nova"] .group:hover .group-hover\:text-primary { color: #34d399 !important; }
+[data-theme="nova"] .hover\:bg-primary:hover { background-color: #10b981 !important; }
+[data-theme="nova"] .hover\:bg-primary\/5:hover { background-color: rgba(16, 185, 129, 0.05) !important; }
+[data-theme="nova"] .hover\:bg-primary\/10:hover { background-color: rgba(16, 185, 129, 0.1) !important; }
+[data-theme="nova"] .hover\:bg-primary\/20:hover { background-color: rgba(16, 185, 129, 0.2) !important; }
+[data-theme="nova"] .hover\:bg-primary\/90:hover { background-color: #059669 !important; }
+[data-theme="nova"] .hover\:border-primary:hover { border-color: #10b981 !important; }
+[data-theme="nova"] .hover\:border-primary\/30:hover { border-color: rgba(16, 185, 129, 0.3) !important; }
+[data-theme="nova"] .hover\:ring-primary\/20:hover { --tw-ring-color: rgba(16, 185, 129, 0.2) !important; }
+[data-theme="nova"] .hover\:ring-primary\/30:hover { --tw-ring-color: rgba(16, 185, 129, 0.3) !important; }
+[data-theme="nova"] .hover\:shadow-primary\/40:hover { --tw-shadow-color: rgba(16, 185, 129, 0.4) !important; }
+[data-theme="nova"] .hover\:text-primary:hover { color: #34d399 !important; }
+[data-theme="nova"] ::selection { background-color: rgba(16, 185, 129, 0.3); }
