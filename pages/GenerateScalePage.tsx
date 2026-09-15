@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
 import { safeParseISO } from '../utils/dateUtils';
 import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
-import { generateAIScale } from '../geminiService';
+import { generateAIScale } from '../claudeService';
 
 const GenerateScalePage: React.FC = () => {
     const navigate = useNavigate();
@@ -447,7 +447,7 @@ const GenerateScalePage: React.FC = () => {
                                 <div className="w-20 h-20 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
                                 <span className="material-symbols-outlined text-4xl text-primary absolute inset-0 flex items-center justify-center">smart_toy</span>
                             </div>
-                            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">O Gemini está montando a escala...</h3>
+                            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">O Claude está montando a escala...</h3>
                             <p className="text-slate-500 text-sm mt-2 max-w-sm">Analisando militares, descansos e suas instruções especiais.</p>
                         </div>
                     )}
