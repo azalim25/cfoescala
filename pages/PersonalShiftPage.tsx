@@ -2,12 +2,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
 import Avatar from '../components/Avatar';
+import AvatarEditor from '../components/AvatarEditor';
+import { useInterfaceTheme } from '../contexts/InterfaceThemeContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useAcademic } from '../contexts/AcademicContext';
 import { supabase } from '../supabase';
-import { Shift, MilitaryPreference } from '../types';
+import { Shift, MilitaryPreference, AvatarConfig } from '../types';
 import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
 import { stripGroupId } from '../utils/formatUtils';
@@ -143,7 +145,8 @@ const ShiftCard = React.memo(({ s, holidays }: { s: any, holidays: any[] }) => {
 });
 
 const PersonalShiftPage: React.FC = () => {
-  const { militaries } = useMilitary();
+  const { militaries, updateAvatarConfig } = useMilitary();
+  const { interfaceTheme } = useInterfaceTheme();
   const { shifts: allShifts, preferences, addPreference, removePreference, holidays, isMonthHidden } = useShift();
   const { schedule, disciplines } = useAcademic();
   const { isModerator, session } = useAuth();
@@ -154,6 +157,10 @@ const PersonalShiftPage: React.FC = () => {
   const [personalStages, setPersonalStages] = useState<any[]>([]);
   const [isLoadingStages, setIsLoadingStages] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Avatar editor (Nova Interface, own profile only)
+  const [isEditingAvatar, setIsEditingAvatar] = useState(false);
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
 
   // New academic details states
   const [classRoles, setClassRoles] = useState<any[]>([]);
@@ -251,6 +258,18 @@ const PersonalShiftPage: React.FC = () => {
   const selectedMilitary = useMemo(() =>
     militaries.find(m => m.id === selectedMilitaryId) || (isModerator ? militaries[0] : null)
     , [militaries, selectedMilitaryId, isModerator]);
+
+  // The military profile linked to the logged-in account, regardless of
+  // which profile is currently being viewed — only this person may edit
+  // their own avatar.
+  const myMilitary = useMemo(() => {
+    if (!userProfile) return null;
+    const cleanProfileNumber = userProfile.firefighter_number?.replace(/\D/g, '');
+    if (!cleanProfileNumber) return null;
+    return militaries.find(m => m.firefighterNumber?.replace(/\D/g, '') === cleanProfileNumber) || null;
+  }, [userProfile, militaries]);
+
+  const isViewingOwnProfile = !!selectedMilitary && !!myMilitary && selectedMilitary.id === myMilitary.id;
 
   const getCurrentPeriodSemesterName = () => {
     const currentDate = new Date();
@@ -711,6 +730,14 @@ const PersonalShiftPage: React.FC = () => {
     preferences.filter(p => p.militaryId === selectedMilitaryId)
     , [preferences, selectedMilitaryId]);
 
+  const handleSaveAvatar = async (config: AvatarConfig) => {
+    if (!myMilitary) return;
+    setIsSavingAvatar(true);
+    await updateAvatarConfig(myMilitary.id, config);
+    setIsSavingAvatar(false);
+    setIsEditingAvatar(false);
+  };
+
   return (
     <MainLayout activePage="personal">
       <MainLayout.Content>
@@ -801,7 +828,18 @@ const PersonalShiftPage: React.FC = () => {
           <>
             <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col items-center justify-between gap-6 sm:flex-row">
               <div className="flex items-center gap-4 w-full sm:w-auto">
-                <Avatar seed={selectedMilitary.id} size={64} fallback="none" className="sm:!w-20 sm:!h-20 border-2 sm:border-4 shadow-sm" />
+                <div className="relative shrink-0">
+                  <Avatar seed={selectedMilitary.id} size={64} fallback="none" className="sm:!w-20 sm:!h-20 border-2 sm:border-4 shadow-sm" />
+                  {isViewingOwnProfile && interfaceTheme === 'nova' && (
+                    <button
+                      onClick={() => setIsEditingAvatar(true)}
+                      title="Editar avatar"
+                      className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary text-white flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm hover:opacity-90 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[14px] sm:text-base">edit</span>
+                    </button>
+                  )}
+                </div>
                 <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-xl sm:text-2xl border-2 sm:border-4 border-orange-200 dark:border-orange-800/50 shadow-sm shrink-0">
                   {selectedMilitary.antiguidade || '-'}
                 </div>
@@ -818,6 +856,15 @@ const PersonalShiftPage: React.FC = () => {
               </div>
 
             </div>
+
+            {isEditingAvatar && isViewingOwnProfile && interfaceTheme === 'nova' && myMilitary && (
+              <AvatarEditor
+                initialConfig={myMilitary.avatarConfig}
+                isSaving={isSavingAvatar}
+                onSave={handleSaveAvatar}
+                onClose={() => setIsEditingAvatar(false)}
+              />
+            )}
 
             {/* Escalas de Hoje */}
             <section className="mb-8">

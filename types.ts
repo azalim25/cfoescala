@@ -3,6 +3,18 @@ export enum Rank {
   CADETE = 'Cadete'
 }
 
+export interface AvatarConfig {
+  hair: string;
+  hairColor: string;
+  eyes: string;
+  mouth: string;
+  nose: string;
+  facialHair: string | null;
+  skinColor: string;
+  clothingColor: string;
+  body: string;
+}
+
 export interface Military {
   id: string;
   name: string;
@@ -12,6 +24,7 @@ export interface Military {
   contact: string;
   battalion: string;
   antiguidade?: number;
+  avatarConfig?: AvatarConfig;
 }
 
 export interface Shift {
