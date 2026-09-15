@@ -12,7 +12,7 @@ interface MainLayoutProps {
 
 const MainLayoutRoot = ({ children, activePage, className = '', reverseMobile = false }: MainLayoutProps) => {
     return (
-        <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 ${className}`}>
+        <div className={`nova-shell min-h-screen bg-slate-50 dark:bg-slate-950 ${className}`}>
             <Header activePage={activePage} />
             <div className="flex">
                 <SidebarNav activePage={activePage} />
