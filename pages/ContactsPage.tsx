@@ -3,6 +3,7 @@ import MainLayout from '../components/MainLayout';
 import { Military, Rank } from '../types';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
+import Avatar from '../components/Avatar';
 
 const ContactsPage: React.FC = () => {
   const { militaries, addMilitary, updateMilitary, deleteMilitary } = useMilitary();
@@ -148,9 +149,7 @@ const ContactsPage: React.FC = () => {
                     <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
-                            <span className="material-symbols-outlined text-xl">person</span>
-                          </div>
+                          <Avatar seed={m.id} size={40} />
                           <div>
                             <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{m.name}</p>
                           </div>
@@ -210,9 +209,7 @@ const ContactsPage: React.FC = () => {
                 <div key={m.id} className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
-                        <span className="material-symbols-outlined text-xl">person</span>
-                      </div>
+                      <Avatar seed={m.id} size={40} />
                       <div>
                         <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{m.name}</p>
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">{m.rank} • {m.firefighterNumber}</p>
@@ -285,9 +282,7 @@ const ContactsPage: React.FC = () => {
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div className="flex justify-center mb-6">
-                <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border-2 border-slate-200 dark:border-slate-700 shadow-inner">
-                  <span className="material-symbols-outlined text-4xl">person</span>
-                </div>
+                <Avatar seed={editingMilitary.id} size={80} className="border-2 shadow-inner" />
               </div>
 
               <div>
@@ -386,9 +381,11 @@ const ContactsPage: React.FC = () => {
             </div>
             <form onSubmit={handleAdd} className="p-6 space-y-4">
               <div className="flex justify-center mb-6">
-                <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border-2 border-slate-200 dark:border-slate-700 shadow-inner">
-                  <span className="material-symbols-outlined text-4xl">person_add</span>
-                </div>
+                <Avatar
+                  seed={newMilitary.firefighterNumber || newMilitary.name || 'novo-militar'}
+                  size={80}
+                  className="border-2 shadow-inner"
+                />
               </div>
 
               <div>
