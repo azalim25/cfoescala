@@ -9,23 +9,24 @@ interface SidebarNavProps {
 
 const NovaSidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
     return (
-        <aside className="hidden lg:flex w-24 flex-col items-center sticky top-16 h-[calc(100vh-64px)] z-20 shrink-0 overflow-y-auto custom-scrollbar py-6 gap-2 bg-transparent">
+        <aside className="hidden lg:flex w-28 flex-col items-center sticky top-16 h-[calc(100vh-64px)] z-20 shrink-0 overflow-y-auto custom-scrollbar py-6 gap-1 bg-transparent">
             {NAV_LINKS.map(link => (
                 <Link
                     key={link.id}
                     to={link.to}
                     title={link.label}
-                    className="group relative flex items-center justify-center"
+                    className="group relative flex flex-col items-center gap-1 w-full px-2 py-1.5 rounded-2xl transition-all"
                 >
                     <span
-                        className={`flex items-center justify-center w-12 h-12 rounded-2xl transition-all ${activePage === link.id
+                        className={`flex items-center justify-center w-11 h-11 rounded-2xl transition-all ${activePage === link.id
                             ? 'bg-primary text-white shadow-lg shadow-primary/40 scale-105'
-                            : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-primary'
+                            : 'bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-primary'
                             }`}
                     >
-                        <span className="material-symbols-outlined text-[22px]">{link.icon}</span>
+                        <span className="material-symbols-outlined text-[20px]">{link.icon}</span>
                     </span>
-                    <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg bg-slate-900 text-white text-xs font-bold px-3 py-1.5 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all z-30 shadow-xl">
+                    <span className={`text-center text-[9px] font-bold leading-tight line-clamp-2 transition-colors ${activePage === link.id ? 'text-primary' : 'text-slate-500 group-hover:text-slate-300'
+                        }`}>
                         {link.label}
                     </span>
                 </Link>

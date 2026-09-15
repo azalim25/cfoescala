@@ -16,7 +16,7 @@ const MainLayoutRoot = ({ children, activePage, className = '', reverseMobile = 
             <Header activePage={activePage} />
             <div className="flex">
                 <SidebarNav activePage={activePage} />
-                <main className={`flex-1 max-w-[1600px] p-2 sm:p-4 sm:p-6 flex ${reverseMobile ? 'flex-col-reverse' : 'flex-col'} lg:flex-row gap-4 lg:gap-8`}>
+                <main className={`flex-1 min-w-0 max-w-[1600px] p-2 sm:p-4 sm:p-6 flex ${reverseMobile ? 'flex-col-reverse' : 'flex-col'} lg:flex-row gap-4 lg:gap-8`}>
                     {children}
                 </main>
             </div>
