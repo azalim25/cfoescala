@@ -208,14 +208,18 @@
   border-color: rgba(148, 163, 184, 0.12) !important;
 }
 
-/* Generic card surfaces used across every page → frosted glass */
+/* Generic card surfaces used across every page → frosted glass.
+   No backdrop-filter here on purpose: a filter/backdrop-filter on an
+   element becomes the *containing block* for any position:fixed
+   descendant (e.g. modals, the mobile nav drawer) nested inside a card
+   anywhere in the app, which silently breaks their positioning. Solid
+   translucent color keeps the glass look without that risk. */
 [data-theme="nova"] .bg-white,
 [data-theme="nova"] .dark\:bg-slate-900,
 [data-theme="nova"] .dark\:bg-slate-950,
 [data-theme="nova"] .dark\:bg-slate-800,
 [data-theme="nova"] .dark\:bg-slate-800\/50 {
-  background-color: rgba(30, 41, 59, 0.45) !important;
-  backdrop-filter: blur(16px);
+  background-color: rgba(30, 41, 59, 0.65) !important;
 }
 
 [data-theme="nova"] .dark\:border-slate-800,
@@ -249,12 +253,6 @@
   box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.45) !important;
 }
 
-/* Sidebar rail */
-[data-theme="nova"] aside.dark\:bg-slate-900 {
-  background: rgba(15, 23, 42, 0.3) !important;
-  backdrop-filter: blur(20px);
-}
-
 /* Accent color: swap the green "primary" brand color for a vivid blue,
    matching the reference design, without touching the shared Tailwind
    token used by the classic theme. */
@@ -275,6 +273,7 @@
 [data-theme="nova"] .ring-primary\/20 { --tw-ring-color: rgba(59, 130, 246, 0.2) !important; }
 [data-theme="nova"] .shadow-primary\/20 { --tw-shadow-color: rgba(59, 130, 246, 0.2) !important; }
 [data-theme="nova"] .shadow-primary\/30 { --tw-shadow-color: rgba(59, 130, 246, 0.3) !important; }
+[data-theme="nova"] .shadow-primary\/40 { --tw-shadow-color: rgba(59, 130, 246, 0.4) !important; }
 [data-theme="nova"] .focus\:border-primary:focus { border-color: #3b82f6 !important; }
 [data-theme="nova"] .focus\:border-primary\/50:focus { border-color: rgba(59, 130, 246, 0.5) !important; }
 [data-theme="nova"] .focus\:ring-primary:focus { --tw-ring-color: #3b82f6 !important; }

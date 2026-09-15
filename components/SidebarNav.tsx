@@ -1,12 +1,40 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { PageId, NAV_LINKS } from '../constants';
+import { useInterfaceTheme } from '../contexts/InterfaceThemeContext';
 
 interface SidebarNavProps {
     activePage: PageId;
 }
 
-const SidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
+const NovaSidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
+    return (
+        <aside className="hidden lg:flex w-24 flex-col items-center sticky top-16 h-[calc(100vh-64px)] z-20 shrink-0 overflow-y-auto custom-scrollbar py-6 gap-2 bg-transparent">
+            {NAV_LINKS.map(link => (
+                <Link
+                    key={link.id}
+                    to={link.to}
+                    title={link.label}
+                    className="group relative flex items-center justify-center"
+                >
+                    <span
+                        className={`flex items-center justify-center w-12 h-12 rounded-2xl transition-all ${activePage === link.id
+                            ? 'bg-primary text-white shadow-lg shadow-primary/40 scale-105'
+                            : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-primary'
+                            }`}
+                    >
+                        <span className="material-symbols-outlined text-[22px]">{link.icon}</span>
+                    </span>
+                    <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg bg-slate-900 text-white text-xs font-bold px-3 py-1.5 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all z-30 shadow-xl">
+                        {link.label}
+                    </span>
+                </Link>
+            ))}
+        </aside>
+    );
+};
+
+const ClassicSidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
     return (
         <aside className="hidden lg:flex w-72 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col sticky top-16 h-[calc(100vh-64px)] z-20 transition-all shrink-0 overflow-y-auto custom-scrollbar">
             <div className="p-6 border-b border-slate-50 dark:border-slate-800/50">
@@ -41,6 +69,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
             </div>
         </aside>
     );
+};
+
+const SidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
+    const { interfaceTheme } = useInterfaceTheme();
+    return interfaceTheme === 'nova'
+        ? <NovaSidebarNav activePage={activePage} />
+        : <ClassicSidebarNav activePage={activePage} />;
 };
 
 export default SidebarNav;
