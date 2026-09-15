@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -255,6 +256,8 @@ const StageLocalPage: React.FC = () => {
 
                                             return (
                                                 <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group hover:ring-1 hover:ring-primary/30 transition-all border border-transparent dark:border-slate-700/50">
+                                                    <div className="flex items-center gap-2">
+                                                    {military && <Avatar seed={military.id} size={28} fallback="none" />}
                                                     <div className="flex flex-col">
                                                         <span className="text-slate-800 dark:text-slate-100 font-bold text-sm">
                                                             {military ? `${military.rank} ${military.name}` : 'Militar desconhecido'}
@@ -270,6 +273,7 @@ const StageLocalPage: React.FC = () => {
                                                                 </span>
                                                             )}
                                                         </div>
+                                                    </div>
                                                     </div>
                                                     {isModerator && !isFromShifts && (
                                                         <button

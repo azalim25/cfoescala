@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { supabase } from '../supabase';
@@ -399,9 +400,12 @@ const StageQuantityPage: React.FC = () => {
                                         return (
                                             <tr key={mil.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-50 dark:border-slate-800/50">
                                                 <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-slate-700 dark:text-slate-200 text-base whitespace-nowrap">{mil.rank} {mil.name}</span>
-                                                        <span className="text-[10px] text-slate-500">{mil.firefighterNumber}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <Avatar seed={mil.id} size={28} fallback="none" />
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-slate-700 dark:text-slate-200 text-base whitespace-nowrap">{mil.rank} {mil.name}</span>
+                                                            <span className="text-[10px] text-slate-500">{mil.firefighterNumber}</span>
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 {STAGE_LOCATIONS.map(loc => {
@@ -482,6 +486,7 @@ const StageQuantityPage: React.FC = () => {
                                                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-black shrink-0">
                                                         P{duration}
                                                     </div>
+                                                    {m && <Avatar seed={m.id} size={32} fallback="none" />}
                                                     <div>
                                                         <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{m?.rank} {m?.name}</p>
                                                         <p className="text-[10px] text-slate-500 font-medium">
@@ -512,6 +517,7 @@ const StageQuantityPage: React.FC = () => {
                                                     <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs font-black shrink-0">
                                                         {dur.replace('h', '')}
                                                     </div>
+                                                    {m && <Avatar seed={m.id} size={32} fallback="none" />}
                                                     <div>
                                                         <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{m?.rank} {m?.name}</p>
                                                         <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">

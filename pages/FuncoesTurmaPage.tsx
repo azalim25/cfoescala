@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
@@ -352,9 +353,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                                     <tr key={military.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                                         <td className="p-4 sticky left-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
-                                                                    <span className="material-symbols-outlined text-sm">person</span>
-                                                                </div>
+                                                                <Avatar seed={military.id} size={32} />
                                                                 <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
                                                                     {military.rank} {military.name}
                                                                 </p>
@@ -390,9 +389,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                             return (
                                                 <div key={military.id} className="p-4 space-y-3">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 shrink-0">
-                                                            <span className="material-symbols-outlined text-base">person</span>
-                                                        </div>
+                                                        <Avatar seed={military.id} size={36} />
                                                         <p className="font-black text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight">
                                                             {military.rank} {military.name}
                                                         </p>
@@ -501,6 +498,7 @@ const FuncoesTurmaPage: React.FC = () => {
                                             }`}>
                                                 {index + 1}
                                             </div>
+                                            <Avatar seed={item.military.id} size={28} fallback="none" />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
                                                     {item.military.rank} {item.military.name}

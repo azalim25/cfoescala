@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
@@ -406,9 +407,13 @@ const EstadoMaiorHorasPage: React.FC = () => {
                                                             className="flex items-center justify-between p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm"
                                                         >
                                                             <div className="flex items-center gap-2 min-w-0">
-                                                                <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 dark:border-slate-750">
-                                                                    <span className="material-symbols-outlined text-sm">person</span>
-                                                                </div>
+                                                                {mil ? (
+                                                                    <Avatar seed={mil.id} size={28} />
+                                                                ) : (
+                                                                    <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 dark:border-slate-750">
+                                                                        <span className="material-symbols-outlined text-sm">person</span>
+                                                                    </div>
+                                                                )}
                                                                 <div className="min-w-0">
                                                                     <p className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate">
                                                                         {mil ? `${mil.rank} ${mil.name}` : 'Militar'}
@@ -520,9 +525,7 @@ const EstadoMaiorHorasPage: React.FC = () => {
                                                     return (
                                                         <div key={m.id} className="py-2.5 flex items-center justify-between gap-4">
                                                             <div className="flex items-center gap-2.5 min-w-0">
-                                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 dark:border-slate-750">
-                                                                    <span className="material-symbols-outlined text-[18px]">person</span>
-                                                                </div>
+                                                                <Avatar seed={m.id} size={32} />
                                                                 <div className="min-w-0">
                                                                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate">
                                                                         {m.rank} {m.name}

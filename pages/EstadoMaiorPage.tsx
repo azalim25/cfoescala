@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
@@ -339,9 +340,13 @@ const EstadoMaiorPage: React.FC = () => {
                                                                 const military = militaries.find(m => m.id === assignment.militaryId);
                                                                 return (
                                                                     <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
-                                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
-                                                                            <span className="material-symbols-outlined text-sm">person</span>
-                                                                        </div>
+                                                                        {military ? (
+                                                                            <Avatar seed={military.id} size={32} />
+                                                                        ) : (
+                                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
+                                                                                <span className="material-symbols-outlined text-sm">person</span>
+                                                                            </div>
+                                                                        )}
                                                                         <div className="flex-1 min-w-0">
                                                                             <p className="text-[11px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
                                                                                 {military?.rank} {military?.name}
@@ -384,6 +389,7 @@ const EstadoMaiorPage: React.FC = () => {
                                                 }`}>
                                                 {index + 1}
                                             </div>
+                                            <Avatar seed={item.military.id} size={28} fallback="none" />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-[11px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
                                                     {item.military.rank} {item.military.name}

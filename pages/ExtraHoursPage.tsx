@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
@@ -276,9 +277,13 @@ const ExtraHoursPage: React.FC = () => {
                                                     <tr key={record.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
-                                                                    <span className="material-symbols-outlined text-sm">person</span>
-                                                                </div>
+                                                                {record.militaries?.id ? (
+                                                                    <Avatar seed={record.militaries.id} size={32} />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
+                                                                        <span className="material-symbols-outlined text-sm">person</span>
+                                                                    </div>
+                                                                )}
                                                                 <div>
                                                                     <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
                                                                         {record.militaries?.rank} {record.militaries?.name}
@@ -331,9 +336,13 @@ const ExtraHoursPage: React.FC = () => {
                                                 <div key={record.id} className="p-4 space-y-3">
                                                     <div className="flex justify-between items-start">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
-                                                                <span className="material-symbols-outlined text-sm">person</span>
-                                                            </div>
+                                                            {record.militaries?.id ? (
+                                                                <Avatar seed={record.militaries.id} size={32} />
+                                                            ) : (
+                                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
+                                                                    <span className="material-symbols-outlined text-sm">person</span>
+                                                                </div>
+                                                            )}
                                                             <div>
                                                                 <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
                                                                     {record.militaries?.rank} {record.militaries?.name}

@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -142,9 +143,12 @@ const HoursControlPage: React.FC = () => {
                             return (
                                 <tr key={mil.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-50 dark:border-slate-800/50">
                                     <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm whitespace-nowrap">{mil.rank} {mil.name}</span>
-                                            <span className="text-[10px] text-slate-500">Antiguidade: {mil.antiguidade || '-'}</span>
+                                        <div className="flex items-center gap-2">
+                                            <Avatar seed={mil.id} size={28} fallback="none" />
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm whitespace-nowrap">{mil.rank} {mil.name}</span>
+                                                <span className="text-[10px] text-slate-500">Antiguidade: {mil.antiguidade || '-'}</span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">

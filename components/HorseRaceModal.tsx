@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Avatar from './Avatar';
 import { safeParseISO } from '../utils/dateUtils';
 import { Shift, Holiday } from '../types';
 
@@ -1031,6 +1032,7 @@ export const HorseRaceModal: React.FC<HorseRaceModalProps> = ({
                           </td>
                           <td className="py-3 px-4 font-bold text-white">
                             <div className="flex items-center gap-2">
+                              <Avatar seed={c.id} size={24} fallback="none" />
                               <span>{c.rank} {c.name}</span>
                               {idx === 0 && <span className="text-xs">🏆</span>}
                             </div>

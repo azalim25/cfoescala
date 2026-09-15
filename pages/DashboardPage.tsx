@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from '../components/MainLayout';
+import Avatar from '../components/Avatar';
 import { MOCK_SHIFTS, SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY, STAGE_LOCATIONS } from '../constants';
 import { useShift } from '../contexts/ShiftContext';
 import { useMilitary } from '../contexts/MilitaryContext';
@@ -766,13 +767,15 @@ const DashboardPage: React.FC = () => {
         </div>
         <div className="space-y-0.5 sm:space-y-1 overflow-hidden">
           {combined.map(s => {
+            const shiftMilitary = militaries.find(m => m.id === s.militaryId);
             if ((s as any).isStage) {
               return (
                 <div
                   key={s.id}
-                  className="text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-indigo-50 text-indigo-700 truncate border border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
+                  className="flex items-center gap-1 text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded bg-indigo-50 text-indigo-700 border border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
                 >
-                  {militaries.find(m => m.id === s.militaryId)?.name}
+                  {shiftMilitary && <Avatar seed={shiftMilitary.id} size={12} fallback="none" className="!border-0" />}
+                  <span className="truncate">{shiftMilitary?.name}</span>
                 </div>
               );
             }
@@ -786,9 +789,10 @@ const DashboardPage: React.FC = () => {
                     onEditShift(s as Shift);
                   }
                 }}
-                className={`text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} truncate border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
+                className={`flex items-center gap-1 text-[8px] sm:text-[9px] font-bold p-0.5 sm:p-1 rounded ${colors.bg} ${colors.text} border ${colors.border} hover:opacity-80 transition-opacity cursor-pointer`}
               >
-                {militaries.find(m => m.id === s.militaryId)?.name}
+                {shiftMilitary && <Avatar seed={shiftMilitary.id} size={12} fallback="none" className="!border-0" />}
+                <span className="truncate">{shiftMilitary?.name}</span>
               </div>
             );
           })}
@@ -1141,9 +1145,13 @@ const DashboardPage: React.FC = () => {
                       >
                         <div className="flex items-start justify-between relative z-10 w-full overflow-hidden">
                           <div className="flex gap-2 sm:gap-3 items-center min-w-0 flex-1">
-                            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${colors.bg} flex items-center justify-center ${colors.text} border ${colors.border} shrink-0`}>
-                              <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
-                            </div>
+                            {m ? (
+                              <Avatar seed={m.id} size={40} className="sm:!w-10 sm:!h-10" />
+                            ) : (
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${colors.bg} flex items-center justify-center ${colors.text} border ${colors.border} shrink-0`}>
+                                <span className="material-symbols-outlined text-lg sm:text-xl">person</span>
+                              </div>
+                            )}
                             <div className="min-w-0 flex-1 space-y-0.5">
                               <div className="flex items-center gap-2">
                                 <span className={`text-[10px] font-black uppercase tracking-wider ${colors.text}`}>
@@ -1276,6 +1284,7 @@ const DashboardPage: React.FC = () => {
                                   }));
                                 }}
                               />
+                              <Avatar seed={m.id} size={24} fallback="none" />
                               <div className="flex flex-col min-w-0">
                                 <span className={`text-[11px] font-bold truncate ${isRestriction ? 'text-red-500' : (isPreference ? 'text-amber-500' : 'text-slate-700 dark:text-slate-200')}`}>
                                   {m.rank} {m.name}
