@@ -99,6 +99,7 @@ const AuthPage: React.FC = () => {
                 const normalizedInputNumber = cleanNumber.replace(/\D/g, '');
                 const isAzalim = lowerName.includes('azalim');
                 const isVilela = lowerName.includes('vilela') || normalizedInputNumber === '1800572';
+                const isSilvestre = lowerName.includes('silvestre');
 
                 if (loginMode === 'moderator') {
                     if (isAzalim) {
@@ -109,6 +110,12 @@ const AuthPage: React.FC = () => {
                         }
                     } else if (isVilela) {
                         if (password !== 'vilela180') {
+                            setError('Senha de moderador incorreta.');
+                            setLoading(false);
+                            return;
+                        }
+                    } else if (isSilvestre) {
+                        if (password !== 'joana188') {
                             setError('Senha de moderador incorreta.');
                             setLoading(false);
                             return;
@@ -131,7 +138,7 @@ const AuthPage: React.FC = () => {
                 if (signInError) throw signInError;
 
                 if (signInData?.user) {
-                    const isModeratorLogin = loginMode === 'moderator' || isAzalim || isVilela;
+                    const isModeratorLogin = loginMode === 'moderator' || isAzalim || isVilela || isSilvestre;
                     if (isModeratorLogin) {
                         await supabase
                             .from('profiles')
