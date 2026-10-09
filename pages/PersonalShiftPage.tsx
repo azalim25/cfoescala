@@ -15,7 +15,7 @@ import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
 import { stripGroupId } from '../utils/formatUtils';
 import { fetchAllRows } from '../utils/supabaseUtils';
-import { computeMilitaryAverage, rankMilitaries, disciplineWeight } from '../utils/gradeUtils';
+import { computeCfoSummary, disciplineWeight } from '../utils/gradeUtils';
 
 interface ExtraHourRecord {
   id: string;
@@ -292,9 +292,7 @@ const PersonalShiftPage: React.FC = () => {
   // currently browsing.
   const myGradeSummary = useMemo(() => {
     if (!myMilitary) return null;
-    const summary = computeMilitaryAverage(myMilitary.id, grades, disciplines);
-    const myRank = rankMilitaries(militaries, grades, disciplines).find(r => r.militaryId === myMilitary.id);
-    return { ...summary, rank: myRank?.rank || null, totalMilitaries: militaries.length };
+    return computeCfoSummary(myMilitary.id, militaries, grades, disciplines);
   }, [myMilitary, grades, disciplines, militaries]);
 
   const getCurrentPeriodSemesterName = () => {
@@ -1142,24 +1140,41 @@ const PersonalShiftPage: React.FC = () => {
                   Minhas Notas
                 </h2>
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
-                    <div className="p-4 text-center">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Média Geral</p>
-                      <p className="text-2xl font-black text-primary">{myGradeSummary.average.toFixed(3)}</p>
+                  <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
+                    <div className="p-3 sm:p-4 text-center">
+                      <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">CFO I</p>
+                      <p className="text-lg sm:text-2xl font-black text-slate-800 dark:text-white">
+                        {myGradeSummary.cfo1.average !== null ? myGradeSummary.cfo1.average.toFixed(3) : '—'}
+                      </p>
+                      <p className="text-[10px] sm:text-xs text-slate-400 font-bold mt-0.5">
+                        {myGradeSummary.cfo1.rank ? `${myGradeSummary.cfo1.rank}º` : '—'} / {myGradeSummary.totalMilitaries}
+                      </p>
                     </div>
-                    <div className="p-4 text-center">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Classificação</p>
-                      <p className="text-2xl font-black text-slate-800 dark:text-white">
-                        {myGradeSummary.rank ? `${myGradeSummary.rank}º` : '—'}
-                        <span className="text-xs text-slate-400 font-bold"> / {myGradeSummary.totalMilitaries}</span>
+                    <div className="p-3 sm:p-4 text-center">
+                      <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">CFO II</p>
+                      <p className="text-lg sm:text-2xl font-black text-slate-800 dark:text-white">
+                        {myGradeSummary.cfo2.average.toFixed(3)}
+                      </p>
+                      <p className="text-[10px] sm:text-xs text-slate-400 font-bold mt-0.5">
+                        {myGradeSummary.cfo2.rank ? `${myGradeSummary.cfo2.rank}º` : '—'} / {myGradeSummary.totalMilitaries}
+                      </p>
+                    </div>
+                    <div className="p-3 sm:p-4 text-center bg-primary/5">
+                      <p className="text-[9px] sm:text-[10px] font-black text-primary uppercase tracking-widest mb-1">Geral</p>
+                      <p className="text-lg sm:text-2xl font-black text-primary">
+                        {myGradeSummary.overall.average !== null ? myGradeSummary.overall.average.toFixed(3) : '—'}
+                      </p>
+                      <p className="text-[10px] sm:text-xs text-primary/70 font-bold mt-0.5">
+                        {myGradeSummary.overall.rank ? `${myGradeSummary.overall.rank}º` : '—'} / {myGradeSummary.totalMilitaries}
                       </p>
                     </div>
                   </div>
-                  {myGradeSummary.pendingDisciplines.length > 0 && (
+                  {myGradeSummary.cfo2.pendingDisciplines.length > 0 && (
                     <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 text-[11px] font-bold">
-                      {myGradeSummary.pendingDisciplines.length} disciplina(s) ainda sem nota lançada.
+                      {myGradeSummary.cfo2.pendingDisciplines.length} disciplina(s) do CFO II ainda sem nota lançada.
                     </div>
                   )}
+                  <p className="px-4 pt-3 pb-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">Notas por disciplina (CFO II)</p>
                   <div className="max-h-72 overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800">
                     {[...disciplines].sort((a, b) => a.name.localeCompare(b.name)).map(d => {
                       const grade = grades.find(g => g.militaryId === myMilitary!.id && g.disciplineId === d.id);

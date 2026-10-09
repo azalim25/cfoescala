@@ -250,7 +250,7 @@ const NotasPage: React.FC = () => {
                     <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                         <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm uppercase">
                             <span className="material-symbols-outlined text-primary text-xl">leaderboard</span>
-                            Classificação Geral
+                            Classificação CFO II
                         </h3>
                     </div>
                     <div className="overflow-x-auto">

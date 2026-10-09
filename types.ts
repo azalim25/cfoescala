@@ -34,6 +34,9 @@ export interface Military {
   battalion: string;
   antiguidade?: number;
   avatarConfig?: AvatarConfig;
+  // Média final do CFO I (ano anterior) — valor único importado, sem
+  // detalhamento por disciplina.
+  cfo1Average?: number | null;
 }
 
 export interface Shift {

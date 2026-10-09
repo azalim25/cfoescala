@@ -39,7 +39,8 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
                     contact: m.contact || '',
                     battalion: m.battalion || '',
                     antiguidade: m.antiguidade || undefined,
-                    avatarConfig: m.avatar_config || undefined
+                    avatarConfig: m.avatar_config || undefined,
+                    cfo1Average: m.cfo1_average ?? null
                 }));
                 setMilitaries(mappedData);
             }
