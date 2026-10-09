@@ -9,6 +9,7 @@ interface MilitaryContextType {
     updateMilitary: (military: Military) => void;
     deleteMilitary: (id: string) => void;
     updateAvatarConfig: (id: string, avatarConfig: AvatarConfig) => Promise<void>;
+    setNotesPassword: (id: string, hash: string, salt: string) => Promise<void>;
 }
 
 const MilitaryContext = createContext<MilitaryContextType | undefined>(undefined);
@@ -40,7 +41,9 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
                     battalion: m.battalion || '',
                     antiguidade: m.antiguidade || undefined,
                     avatarConfig: m.avatar_config || undefined,
-                    cfo1Average: m.cfo1_average ?? null
+                    cfo1Average: m.cfo1_average ?? null,
+                    notesPasswordHash: m.notes_password_hash ?? null,
+                    notesPasswordSalt: m.notes_password_salt ?? null
                 }));
                 setMilitaries(mappedData);
             }
@@ -108,6 +111,20 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     };
 
+    const setNotesPassword = async (id: string, hash: string, salt: string) => {
+        const { error } = await supabase
+            .from('militaries')
+            .update({ notes_password_hash: hash, notes_password_salt: salt })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erro ao salvar senha de notas:', error);
+            alert('Erro ao salvar senha: ' + error.message);
+        } else {
+            setMilitaries(prev => prev.map(m => m.id === id ? { ...m, notesPasswordHash: hash, notesPasswordSalt: salt } : m));
+        }
+    };
+
     const deleteMilitary = async (id: string) => {
         const { error } = await supabase
             .from('militaries')
@@ -122,7 +139,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     return (
-        <MilitaryContext.Provider value={{ militaries, addMilitary, updateMilitary, deleteMilitary, updateAvatarConfig }}>
+        <MilitaryContext.Provider value={{ militaries, addMilitary, updateMilitary, deleteMilitary, updateAvatarConfig, setNotesPassword }}>
             {children}
         </MilitaryContext.Provider>
     );
