@@ -37,6 +37,11 @@ export interface Military {
   // Média final do CFO I (ano anterior) — valor único importado, sem
   // detalhamento por disciplina.
   cfo1Average?: number | null;
+  // Senha extra, definida pelo próprio militar, exigida para abrir a
+  // seção "Minhas Notas" — mesmo estando no próprio perfil. Guardada só
+  // como hash (SHA-256) + salt, nunca em texto puro.
+  notesPasswordHash?: string | null;
+  notesPasswordSalt?: string | null;
 }
 
 export interface Shift {

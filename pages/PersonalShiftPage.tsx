@@ -16,6 +16,7 @@ import { safeParseISO } from '../utils/dateUtils';
 import { stripGroupId } from '../utils/formatUtils';
 import { fetchAllRows } from '../utils/supabaseUtils';
 import { computeCfoSummary, disciplineWeight } from '../utils/gradeUtils';
+import { hashNotesPassword, verifyNotesPassword } from '../utils/notesPasswordUtils';
 
 interface ExtraHourRecord {
   id: string;
@@ -147,7 +148,7 @@ const ShiftCard = React.memo(({ s, holidays }: { s: any, holidays: any[] }) => {
 });
 
 const PersonalShiftPage: React.FC = () => {
-  const { militaries, updateAvatarConfig } = useMilitary();
+  const { militaries, updateAvatarConfig, setNotesPassword } = useMilitary();
   const { interfaceTheme } = useInterfaceTheme();
   const { shifts: allShifts, preferences, addPreference, removePreference, holidays, isMonthHidden } = useShift();
   const { schedule, disciplines } = useAcademic();
@@ -164,6 +165,15 @@ const PersonalShiftPage: React.FC = () => {
   // Avatar editor (Nova Interface, own profile only)
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+
+  // Extra password gate for "Minhas Notas" — set once by the cadete
+  // themselves, re-entered on every visit (resets on navigation/reload).
+  const [notesUnlocked, setNotesUnlocked] = useState(false);
+  const [notesPasswordInput, setNotesPasswordInput] = useState('');
+  const [notesPasswordError, setNotesPasswordError] = useState<string | null>(null);
+  const [newNotesPassword, setNewNotesPassword] = useState('');
+  const [confirmNotesPassword, setConfirmNotesPassword] = useState('');
+  const [isSavingNotesPassword, setIsSavingNotesPassword] = useState(false);
 
   // New academic details states
   const [classRoles, setClassRoles] = useState<any[]>([]);
@@ -762,6 +772,38 @@ const PersonalShiftPage: React.FC = () => {
     setIsEditingAvatar(false);
   };
 
+  const handleCreateNotesPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!myMilitary) return;
+    if (newNotesPassword.length < 4) {
+      setNotesPasswordError('A senha precisa ter pelo menos 4 caracteres.');
+      return;
+    }
+    if (newNotesPassword !== confirmNotesPassword) {
+      setNotesPasswordError('As senhas não coincidem.');
+      return;
+    }
+    setIsSavingNotesPassword(true);
+    const { hash, salt } = await hashNotesPassword(newNotesPassword);
+    await setNotesPassword(myMilitary.id, hash, salt);
+    setIsSavingNotesPassword(false);
+    setNotesPasswordError(null);
+    setNotesUnlocked(true);
+  };
+
+  const handleUnlockNotes = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!myMilitary?.notesPasswordHash || !myMilitary?.notesPasswordSalt) return;
+    const ok = await verifyNotesPassword(notesPasswordInput, myMilitary.notesPasswordSalt, myMilitary.notesPasswordHash);
+    if (ok) {
+      setNotesUnlocked(true);
+      setNotesPasswordError(null);
+      setNotesPasswordInput('');
+    } else {
+      setNotesPasswordError('Senha incorreta.');
+    }
+  };
+
   return (
     <MainLayout activePage="personal">
       <MainLayout.Content>
@@ -1139,6 +1181,59 @@ const PersonalShiftPage: React.FC = () => {
                   <span className="material-symbols-outlined text-primary text-xl">grade</span>
                   Minhas Notas
                 </h2>
+                {!notesUnlocked ? (
+                  myMilitary?.notesPasswordHash ? (
+                    <form onSubmit={handleUnlockNotes} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col items-center text-center gap-3 max-w-sm mx-auto">
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-2xl">lock</span>
+                      </div>
+                      <p className="text-sm text-slate-500 font-medium">Digite sua senha para ver suas notas.</p>
+                      <input
+                        type="password"
+                        value={notesPasswordInput}
+                        onChange={(e) => setNotesPasswordInput(e.target.value)}
+                        placeholder="Senha"
+                        autoFocus
+                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all text-center"
+                      />
+                      {notesPasswordError && <p className="text-xs font-bold text-red-500">{notesPasswordError}</p>}
+                      <button type="submit" className="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
+                        Entrar
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleCreateNotesPassword} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col items-center text-center gap-3 max-w-sm mx-auto">
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-2xl">vpn_key</span>
+                      </div>
+                      <p className="text-sm text-slate-500 font-medium">
+                        Crie uma senha para proteger esta seção. Só você vai poder ver suas notas a partir de agora.
+                      </p>
+                      <input
+                        type="password"
+                        value={newNotesPassword}
+                        onChange={(e) => setNewNotesPassword(e.target.value)}
+                        placeholder="Nova senha"
+                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all text-center"
+                      />
+                      <input
+                        type="password"
+                        value={confirmNotesPassword}
+                        onChange={(e) => setConfirmNotesPassword(e.target.value)}
+                        placeholder="Confirmar senha"
+                        className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-primary/50 transition-all text-center"
+                      />
+                      {notesPasswordError && <p className="text-xs font-bold text-red-500">{notesPasswordError}</p>}
+                      <button
+                        type="submit"
+                        disabled={isSavingNotesPassword}
+                        className="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50"
+                      >
+                        {isSavingNotesPassword ? 'Salvando...' : 'Criar senha e ver notas'}
+                      </button>
+                    </form>
+                  )
+                ) : (
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                   <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
                     <div className="p-3 sm:p-4 text-center">
@@ -1192,6 +1287,7 @@ const PersonalShiftPage: React.FC = () => {
                     })}
                   </div>
                 </div>
+                )}
               </section>
             )}
 
