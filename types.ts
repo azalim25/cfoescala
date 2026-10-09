@@ -66,6 +66,17 @@ export interface Discipline {
   id: string;
   name: string;
   totalHours: number;
+  // Whether the "mostra de prova" (post-exam review session) already
+  // happened for this discipline.
+  mostraProvaFeita?: boolean;
+}
+
+export interface Grade {
+  id: string;
+  militaryId: string;
+  disciplineId: string;
+  score: number | null;
+  updatedAt?: string;
 }
 
 export interface AcademicSchedule {

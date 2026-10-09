@@ -41,7 +41,8 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
                 setDisciplines(discRes.data.map(d => ({
                     id: d.id,
                     name: d.name,
-                    totalHours: d.total_hours
+                    totalHours: d.total_hours,
+                    mostraProvaFeita: d.mostra_prova_feita || false
                 })));
             }
 
@@ -88,6 +89,7 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
         const dbUpdates: any = {};
         if (updates.name !== undefined) dbUpdates.name = updates.name;
         if (updates.totalHours !== undefined) dbUpdates.total_hours = updates.totalHours;
+        if (updates.mostraProvaFeita !== undefined) dbUpdates.mostra_prova_feita = updates.mostraProvaFeita;
 
         const { error } = await supabase.from('disciplines').update(dbUpdates).eq('id', id);
         if (!error) await fetchAcademicData();

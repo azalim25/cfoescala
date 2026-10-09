@@ -8,12 +8,14 @@ import { useMilitary } from '../contexts/MilitaryContext';
 import { useShift } from '../contexts/ShiftContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useAcademic } from '../contexts/AcademicContext';
+import { useGrades } from '../contexts/GradesContext';
 import { supabase } from '../supabase';
 import { Shift, MilitaryPreference, AvatarConfig } from '../types';
 import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
 import { stripGroupId } from '../utils/formatUtils';
 import { fetchAllRows } from '../utils/supabaseUtils';
+import { computeMilitaryAverage, rankMilitaries, disciplineWeight } from '../utils/gradeUtils';
 
 interface ExtraHourRecord {
   id: string;
@@ -149,6 +151,7 @@ const PersonalShiftPage: React.FC = () => {
   const { interfaceTheme } = useInterfaceTheme();
   const { shifts: allShifts, preferences, addPreference, removePreference, holidays, isMonthHidden } = useShift();
   const { schedule, disciplines } = useAcademic();
+  const { grades } = useGrades();
   const { isModerator, session } = useAuth();
   const [selectedMilitaryId, setSelectedMilitaryId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -283,6 +286,16 @@ const PersonalShiftPage: React.FC = () => {
   const isViewingOwnProfile = !!selectedMilitary && !!myMilitary && selectedMilitary.id === myMilitary.id;
   // Moderators may edit anyone's avatar; everyone else only their own.
   const canEditAvatar = isViewingOwnProfile || isModerator;
+
+  // Grades are strictly individual: only ever computed/shown for the
+  // logged-in person's own profile, never for whoever a moderator is
+  // currently browsing.
+  const myGradeSummary = useMemo(() => {
+    if (!myMilitary) return null;
+    const summary = computeMilitaryAverage(myMilitary.id, grades, disciplines);
+    const myRank = rankMilitaries(militaries, grades, disciplines).find(r => r.militaryId === myMilitary.id);
+    return { ...summary, rank: myRank?.rank || null, totalMilitaries: militaries.length };
+  }, [myMilitary, grades, disciplines, militaries]);
 
   const getCurrentPeriodSemesterName = () => {
     const currentDate = new Date();
@@ -879,6 +892,52 @@ const PersonalShiftPage: React.FC = () => {
                 onSave={handleSaveAvatar}
                 onClose={() => setIsEditingAvatar(false)}
               />
+            )}
+
+            {/* Minhas Notas — estritamente individuais: só aparece ao ver o próprio perfil */}
+            {isViewingOwnProfile && myGradeSummary && (
+              <section className="mb-8">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1 mb-4">
+                  <span className="material-symbols-outlined text-primary text-xl">grade</span>
+                  Minhas Notas
+                </h2>
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
+                    <div className="p-4 text-center">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Média Geral</p>
+                      <p className="text-2xl font-black text-primary">{myGradeSummary.average.toFixed(3)}</p>
+                    </div>
+                    <div className="p-4 text-center">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Classificação</p>
+                      <p className="text-2xl font-black text-slate-800 dark:text-white">
+                        {myGradeSummary.rank ? `${myGradeSummary.rank}º` : '—'}
+                        <span className="text-xs text-slate-400 font-bold"> / {myGradeSummary.totalMilitaries}</span>
+                      </p>
+                    </div>
+                  </div>
+                  {myGradeSummary.pendingDisciplines.length > 0 && (
+                    <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 text-[11px] font-bold">
+                      {myGradeSummary.pendingDisciplines.length} disciplina(s) ainda sem nota lançada.
+                    </div>
+                  )}
+                  <div className="max-h-72 overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800">
+                    {[...disciplines].sort((a, b) => a.name.localeCompare(b.name)).map(d => {
+                      const grade = grades.find(g => g.militaryId === myMilitary!.id && g.disciplineId === d.id);
+                      const hasScore = grade?.score !== null && grade?.score !== undefined;
+                      return (
+                        <div key={d.id} className="px-4 py-2 flex items-center justify-between gap-3">
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                            {d.name} <span className="text-slate-400 font-medium">(Peso {disciplineWeight(d.totalHours)})</span>
+                          </span>
+                          <span className={`text-sm font-black shrink-0 ${hasScore ? 'text-slate-800 dark:text-white' : 'text-slate-300 dark:text-slate-600 italic text-[11px] font-bold'}`}>
+                            {hasScore ? grade!.score!.toFixed(2) : 'Pendente'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
             )}
 
             {/* Escalas de Hoje */}
