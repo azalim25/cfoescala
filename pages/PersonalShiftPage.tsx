@@ -1170,7 +1170,7 @@ const PersonalShiftPage: React.FC = () => {
                             {d.name} <span className="text-slate-400 font-medium">(Peso {disciplineWeight(d.totalHours)})</span>
                           </span>
                           <span className={`text-sm font-black shrink-0 ${hasScore ? 'text-slate-800 dark:text-white' : 'text-slate-300 dark:text-slate-600 italic text-[11px] font-bold'}`}>
-                            {hasScore ? grade!.score!.toFixed(2) : 'Pendente'}
+                            {hasScore ? grade!.score!.toFixed(3) : 'Pendente'}
                           </span>
                         </div>
                       );

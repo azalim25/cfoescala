@@ -96,11 +96,14 @@ const NotasPage: React.FC = () => {
         if (raw === undefined) return;
 
         const trimmed = raw.trim().replace(',', '.');
-        const score = trimmed === '' ? null : parseFloat(trimmed);
-        if (score !== null && (isNaN(score) || score < 0 || score > 10)) {
+        const parsed = trimmed === '' ? null : parseFloat(trimmed);
+        if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 10)) {
             alert('A nota deve ser um número entre 0 e 10.');
             return;
         }
+        // Normaliza para no máximo 3 casas decimais (ex: 9.999), evitando
+        // artefatos de ponto flutuante na hora de somar/comparar médias.
+        const score = parsed !== null ? Math.round(parsed * 1000) / 1000 : null;
         await setGrade(militaryId, disciplineId, score);
         setDraftScores(prev => {
             const next = { ...prev };
@@ -211,7 +214,7 @@ const NotasPage: React.FC = () => {
                                 <thead>
                                     <tr className="bg-slate-50 dark:bg-slate-800/50">
                                         <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">Militar</th>
-                                        <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 w-32 text-center">Nota (0–10)</th>
+                                        <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-700 w-32 text-center">Nota (0–10, até 3 decimais)</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
