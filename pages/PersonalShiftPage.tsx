@@ -894,52 +894,6 @@ const PersonalShiftPage: React.FC = () => {
               />
             )}
 
-            {/* Minhas Notas — estritamente individuais: só aparece ao ver o próprio perfil */}
-            {isViewingOwnProfile && myGradeSummary && (
-              <section className="mb-8">
-                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1 mb-4">
-                  <span className="material-symbols-outlined text-primary text-xl">grade</span>
-                  Minhas Notas
-                </h2>
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
-                    <div className="p-4 text-center">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Média Geral</p>
-                      <p className="text-2xl font-black text-primary">{myGradeSummary.average.toFixed(3)}</p>
-                    </div>
-                    <div className="p-4 text-center">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Classificação</p>
-                      <p className="text-2xl font-black text-slate-800 dark:text-white">
-                        {myGradeSummary.rank ? `${myGradeSummary.rank}º` : '—'}
-                        <span className="text-xs text-slate-400 font-bold"> / {myGradeSummary.totalMilitaries}</span>
-                      </p>
-                    </div>
-                  </div>
-                  {myGradeSummary.pendingDisciplines.length > 0 && (
-                    <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 text-[11px] font-bold">
-                      {myGradeSummary.pendingDisciplines.length} disciplina(s) ainda sem nota lançada.
-                    </div>
-                  )}
-                  <div className="max-h-72 overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800">
-                    {[...disciplines].sort((a, b) => a.name.localeCompare(b.name)).map(d => {
-                      const grade = grades.find(g => g.militaryId === myMilitary!.id && g.disciplineId === d.id);
-                      const hasScore = grade?.score !== null && grade?.score !== undefined;
-                      return (
-                        <div key={d.id} className="px-4 py-2 flex items-center justify-between gap-3">
-                          <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                            {d.name} <span className="text-slate-400 font-medium">(Peso {disciplineWeight(d.totalHours)})</span>
-                          </span>
-                          <span className={`text-sm font-black shrink-0 ${hasScore ? 'text-slate-800 dark:text-white' : 'text-slate-300 dark:text-slate-600 italic text-[11px] font-bold'}`}>
-                            {hasScore ? grade!.score!.toFixed(2) : 'Pendente'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </section>
-            )}
-
             {/* Escalas de Hoje */}
             <section className="mb-8">
               <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1 mb-4">
@@ -1179,6 +1133,52 @@ const PersonalShiftPage: React.FC = () => {
                 </div>
               </div>
             </section>
+
+            {/* Minhas Notas — estritamente individuais: só aparece ao ver o próprio perfil */}
+            {isViewingOwnProfile && myGradeSummary && (
+              <section className="mb-8">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 px-1 mb-4">
+                  <span className="material-symbols-outlined text-primary text-xl">grade</span>
+                  Minhas Notas
+                </h2>
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
+                    <div className="p-4 text-center">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Média Geral</p>
+                      <p className="text-2xl font-black text-primary">{myGradeSummary.average.toFixed(3)}</p>
+                    </div>
+                    <div className="p-4 text-center">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Classificação</p>
+                      <p className="text-2xl font-black text-slate-800 dark:text-white">
+                        {myGradeSummary.rank ? `${myGradeSummary.rank}º` : '—'}
+                        <span className="text-xs text-slate-400 font-bold"> / {myGradeSummary.totalMilitaries}</span>
+                      </p>
+                    </div>
+                  </div>
+                  {myGradeSummary.pendingDisciplines.length > 0 && (
+                    <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 text-[11px] font-bold">
+                      {myGradeSummary.pendingDisciplines.length} disciplina(s) ainda sem nota lançada.
+                    </div>
+                  )}
+                  <div className="max-h-72 overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800">
+                    {[...disciplines].sort((a, b) => a.name.localeCompare(b.name)).map(d => {
+                      const grade = grades.find(g => g.militaryId === myMilitary!.id && g.disciplineId === d.id);
+                      const hasScore = grade?.score !== null && grade?.score !== undefined;
+                      return (
+                        <div key={d.id} className="px-4 py-2 flex items-center justify-between gap-3">
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                            {d.name} <span className="text-slate-400 font-medium">(Peso {disciplineWeight(d.totalHours)})</span>
+                          </span>
+                          <span className={`text-sm font-black shrink-0 ${hasScore ? 'text-slate-800 dark:text-white' : 'text-slate-300 dark:text-slate-600 italic text-[11px] font-bold'}`}>
+                            {hasScore ? grade!.score!.toFixed(2) : 'Pendente'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+            )}
 
             <section className="mb-8">
               <div className="flex items-center justify-between mb-4 px-1">
