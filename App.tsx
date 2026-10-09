@@ -21,6 +21,7 @@ const ExamsPage = lazy(() => import('./pages/ExamsPage'));
 const StatisticsPage = lazy(() => import('./pages/StatisticsPage'));
 const QtmPage = lazy(() => import('./pages/QtmPage'));
 const QdchPage = lazy(() => import('./pages/QdchPage'));
+const NotasPage = lazy(() => import('./pages/NotasPage'));
 const RelatorioPage = lazy(() => import('./pages/RelatorioPage'));
 const PingPongPage = lazy(() => import('./pages/PingPongPage'));
 const SudokuPage = lazy(() => import('./pages/SudokuPage'));
@@ -31,6 +32,7 @@ import { MilitaryProvider } from './contexts/MilitaryContext';
 import { ShiftProvider } from './contexts/ShiftContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AcademicProvider } from './contexts/AcademicContext';
+import { GradesProvider } from './contexts/GradesContext';
 import { InterfaceThemeProvider } from './contexts/InterfaceThemeContext';
 
 const LoadingFallback = () => (
@@ -47,6 +49,7 @@ const App: React.FC = () => {
     <InterfaceThemeProvider>
     <AuthProvider>
       <AcademicProvider>
+        <GradesProvider>
         <MilitaryProvider>
           <ShiftProvider>
             <HashRouter>
@@ -144,6 +147,12 @@ const App: React.FC = () => {
                     </ProtectedRoute>
                   } />
 
+                  <Route path="/notas" element={
+                    <ProtectedRoute>
+                      <NotasPage />
+                    </ProtectedRoute>
+                  } />
+
                   <Route path="/barra-fixa" element={
                     <ProtectedRoute>
                       <BarraFixaPage />
@@ -186,6 +195,7 @@ const App: React.FC = () => {
             </HashRouter>
           </ShiftProvider>
         </MilitaryProvider>
+        </GradesProvider>
       </AcademicProvider>
     </AuthProvider>
     </InterfaceThemeProvider>
