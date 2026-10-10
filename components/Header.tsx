@@ -108,10 +108,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">{militaryProfile?.name || profile?.name || 'Usuário'}</p>
               <p className="text-[10px] text-slate-500 font-medium mt-1">{militaryProfile?.rank || profile?.rank || 'Militar'}</p>
             </div>
-            {militaryProfile?.id && <Avatar seed={militaryProfile.id} size={36} fallback="none" />}
-            <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden text-orange-600 dark:text-orange-400 font-black text-xs">
-              {militaryProfile?.antiguidade || '-'}
-            </div>
+            <Link to="/personal" title="Meu Perfil" className="flex items-center gap-2 lg:gap-3">
+              {militaryProfile?.id && <Avatar seed={militaryProfile.id} size={36} fallback="none" />}
+              <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden text-orange-600 dark:text-orange-400 font-black text-xs">
+                {militaryProfile?.antiguidade || '-'}
+              </div>
+            </Link>
           </div>
 
           <button
