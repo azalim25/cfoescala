@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { PageId, NAV_LINKS } from '../constants';
 import { useInterfaceTheme } from '../contexts/InterfaceThemeContext';
 import Avatar from './Avatar';
+import BrasaoVideoModal from './BrasaoVideoModal';
 
 interface HeaderProps {
   activePage: PageId;
@@ -18,6 +19,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const { interfaceTheme, toggleInterfaceTheme } = useInterfaceTheme();
   const [profile, setProfile] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
   const navigate = useNavigate();
 
   const militaryProfile = useMemo(() => {
@@ -56,13 +58,15 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="w-full px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-4 lg:gap-8">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/guarani-emblem.png" alt="Brasão Guarani" className="w-9 h-9 lg:w-10 lg:h-10 rounded-lg shrink-0 object-cover" />
-            <div className="truncate">
+          <div className="flex items-center gap-2">
+            <button onClick={() => setIsVideoOpen(true)} title="Ver o brasão da turma" className="shrink-0">
+              <img src="/guarani-emblem.png" alt="Brasão Guarani" className="w-9 h-9 lg:w-10 lg:h-10 rounded-lg shrink-0 object-cover" />
+            </button>
+            <Link to="/" className="truncate">
               <h1 className="font-bold text-sm lg:text-lg leading-tight tracking-tight text-slate-900 dark:text-white truncate">CFO • GUARANI</h1>
               <p className="text-[8px] lg:text-[10px] text-slate-500 font-medium tracking-widest uppercase">Sistema de Gestão</p>
-            </div>
-          </Link>
+            </Link>
+          </div>
 
         </div>
 
@@ -144,7 +148,9 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         <div className="p-4 flex flex-col h-full">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-2">
-              <img src="/guarani-emblem.png" alt="Brasão Guarani" className="w-8 h-8 rounded object-cover" />
+              <button onClick={() => setIsVideoOpen(true)} title="Ver o brasão da turma">
+                <img src="/guarani-emblem.png" alt="Brasão Guarani" className="w-8 h-8 rounded object-cover" />
+              </button>
               <span className="font-bold text-sm dark:text-white">GUARANI</span>
             </div>
             <button
@@ -230,6 +236,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           </div>
         </div>
       </div>
+
+      <BrasaoVideoModal isOpen={isVideoOpen} onClose={() => setIsVideoOpen(false)} />
     </>
   );
 };
