@@ -17,6 +17,7 @@ import { stripGroupId } from '../utils/formatUtils';
 import { fetchAllRows } from '../utils/supabaseUtils';
 import { computeCfoSummary, disciplineWeight } from '../utils/gradeUtils';
 import { hashNotesPassword, verifyNotesPassword } from '../utils/notesPasswordUtils';
+import { sortDisciplinesByOrder } from '../utils/disciplineOrder';
 
 interface ExtraHourRecord {
   id: string;
@@ -1271,7 +1272,7 @@ const PersonalShiftPage: React.FC = () => {
                   )}
                   <p className="px-4 pt-3 pb-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">Notas por disciplina (CFO II)</p>
                   <div className="max-h-72 overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800">
-                    {[...disciplines].sort((a, b) => a.name.localeCompare(b.name)).map(d => {
+                    {sortDisciplinesByOrder(disciplines).map(d => {
                       const grade = grades.find(g => g.militaryId === myMilitary!.id && g.disciplineId === d.id);
                       const hasScore = grade?.score !== null && grade?.score !== undefined;
                       return (

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../supabase';
 import { Discipline, AcademicSchedule, AcademicTimeSlot } from '../types';
+import { sortDisciplinesByOrder } from '../utils/disciplineOrder';
 
 interface AcademicContextType {
     disciplines: Discipline[];
@@ -38,12 +39,12 @@ export const AcademicProvider: React.FC<{ children: ReactNode }> = ({ children }
             ]);
 
             if (discRes.data) {
-                setDisciplines(discRes.data.map(d => ({
+                setDisciplines(sortDisciplinesByOrder(discRes.data.map(d => ({
                     id: d.id,
                     name: d.name,
                     totalHours: d.total_hours,
                     mostraProvaFeita: d.mostra_prova_feita || false
-                })));
+                }))));
             }
 
             if (schRes.data) {

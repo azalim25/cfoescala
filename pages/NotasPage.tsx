@@ -7,6 +7,7 @@ import { useAcademic } from '../contexts/AcademicContext';
 import { useGrades } from '../contexts/GradesContext';
 import { supabase } from '../supabase';
 import { disciplineWeight, rankMilitaries } from '../utils/gradeUtils';
+import { sortDisciplinesByOrder } from '../utils/disciplineOrder';
 
 const NOTAS_CONTROLLER_PASSWORD = 'trindade182';
 
@@ -41,7 +42,7 @@ const NotasPage: React.FC = () => {
     const isTrindade = !!userProfile?.name?.toLowerCase().includes('trindade');
 
     const sortedDisciplines = useMemo(() =>
-        [...disciplines].sort((a, b) => a.name.localeCompare(b.name))
+        sortDisciplinesByOrder(disciplines)
         , [disciplines]);
 
     useEffect(() => {
