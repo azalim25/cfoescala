@@ -15,7 +15,7 @@ import { SHIFT_TYPE_COLORS, SHIFT_TYPE_PRIORITY } from '../constants';
 import { safeParseISO } from '../utils/dateUtils';
 import { stripGroupId } from '../utils/formatUtils';
 import { fetchAllRows } from '../utils/supabaseUtils';
-import { computeCfoSummary, disciplineWeight } from '../utils/gradeUtils';
+import { disciplineWeight, CfoSummary } from '../utils/gradeUtils';
 import { hashNotesPassword, verifyNotesPassword } from '../utils/notesPasswordUtils';
 import { sortDisciplinesByOrder } from '../utils/disciplineOrder';
 
@@ -300,11 +300,27 @@ const PersonalShiftPage: React.FC = () => {
 
   // Grades are strictly individual: only ever computed/shown for the
   // logged-in person's own profile, never for whoever a moderator is
-  // currently browsing.
-  const myGradeSummary = useMemo(() => {
-    if (!myMilitary) return null;
-    return computeCfoSummary(myMilitary.id, militaries, grades, disciplines);
-  }, [myMilitary, grades, disciplines, militaries]);
+  // currently browsing. The average/rank is computed server-side (RPC)
+  // so other cadets' raw scores never reach this browser.
+  const [myGradeSummary, setMyGradeSummary] = useState<CfoSummary | null>(null);
+
+  useEffect(() => {
+    if (!myMilitary) {
+      setMyGradeSummary(null);
+      return;
+    }
+    let cancelled = false;
+    supabase.rpc('get_my_cfo_summary').then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error('Erro ao buscar resumo de notas:', error);
+        setMyGradeSummary(null);
+        return;
+      }
+      setMyGradeSummary(data as CfoSummary);
+    });
+    return () => { cancelled = true; };
+  }, [myMilitary?.id]);
 
   const getCurrentPeriodSemesterName = () => {
     const currentDate = new Date();
