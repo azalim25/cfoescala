@@ -75,8 +75,9 @@ const AuthPage: React.FC = () => {
                 if (signUpError) throw signUpError;
 
                 if (data.user) {
-                    const isModeratorAccount = loginMode === 'moderator' || isKnownModerator;
-
+                    // O papel de moderador nunca é concedido no cadastro — só depois,
+                    // fazendo login no modo "Moderador" com a senha correta (validada
+                    // no banco por request_moderator_access, não no navegador).
                     const { error: profileError } = await supabase
                         .from('profiles')
                         .upsert([
@@ -84,7 +85,7 @@ const AuthPage: React.FC = () => {
                                 id: data.user.id,
                                 name: cleanName,
                                 firefighter_number: cleanNumber,
-                                role: isModeratorAccount ? 'moderator' : 'user'
+                                role: 'user'
                             }
                         ]);
 
@@ -94,39 +95,10 @@ const AuthPage: React.FC = () => {
                     setIsSignUp(false);
                 }
             } else {
-                // MODERATOR PASSWORD VALIDATION
-                const lowerName = cleanName.toLowerCase();
-                const normalizedInputNumber = cleanNumber.replace(/\D/g, '');
-                const isAzalim = lowerName.includes('azalim');
-                const isVilela = lowerName.includes('vilela') || normalizedInputNumber === '1800572';
-                const isSilvestre = lowerName.includes('silvestre');
-
-                if (loginMode === 'moderator') {
-                    if (isAzalim) {
-                        if (password !== '71200729fA') {
-                            setError('Senha de moderador incorreta.');
-                            setLoading(false);
-                            return;
-                        }
-                    } else if (isVilela) {
-                        if (password !== 'vilela180') {
-                            setError('Senha de moderador incorreta.');
-                            setLoading(false);
-                            return;
-                        }
-                    } else if (isSilvestre) {
-                        if (password !== 'joana188') {
-                            setError('Senha de moderador incorreta.');
-                            setLoading(false);
-                            return;
-                        }
-                    } else {
-                        if (!password) {
-                            setError('Acesso de moderador requer uma senha.');
-                            setLoading(false);
-                            return;
-                        }
-                    }
+                if (loginMode === 'moderator' && !password) {
+                    setError('Acesso de moderador requer uma senha.');
+                    setLoading(false);
+                    return;
                 }
 
                 // Simplified login: all users now use the universal internal password
@@ -138,16 +110,24 @@ const AuthPage: React.FC = () => {
                 if (signInError) throw signInError;
 
                 if (signInData?.user) {
-                    const isModeratorLogin = loginMode === 'moderator' || isAzalim || isVilela || isSilvestre;
-                    if (isModeratorLogin) {
-                        await supabase
-                            .from('profiles')
-                            .upsert({
-                                id: signInData.user.id,
-                                name: cleanName,
-                                firefighter_number: cleanNumber,
-                                role: 'moderator'
-                            });
+                    await supabase
+                        .from('profiles')
+                        .upsert({
+                            id: signInData.user.id,
+                            name: cleanName,
+                            firefighter_number: cleanNumber,
+                        });
+
+                    if (loginMode === 'moderator') {
+                        // A senha é validada no banco (request_moderator_access), não
+                        // mais comparada diretamente aqui no código do navegador.
+                        const { data: granted, error: rpcError } = await supabase.rpc('request_moderator_access', { p_password: password });
+                        if (rpcError || !granted) {
+                            setError('Senha de moderador incorreta.');
+                            await supabase.auth.signOut();
+                            setLoading(false);
+                            return;
+                        }
                     }
                 }
 
