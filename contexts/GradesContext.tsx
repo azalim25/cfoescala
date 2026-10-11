@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '../supabase';
 import { Grade } from '../types';
 import { fetchAllRows } from '../utils/supabaseUtils';
+import { useAuth } from './AuthContext';
 
 interface GradesContextType {
     grades: Grade[];
@@ -13,6 +14,7 @@ interface GradesContextType {
 const GradesContext = createContext<GradesContextType | undefined>(undefined);
 
 export const GradesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const { session, loading: authLoading } = useAuth();
     const [grades, setGrades] = useState<Grade[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -35,8 +37,14 @@ export const GradesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
 
     useEffect(() => {
-        fetchGrades();
-    }, []);
+        // A leitura de notas agora exige sessão autenticada (RLS). Esperar o
+        // AuthContext terminar de restaurar a sessão evita buscar antes do
+        // token estar pronto (o que voltaria uma lista vazia) e refaz a
+        // busca sempre que o usuário logado mudar.
+        if (!authLoading) {
+            fetchGrades();
+        }
+    }, [authLoading, session?.user?.id]);
 
     const setGrade = async (militaryId: string, disciplineId: string, score: number | null) => {
         const { error } = await supabase
