@@ -21,7 +21,7 @@ const ContactsPage: React.FC = () => {
   const [authCode, setAuthCode] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [sortBy, setSortBy] = useState<'name' | 'antiguidade'>('name');
+  const [sortBy, setSortBy] = useState<'name' | 'antiguidade'>('antiguidade');
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
