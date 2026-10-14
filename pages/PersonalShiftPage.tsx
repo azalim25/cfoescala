@@ -149,7 +149,7 @@ const ShiftCard = React.memo(({ s, holidays }: { s: any, holidays: any[] }) => {
 });
 
 const PersonalShiftPage: React.FC = () => {
-  const { militaries, updateAvatarConfig, setNotesPassword } = useMilitary();
+  const { militaries, updateAvatarConfig, setNotesPassword, setHideCfoRanking } = useMilitary();
   const { interfaceTheme } = useInterfaceTheme();
   const { shifts: allShifts, preferences, addPreference, removePreference, holidays, isMonthHidden } = useShift();
   const { schedule, disciplines } = useAcademic();
@@ -1252,6 +1252,17 @@ const PersonalShiftPage: React.FC = () => {
                   )
                 ) : (
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-end px-4 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => myMilitary && setHideCfoRanking(myMilitary.id, !myMilitary.hideCfoRanking)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary transition-all"
+                      title={myMilitary?.hideCfoRanking ? 'Mostrar classificação do CFO II e Geral' : 'Ocultar classificação do CFO II e Geral'}
+                    >
+                      <span className="material-symbols-outlined text-sm">{myMilitary?.hideCfoRanking ? 'visibility' : 'visibility_off'}</span>
+                      {myMilitary?.hideCfoRanking ? 'Mostrar classificação' : 'Ocultar classificação'}
+                    </button>
+                  </div>
                   <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
                     <div className="p-3 sm:p-4 text-center">
                       <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">CFO I</p>
@@ -1264,21 +1275,39 @@ const PersonalShiftPage: React.FC = () => {
                     </div>
                     <div className="p-3 sm:p-4 text-center">
                       <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">CFO II</p>
-                      <p className="text-lg sm:text-2xl font-black text-slate-800 dark:text-white">
-                        {myGradeSummary.cfo2.average.toFixed(3)}
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-slate-400 font-bold mt-0.5">
-                        {myGradeSummary.cfo2.rank ? `${myGradeSummary.cfo2.rank}º` : '—'} / {myGradeSummary.totalMilitaries}
-                      </p>
+                      {myMilitary?.hideCfoRanking ? (
+                        <p className="text-xs text-slate-300 dark:text-slate-600 italic font-bold mt-2 flex flex-col items-center gap-1">
+                          <span className="material-symbols-outlined text-lg">visibility_off</span>
+                          Oculto
+                        </p>
+                      ) : (
+                        <>
+                          <p className="text-lg sm:text-2xl font-black text-slate-800 dark:text-white">
+                            {myGradeSummary.cfo2.average.toFixed(3)}
+                          </p>
+                          <p className="text-[10px] sm:text-xs text-slate-400 font-bold mt-0.5">
+                            {myGradeSummary.cfo2.rank ? `${myGradeSummary.cfo2.rank}º` : '—'} / {myGradeSummary.totalMilitaries}
+                          </p>
+                        </>
+                      )}
                     </div>
                     <div className="p-3 sm:p-4 text-center bg-primary/5">
                       <p className="text-[9px] sm:text-[10px] font-black text-primary uppercase tracking-widest mb-1">Geral</p>
-                      <p className="text-lg sm:text-2xl font-black text-primary">
-                        {myGradeSummary.overall.average !== null ? myGradeSummary.overall.average.toFixed(3) : '—'}
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-primary/70 font-bold mt-0.5">
-                        {myGradeSummary.overall.rank ? `${myGradeSummary.overall.rank}º` : '—'} / {myGradeSummary.totalMilitaries}
-                      </p>
+                      {myMilitary?.hideCfoRanking ? (
+                        <p className="text-xs text-primary/40 italic font-bold mt-2 flex flex-col items-center gap-1">
+                          <span className="material-symbols-outlined text-lg">visibility_off</span>
+                          Oculto
+                        </p>
+                      ) : (
+                        <>
+                          <p className="text-lg sm:text-2xl font-black text-primary">
+                            {myGradeSummary.overall.average !== null ? myGradeSummary.overall.average.toFixed(3) : '—'}
+                          </p>
+                          <p className="text-[10px] sm:text-xs text-primary/70 font-bold mt-0.5">
+                            {myGradeSummary.overall.rank ? `${myGradeSummary.overall.rank}º` : '—'} / {myGradeSummary.totalMilitaries}
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                   {myGradeSummary.cfo2.pendingDisciplines.length > 0 && (
