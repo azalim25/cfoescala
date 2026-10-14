@@ -297,7 +297,13 @@ const DashboardPage: React.FC = () => {
 
     if (!editingShift) {
       if (formData.type === 'Comandante da Guarda') {
-        if (isWeekend || isHoliday) {
+        if (formData.duration === 6) {
+          // Opção de 6 horas: duração fixa, horário opcional (usa o que foi
+          // preenchido, ou um padrão razoável se o moderador não escolher).
+          finalStartTime = formData.startTime || '20:00';
+          finalEndTime = formData.endTime || '02:00';
+          finalDuration = 6;
+        } else if (isWeekend || isHoliday) {
           finalStartTime = '06:30';
           finalEndTime = '06:30';
           finalDuration = 24;
@@ -1437,6 +1443,60 @@ const DashboardPage: React.FC = () => {
                       />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {formData.type === 'Comandante da Guarda' && (
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Duração</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, duration: 11, startTime: '20:00', endTime: '06:30' }))}
+                        className={`py-2 px-2 rounded-lg text-[10px] font-bold border transition-all ${formData.duration === 11 ? 'bg-primary text-white border-primary shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'}`}
+                      >
+                        Dia Útil (20h–06h30)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, duration: 24, startTime: '06:30', endTime: '06:30' }))}
+                        className={`py-2 px-2 rounded-lg text-[10px] font-bold border transition-all ${formData.duration === 24 ? 'bg-primary text-white border-primary shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'}`}
+                      >
+                        FDS/Feriado (24h)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, duration: 6, startTime: prev.startTime || '20:00', endTime: prev.endTime || '02:00' }))}
+                        className={`py-2 px-2 rounded-lg text-[10px] font-bold border transition-all ${formData.duration === 6 ? 'bg-primary text-white border-primary shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'}`}
+                      >
+                        6 Horas
+                      </button>
+                    </div>
+                  </div>
+
+                  {formData.duration === 6 && (
+                    <div className="grid grid-cols-2 gap-4 pt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Início (opcional)</label>
+                        <input
+                          type="time"
+                          value={formData.startTime}
+                          onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                          className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fim (opcional)</label>
+                        <input
+                          type="time"
+                          value={formData.endTime}
+                          onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                          className="w-full h-11 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
