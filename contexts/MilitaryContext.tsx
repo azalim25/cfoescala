@@ -10,6 +10,7 @@ interface MilitaryContextType {
     deleteMilitary: (id: string) => void;
     updateAvatarConfig: (id: string, avatarConfig: AvatarConfig) => Promise<void>;
     setNotesPassword: (id: string, hash: string, salt: string) => Promise<void>;
+    setHideCfoRanking: (id: string, hide: boolean) => Promise<void>;
 }
 
 const MilitaryContext = createContext<MilitaryContextType | undefined>(undefined);
@@ -43,7 +44,8 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
                     avatarConfig: m.avatar_config || undefined,
                     cfo1Average: m.cfo1_average ?? null,
                     notesPasswordHash: m.notes_password_hash ?? null,
-                    notesPasswordSalt: m.notes_password_salt ?? null
+                    notesPasswordSalt: m.notes_password_salt ?? null,
+                    hideCfoRanking: m.hide_cfo_ranking ?? false
                 }));
                 setMilitaries(mappedData);
             }
@@ -125,6 +127,20 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     };
 
+    const setHideCfoRanking = async (id: string, hide: boolean) => {
+        const { error } = await supabase
+            .from('militaries')
+            .update({ hide_cfo_ranking: hide })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erro ao salvar preferência de classificação:', error);
+            alert('Erro ao salvar preferência: ' + error.message);
+        } else {
+            setMilitaries(prev => prev.map(m => m.id === id ? { ...m, hideCfoRanking: hide } : m));
+        }
+    };
+
     const deleteMilitary = async (id: string) => {
         const { error } = await supabase
             .from('militaries')
@@ -139,7 +155,7 @@ export const MilitaryProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     return (
-        <MilitaryContext.Provider value={{ militaries, addMilitary, updateMilitary, deleteMilitary, updateAvatarConfig, setNotesPassword }}>
+        <MilitaryContext.Provider value={{ militaries, addMilitary, updateMilitary, deleteMilitary, updateAvatarConfig, setNotesPassword, setHideCfoRanking }}>
             {children}
         </MilitaryContext.Provider>
     );

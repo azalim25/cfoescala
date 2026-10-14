@@ -42,6 +42,9 @@ export interface Military {
   // como hash (SHA-256) + salt, nunca em texto puro.
   notesPasswordHash?: string | null;
   notesPasswordSalt?: string | null;
+  // Preferência do próprio militar: oculta a classificação/média do CFO
+  // II e Geral em "Minhas Notas" (as notas individuais continuam visíveis).
+  hideCfoRanking?: boolean;
 }
 
 export interface Shift {
