@@ -368,8 +368,11 @@ const DashboardPage: React.FC = () => {
           for (const s of otherShifts) {
             await removeShift(s.id);
           }
-        } else {
-          // Single shift cleanup
+        } else if (formData.type === 'Escala Diversa') {
+          // Single (ungrouped) Escala Diversa cleanup — the loop below recreates
+          // it via the bulk-insert path. Every other type is updated in place
+          // further below, so its row must NOT be deleted here (doing so would
+          // orphan the subsequent updateShift call and silently drop the edit).
           await removeShift(editingShift.id);
           // Also cleanup any specific extra_hours for this military on the original date
           await supabase.from('extra_hours').delete()
@@ -1182,7 +1185,14 @@ const DashboardPage: React.FC = () => {
                                     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                                     return isWeekend || holidays.some(h => h.date === selectedDateStr);
                                   })();
-                                  if (s.type === 'Comandante da Guarda') return isWeekendOrHoliday ? ' • 06:30 - 06:30' : ' • 20:00 - 06:30';
+                                  if (s.type === 'Comandante da Guarda') {
+                                    if (s.duration === 6) {
+                                      const st = s.startTime || s.start_time;
+                                      const et = s.endTime || s.end_time;
+                                      if (st && et) return ` • ${st} - ${et}`;
+                                    }
+                                    return isWeekendOrHoliday ? ' • 06:30 - 06:30' : ' • 20:00 - 06:30';
+                                  }
                                   if (s.type === 'Manutenção') return ' • 06:00 - 07:30';
                                   const st = s.startTime || s.start_time;
                                   const et = s.endTime || s.end_time;
@@ -1467,7 +1477,7 @@ const DashboardPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, duration: 6, startTime: prev.startTime || '20:00', endTime: prev.endTime || '02:00' }))}
+                        onClick={() => setFormData(prev => ({ ...prev, duration: 6, startTime: prev.duration === 6 ? prev.startTime : '20:00', endTime: prev.duration === 6 ? prev.endTime : '02:00' }))}
                         className={`py-2 px-2 rounded-lg text-[10px] font-bold border transition-all ${formData.duration === 6 ? 'bg-primary text-white border-primary shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'}`}
                       >
                         6 Horas

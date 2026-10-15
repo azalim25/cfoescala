@@ -250,7 +250,11 @@ const GenerateScalePage: React.FC = () => {
         const dayOfWeek = date.getDay();
 
         if (formData.type === 'Comandante da Guarda') {
-            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+            if (formData.duration === 6) {
+                finalStartTime = formData.startTime === '08:00' ? '20:00' : (formData.startTime || '20:00');
+                finalEndTime = formData.endTime === '08:00' ? '02:00' : (formData.endTime || '02:00');
+                finalDuration = 6;
+            } else if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                 finalStartTime = '20:00';
                 finalEndTime = '06:30';
             } else {
@@ -614,10 +618,15 @@ const GenerateScalePage: React.FC = () => {
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-bold text-slate-400 uppercase">Duração (Horas)</label>
                                         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                                            {[11, 24].map(h => (
+                                            {[11, 24, 6].map(h => (
                                                 <button
                                                     key={h}
-                                                    onClick={() => setFormData({ ...formData, duration: h })}
+                                                    onClick={() => setFormData(prev => ({
+                                                        ...prev,
+                                                        duration: h,
+                                                        startTime: h === 6 ? (prev.duration === 6 ? prev.startTime : '20:00') : prev.startTime,
+                                                        endTime: h === 6 ? (prev.duration === 6 ? prev.endTime : '02:00') : prev.endTime
+                                                    }))}
                                                     className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${formData.duration === h
                                                         ? 'bg-white dark:bg-slate-700 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-600'
                                                         : 'text-slate-500 hover:text-slate-700'}`}
@@ -626,6 +635,28 @@ const GenerateScalePage: React.FC = () => {
                                                 </button>
                                             ))}
                                         </div>
+                                        {formData.duration === 6 && (
+                                            <div className="grid grid-cols-2 gap-3 pt-1 animate-in fade-in slide-in-from-top-1">
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-bold text-slate-400 uppercase">Início (opcional)</label>
+                                                    <input
+                                                        type="time"
+                                                        value={formData.startTime || '20:00'}
+                                                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                                                        className="w-full h-8 px-2 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-xs"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-bold text-slate-400 uppercase">Fim (opcional)</label>
+                                                    <input
+                                                        type="time"
+                                                        value={formData.endTime || '02:00'}
+                                                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                                                        className="w-full h-8 px-2 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary font-medium text-xs"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
