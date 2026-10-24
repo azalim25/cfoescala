@@ -2,15 +2,22 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { PageId, NAV_LINKS } from '../constants';
 import { useInterfaceTheme } from '../contexts/InterfaceThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarNavProps {
     activePage: PageId;
 }
 
+const useVisibleNavLinks = () => {
+    const { hasCfo1Access } = useAuth();
+    return NAV_LINKS.filter(link => !link.requiresCfo1Access || hasCfo1Access);
+};
+
 const NovaSidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
+    const visibleLinks = useVisibleNavLinks();
     return (
         <aside className="hidden lg:flex w-28 flex-col items-center sticky top-16 h-[calc(100vh-64px)] z-20 shrink-0 overflow-y-auto custom-scrollbar py-6 gap-1 bg-transparent">
-            {NAV_LINKS.map(link => (
+            {visibleLinks.map(link => (
                 <Link
                     key={link.id}
                     to={link.to}
@@ -36,12 +43,13 @@ const NovaSidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
 };
 
 const ClassicSidebarNav: React.FC<SidebarNavProps> = ({ activePage }) => {
+    const visibleLinks = useVisibleNavLinks();
     return (
         <aside className="hidden lg:flex w-72 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col sticky top-16 h-[calc(100vh-64px)] z-20 transition-all shrink-0 overflow-y-auto custom-scrollbar">
             <div className="p-6 border-b border-slate-50 dark:border-slate-800/50">
                 <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4">Navegação Principal</h3>
                 <nav className="space-y-1">
-                    {NAV_LINKS.map(link => (
+                    {visibleLinks.map(link => (
                         <Link
                             key={link.id}
                             to={link.to}

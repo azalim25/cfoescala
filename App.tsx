@@ -179,7 +179,7 @@ const App: React.FC = () => {
                   } />
 
                   <Route path="/cfo1" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requireCfo1Access={true}>
                       <Cfo1Page />
                     </ProtectedRoute>
                   } />

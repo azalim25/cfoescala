@@ -7,6 +7,7 @@ interface AuthContextType {
     session: Session | null;
     isGuest: boolean;
     isModerator: boolean;
+    hasCfo1Access: boolean;
     role: string | null;
     loginAsGuest: () => void;
     logout: () => Promise<void>;
@@ -20,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isGuest, setIsGuest] = useState<boolean>(false);
     const [role, setRole] = useState<string | null>(null);
     const [isModerator, setIsModerator] = useState<boolean>(false);
+    const [hasCfo1Access, setHasCfo1Access] = useState<boolean>(false);
     const [loading, setLoading] = useState(true);
 
     const fetchUserRole = async (userId: string) => {
@@ -40,6 +42,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setRole('visitor');
             setIsModerator(false);
         }
+
+        // Acesso à sessão CFO I é validado no banco (RLS), não aqui — esta
+        // chamada só reflete, para a navegação/UI, o que o servidor já decidiu.
+        const { data: cfo1Access } = await supabase.rpc('has_cfo1_access');
+        setHasCfo1Access(!!cfo1Access);
     };
 
     useEffect(() => {
@@ -71,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 } else {
                     setRole(null);
                     setIsModerator(false);
+                    setHasCfo1Access(false);
                 }
                 // If we get a real session, we are definitely NOT a guest
                 if (session) {
@@ -102,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ session, isGuest, isModerator, role, loginAsGuest, logout, loading }}>
+        <AuthContext.Provider value={{ session, isGuest, isModerator, hasCfo1Access, role, loginAsGuest, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

@@ -33,6 +33,12 @@ const snapToSlot = (mins: number): number => {
 
 const cardEndMinutes = (card: Cfo1ScheduleCard) => timeToMinutes(card.startTime) + card.durationMinutes;
 
+const formatHoursMinutes = (totalMinutes: number): string => {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
+};
+
 const cardsOverlap = (a: Cfo1ScheduleCard, b: Cfo1ScheduleCard) => {
   const aStart = timeToMinutes(a.startTime);
   const bStart = timeToMinutes(b.startTime);
@@ -96,7 +102,7 @@ interface DragPayload {
 }
 
 const Cfo1Page: React.FC = () => {
-  const { isModerator } = useAuth();
+  const { hasCfo1Access } = useAuth();
   const { militaries } = useMilitary();
   const {
     activityTemplates, scheduleCards, isLoading,
@@ -183,6 +189,16 @@ const Cfo1Page: React.FC = () => {
     return map;
   }, [cardsByDate]);
 
+  const hoursWorkedByMilitary = useMemo(() => {
+    const totals: Record<string, number> = {};
+    scheduleCards.forEach(card => {
+      if (card.cardType === 'military' && card.militaryId) {
+        totals[card.militaryId] = (totals[card.militaryId] || 0) + card.durationMinutes;
+      }
+    });
+    return totals;
+  }, [scheduleCards]);
+
   // --- Drag & drop ---
 
   const handleTemplateDragStart = (e: React.DragEvent, template: Cfo1ActivityTemplate) => {
@@ -205,7 +221,7 @@ const Cfo1Page: React.FC = () => {
   };
 
   const handleColumnDragOver = (e: React.DragEvent, date: string) => {
-    if (!isModerator) return;
+    if (!hasCfo1Access) return;
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
@@ -216,7 +232,7 @@ const Cfo1Page: React.FC = () => {
   const handleColumnDragLeave = () => setDragHover(null);
 
   const handleColumnDrop = async (e: React.DragEvent, date: string) => {
-    if (!isModerator) return;
+    if (!hasCfo1Access) return;
     e.preventDefault();
     const raw = e.dataTransfer.getData('application/json');
     const rect = e.currentTarget.getBoundingClientRect();
@@ -335,11 +351,10 @@ const Cfo1Page: React.FC = () => {
               </p>
             </div>
           </div>
-          {!isModerator && (
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
-              Somente visualização
-            </span>
-          )}
+          <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
+            <span className="material-symbols-outlined text-sm">lock</span>
+            Acesso restrito
+          </span>
         </div>
 
         {conflictMessages.length > 0 && (
@@ -416,10 +431,10 @@ const Cfo1Page: React.FC = () => {
                           <button
                             key={card.id}
                             type="button"
-                            draggable={isModerator}
+                            draggable={hasCfo1Access}
                             onDragStart={(e) => handleCardDragStart(e, card)}
-                            onClick={() => isModerator && openCardEditor(card)}
-                            className={`absolute rounded-lg border px-2 py-1 text-left overflow-hidden shadow-sm transition-all ${isModerator ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : 'cursor-default'} ${isConflict
+                            onClick={() => hasCfo1Access && openCardEditor(card)}
+                            className={`absolute rounded-lg border px-2 py-1 text-left overflow-hidden shadow-sm transition-all ${hasCfo1Access ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : 'cursor-default'} ${isConflict
                               ? 'bg-red-50 dark:bg-red-900/30 border-red-400 dark:border-red-600 ring-2 ring-red-400/50'
                               : isActivity
                                 ? 'bg-primary/10 border-primary/30'
@@ -437,8 +452,10 @@ const Cfo1Page: React.FC = () => {
                             <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">
                               {card.startTime} – {minutesToTime(cardEndMinutes(card))}
                             </span>
-                            {card.description && height > 44 && (
-                              <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate">{card.description}</p>
+                            {card.description && (isActivity ? height > 44 : true) && (
+                              <p className={`text-[9px] truncate ${isActivity ? 'text-slate-400 dark:text-slate-500' : 'text-emerald-600 dark:text-emerald-400 font-bold italic'}`}>
+                                {isActivity ? card.description : `→ ${card.description}`}
+                              </p>
                             )}
                           </button>
                         );
@@ -448,6 +465,46 @@ const Cfo1Page: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-4">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+            <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
+              <span className="material-symbols-outlined text-lg">schedule</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">Horas Trabalhadas</h3>
+              <p className="text-[10px] text-slate-500 font-medium">Total encaixado por militar na Semana Zero</p>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/50">
+                  <th className="px-4 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Militar</th>
+                  <th className="px-4 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Horas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedMilitaries.map(mil => {
+                  const totalMinutes = hoursWorkedByMilitary[mil.id] || 0;
+                  return (
+                    <tr key={mil.id} className="border-t border-slate-50 dark:border-slate-800">
+                      <td className="px-4 py-2 flex items-center gap-2">
+                        <Avatar seed={mil.id} size={22} fallback="none" />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{mil.rank} {mil.name}</span>
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <span className={`text-xs font-black ${totalMinutes > 0 ? 'text-primary' : 'text-slate-300 dark:text-slate-700'}`}>
+                          {totalMinutes > 0 ? formatHoursMinutes(totalMinutes) : '—'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </MainLayout.Content>
@@ -472,7 +529,7 @@ const Cfo1Page: React.FC = () => {
           <div className="p-4 space-y-3 max-h-[65vh] overflow-y-auto">
             {activeTab === 'activities' ? (
               <>
-                {isModerator && (
+                {hasCfo1Access && (
                   <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
                     <input
                       type="text"
@@ -548,9 +605,9 @@ const Cfo1Page: React.FC = () => {
                       </div>
                     ) : (
                       <div
-                        draggable={isModerator}
+                        draggable={hasCfo1Access}
                         onDragStart={(e) => handleTemplateDragStart(e, template)}
-                        className={`p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-start justify-between gap-2 ${isModerator ? 'cursor-grab active:cursor-grabbing hover:bg-primary/10' : ''} transition-all`}
+                        className={`p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-start justify-between gap-2 ${hasCfo1Access ? 'cursor-grab active:cursor-grabbing hover:bg-primary/10' : ''} transition-all`}
                       >
                         <div className="min-w-0">
                           <p className="text-xs font-black text-primary truncate">{template.name}</p>
@@ -559,7 +616,7 @@ const Cfo1Page: React.FC = () => {
                             <p className="text-[10px] text-slate-400 truncate">{template.defaultDescription}</p>
                           )}
                         </div>
-                        {isModerator && (
+                        {hasCfo1Access && (
                           <div className="flex gap-1 shrink-0">
                             <button onClick={() => startEditTemplate(template)} className="w-6 h-6 rounded-md bg-white dark:bg-slate-800 text-slate-400 hover:text-primary flex items-center justify-center border border-slate-200 dark:border-slate-700">
                               <span className="material-symbols-outlined text-xs">edit</span>
@@ -582,9 +639,9 @@ const Cfo1Page: React.FC = () => {
                 {sortedMilitaries.map(mil => (
                   <div
                     key={mil.id}
-                    draggable={isModerator}
+                    draggable={hasCfo1Access}
                     onDragStart={(e) => handleMilitaryDragStart(e, mil.id)}
-                    className={`p-2.5 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-2 ${isModerator ? 'cursor-grab active:cursor-grabbing hover:bg-emerald-100 dark:hover:bg-emerald-900/20' : ''} transition-all`}
+                    className={`p-2.5 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-2 ${hasCfo1Access ? 'cursor-grab active:cursor-grabbing hover:bg-emerald-100 dark:hover:bg-emerald-900/20' : ''} transition-all`}
                   >
                     <Avatar seed={mil.id} size={28} fallback="none" />
                     <div className="min-w-0">
@@ -651,11 +708,14 @@ const Cfo1Page: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Descrição</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase">
+                  {editingCard.cardType === 'military' ? 'O que vai fazer' : 'Descrição'}
+                </label>
                 <textarea
                   value={cardDraft.description}
                   onChange={(e) => setCardDraft(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
+                  placeholder={editingCard.cardType === 'military' ? 'Ex: Apoio na recepção dos calouros' : ''}
                   className="w-full px-3 py-2 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm resize-none"
                 />
               </div>
