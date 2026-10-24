@@ -464,7 +464,7 @@ const Cfo1Page: React.FC = () => {
             <div>
               <h2 className="font-bold text-lg text-slate-800 dark:text-slate-100">CFO I — Semana Zero</h2>
               <p className="text-xs text-slate-500 font-medium">
-                Turma Guarani (Aspirantes 2029) · 15 a 19/02/2027 · {CALENDAR_LABELS[activeCalendar]}
+                Aspirantes 2029 · 15 a 19/02/2027 · {CALENDAR_LABELS[activeCalendar]}
               </p>
             </div>
           </div>
