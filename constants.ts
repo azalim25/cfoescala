@@ -95,7 +95,7 @@ export const SHIFT_TYPE_PRIORITY: Record<string, number> = {
   'Barra': 8
 };
 
-export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'estado-maior-horas' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'notas' | 'barra-fixa' | 'statistics' | 'relatorio';
+export type PageId = 'dashboard' | 'contacts' | 'personal' | 'generate' | 'extra-hours' | 'ranking' | 'estado-maior' | 'estado-maior-horas' | 'funcoes-turma' | 'stage' | 'comandante-guarda' | 'stage-quantity' | 'hours-control' | 'qtm' | 'provas' | 'qdch' | 'notas' | 'barra-fixa' | 'statistics' | 'relatorio' | 'cfo1';
 
 export const STAGE_LOCATIONS = [
   'ABM',
@@ -107,6 +107,7 @@ export const STAGE_LOCATIONS = [
 export const NAV_LINKS = [
   { to: '/qtm', label: 'QTM', icon: 'event_note', id: 'qtm' as PageId },
   { to: '/', label: 'Calendário', icon: 'calendar_month', id: 'dashboard' as PageId },
+  { to: '/cfo1', label: 'CFO I', icon: 'event_available', id: 'cfo1' as PageId, requiresCfo1Access: true },
   { to: '/contacts', label: 'Contatos', icon: 'contact_page', id: 'contacts' as PageId },
   { to: '/personal', label: 'Meu Perfil', icon: 'person_pin', id: 'personal' as PageId },
   { to: '/extra-hours', label: 'Registro de Horas', icon: 'more_time', id: 'extra-hours' as PageId },

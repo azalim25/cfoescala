@@ -15,7 +15,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const { militaries } = useMilitary();
-  const { isModerator, logout } = useAuth();
+  const { isModerator, hasCfo1Access, logout } = useAuth();
   const { interfaceTheme, toggleInterfaceTheme } = useInterfaceTheme();
   const [profile, setProfile] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -177,7 +177,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               </div>
             </div>
 
-            {NAV_LINKS.map(link => (
+            {NAV_LINKS.filter(link => !link.requiresCfo1Access || hasCfo1Access).map(link => (
               <Link
                 key={link.id}
                 to={link.to}
