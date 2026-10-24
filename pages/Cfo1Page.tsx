@@ -4,7 +4,7 @@ import Avatar from '../components/Avatar';
 import { useAuth } from '../contexts/AuthContext';
 import { useMilitary } from '../contexts/MilitaryContext';
 import { useCfo1 } from '../contexts/Cfo1Context';
-import { Cfo1ActivityTemplate, Cfo1ScheduleCard } from '../types';
+import { Cfo1ActivityTemplate, Cfo1Calendar, Cfo1ScheduleCard, Cfo1Uniform, CFO1_UNIFORMS } from '../types';
 import { formatShortDate, getWeekday, safeParseISO } from '../utils/dateUtils';
 
 // Semana Zero do CFO (Aspirantes 2029): 15 a 19/02/2027.
@@ -13,6 +13,11 @@ const SEMANA_ZERO_DATES = ['2027-02-15', '2027-02-16', '2027-02-17', '2027-02-18
 const DAY_MINUTES = 24 * 60;
 const SLOT_MINUTES = 30;
 const PX_PER_MIN = 1.2; // 72px por hora
+
+const CALENDAR_LABELS: Record<Cfo1Calendar, string> = {
+  main: 'Calendário Principal',
+  b4: 'B4 - Auxiliares'
+};
 
 const minutesToTime = (mins: number): string => {
   const clamped = Math.max(0, Math.min(DAY_MINUTES - 1, mins));
@@ -110,12 +115,13 @@ const Cfo1Page: React.FC = () => {
     addScheduleCard, updateScheduleCard, removeScheduleCard
   } = useCfo1();
 
+  const [activeCalendar, setActiveCalendar] = useState<Cfo1Calendar>('main');
   const [activeTab, setActiveTab] = useState<'activities' | 'militaries'>('activities');
   const [newActivity, setNewActivity] = useState({ name: '', duration: 30, description: '' });
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [templateDraft, setTemplateDraft] = useState({ name: '', duration: 30, description: '' });
   const [editingCard, setEditingCard] = useState<Cfo1ScheduleCard | null>(null);
-  const [cardDraft, setCardDraft] = useState({ title: '', duration: 30, description: '' });
+  const [cardDraft, setCardDraft] = useState<{ title: string; duration: number; description: string; uniform: Cfo1Uniform | '' }>({ title: '', duration: 30, description: '', uniform: '' });
   const [dragHover, setDragHover] = useState<{ date: string; minutes: number } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -132,7 +138,15 @@ const Cfo1Page: React.FC = () => {
     });
   }, [militaries]);
 
-  const cardsByDate = useMemo(() => {
+  const visibleTemplates = useMemo(
+    () => activityTemplates.filter(t => t.calendar === activeCalendar),
+    [activityTemplates, activeCalendar]
+  );
+
+  // Cards de todos os calendários juntos — usado só para detectar conflito
+  // de militar (que precisa valer entre o Principal e o B4) e para listar
+  // conflitos de atividade por calendário.
+  const cardsByDateAll = useMemo(() => {
     const map: Record<string, Cfo1ScheduleCard[]> = {};
     SEMANA_ZERO_DATES.forEach(d => { map[d] = []; });
     scheduleCards.forEach(c => {
@@ -140,6 +154,16 @@ const Cfo1Page: React.FC = () => {
     });
     return map;
   }, [scheduleCards]);
+
+  // Cards só do calendário atualmente visível — é com base nisso que a
+  // grade, o layout de colunas e o encaixe dentro de atividades funcionam.
+  const cardsByDate = useMemo(() => {
+    const map: Record<string, Cfo1ScheduleCard[]> = {};
+    SEMANA_ZERO_DATES.forEach(d => {
+      map[d] = (cardsByDateAll[d] || []).filter(c => c.calendar === activeCalendar);
+    });
+    return map;
+  }, [cardsByDateAll, activeCalendar]);
 
   // Cards de militar encaixados dentro de uma atividade não ocupam coluna
   // própria na grade — só os cards "de primeiro nível" (atividades e
@@ -155,13 +179,13 @@ const Cfo1Page: React.FC = () => {
   const linkedCardsByActivityId = useMemo(() => {
     const map: Record<string, Cfo1ScheduleCard[]> = {};
     scheduleCards.forEach(c => {
-      if (c.cardType === 'military' && c.linkedActivityCardId) {
+      if (c.calendar === activeCalendar && c.cardType === 'military' && c.linkedActivityCardId) {
         if (!map[c.linkedActivityCardId]) map[c.linkedActivityCardId] = [];
         map[c.linkedActivityCardId].push(c);
       }
     });
     return map;
-  }, [scheduleCards]);
+  }, [scheduleCards, activeCalendar]);
 
   const findActivityAt = (date: string, mins: number): Cfo1ScheduleCard | undefined => {
     return (cardsByDate[date] || []).find(c =>
@@ -174,20 +198,30 @@ const Cfo1Page: React.FC = () => {
   const { conflictIds, conflictMessages } = useMemo(() => {
     const ids = new Set<string>();
     const messages: string[] = [];
+    const calendars: Cfo1Calendar[] = ['main', 'b4'];
 
     SEMANA_ZERO_DATES.forEach(date => {
-      const dayCards = cardsByDate[date] || [];
-      const activities = dayCards.filter(c => c.cardType === 'activity');
-      for (let i = 0; i < activities.length; i++) {
-        for (let j = i + 1; j < activities.length; j++) {
-          if (cardsOverlap(activities[i], activities[j])) {
-            ids.add(activities[i].id);
-            ids.add(activities[j].id);
-            messages.push(`${formatShortDate(date)}: as atividades "${activities[i].title || 'Sem título'}" (${activities[i].startTime}) e "${activities[j].title || 'Sem título'}" (${activities[j].startTime}) se sobrepõem.`);
+      const dayCards = cardsByDateAll[date] || [];
+
+      // Conflito de atividade: só conta dentro do mesmo calendário — uma
+      // sub-equipe pode estar na Logística (B4) enquanto o grupo principal
+      // faz outra coisa ao mesmo tempo, isso não é conflito.
+      calendars.forEach(cal => {
+        const activities = dayCards.filter(c => c.calendar === cal && c.cardType === 'activity');
+        for (let i = 0; i < activities.length; i++) {
+          for (let j = i + 1; j < activities.length; j++) {
+            if (cardsOverlap(activities[i], activities[j])) {
+              ids.add(activities[i].id);
+              ids.add(activities[j].id);
+              messages.push(`${formatShortDate(date)} (${CALENDAR_LABELS[cal]}): as atividades "${activities[i].title || 'Sem título'}" (${activities[i].startTime}) e "${activities[j].title || 'Sem título'}" (${activities[j].startTime}) se sobrepõem.`);
+            }
           }
         }
-      }
+      });
 
+      // Conflito de militar: verificado somando os dois calendários — um
+      // militar não pode estar escalado em dois lugares ao mesmo tempo,
+      // esteja a atividade no Principal ou no B4.
       const byMilitary: Record<string, Cfo1ScheduleCard[]> = {};
       dayCards.filter(c => c.cardType === 'military' && c.militaryId).forEach(c => {
         const key = c.militaryId as string;
@@ -201,7 +235,11 @@ const Cfo1Page: React.FC = () => {
               ids.add(milCards[i].id);
               ids.add(milCards[j].id);
               const mil = militaries.find(m => m.id === milId);
-              messages.push(`${formatShortDate(date)}: ${mil ? `${mil.rank} ${mil.name}` : 'Militar'} está escalado em dois horários sobrepostos (${milCards[i].startTime} e ${milCards[j].startTime}).`);
+              const crossCalendar = milCards[i].calendar !== milCards[j].calendar;
+              const calendarNote = crossCalendar
+                ? ` (${CALENDAR_LABELS[milCards[i].calendar]} e ${CALENDAR_LABELS[milCards[j].calendar]})`
+                : '';
+              messages.push(`${formatShortDate(date)}: ${mil ? `${mil.rank} ${mil.name}` : 'Militar'} está escalado em dois horários sobrepostos${calendarNote} (${milCards[i].startTime} e ${milCards[j].startTime}).`);
             }
           }
         }
@@ -209,7 +247,7 @@ const Cfo1Page: React.FC = () => {
     });
 
     return { conflictIds: ids, conflictMessages: messages };
-  }, [cardsByDate, militaries]);
+  }, [cardsByDateAll, militaries]);
 
   const cardLayoutsByDate = useMemo(() => {
     const map: Record<string, Map<string, CardLayout>> = {};
@@ -283,6 +321,7 @@ const Cfo1Page: React.FC = () => {
       const template = activityTemplates.find(t => t.id === payload.templateId);
       if (!template) return;
       await addScheduleCard({
+        calendar: activeCalendar,
         cardType: 'activity',
         activityTemplateId: template.id,
         title: template.name,
@@ -297,6 +336,7 @@ const Cfo1Page: React.FC = () => {
       const hostActivity = findActivityAt(date, mins);
       if (hostActivity) {
         await addScheduleCard({
+          calendar: activeCalendar,
           cardType: 'military',
           militaryId: payload.militaryId,
           durationMinutes: hostActivity.durationMinutes,
@@ -307,6 +347,7 @@ const Cfo1Page: React.FC = () => {
         });
       } else {
         await addScheduleCard({
+          calendar: activeCalendar,
           cardType: 'military',
           militaryId: payload.militaryId,
           durationMinutes: SLOT_MINUTES,
@@ -348,6 +389,7 @@ const Cfo1Page: React.FC = () => {
   const handleCreateTemplate = async () => {
     if (!newActivity.name.trim()) return;
     await addActivityTemplate({
+      calendar: activeCalendar,
       name: newActivity.name.trim(),
       defaultDurationMinutes: newActivity.duration || 30,
       defaultDescription: newActivity.description.trim()
@@ -380,7 +422,12 @@ const Cfo1Page: React.FC = () => {
 
   const openCardEditor = (card: Cfo1ScheduleCard) => {
     setEditingCard(card);
-    setCardDraft({ title: card.title || '', duration: card.durationMinutes, description: card.description || '' });
+    setCardDraft({
+      title: card.title || '',
+      duration: card.durationMinutes,
+      description: card.description || '',
+      uniform: card.uniform || ''
+    });
   };
 
   const saveCardEdit = async () => {
@@ -391,6 +438,8 @@ const Cfo1Page: React.FC = () => {
     };
     if (editingCard.cardType === 'activity') {
       updates.title = cardDraft.title.trim() || 'Sem título';
+    } else {
+      updates.uniform = cardDraft.uniform || null;
     }
     await updateScheduleCard(editingCard.id, updates);
     setEditingCard(null);
@@ -415,7 +464,7 @@ const Cfo1Page: React.FC = () => {
             <div>
               <h2 className="font-bold text-lg text-slate-800 dark:text-slate-100">CFO I — Semana Zero</h2>
               <p className="text-xs text-slate-500 font-medium">
-                Turma Guarani (Aspirantes 2029) · 15 a 19/02/2027
+                Turma Guarani (Aspirantes 2029) · 15 a 19/02/2027 · {CALENDAR_LABELS[activeCalendar]}
               </p>
             </div>
           </div>
@@ -423,6 +472,21 @@ const Cfo1Page: React.FC = () => {
             <span className="material-symbols-outlined text-sm">lock</span>
             Acesso restrito
           </span>
+        </div>
+
+        <div className="flex items-center gap-2 mb-2">
+          {(['main', 'b4'] as Cfo1Calendar[]).map(cal => (
+            <button
+              key={cal}
+              onClick={() => setActiveCalendar(cal)}
+              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all border ${activeCalendar === cal
+                ? 'bg-primary text-white border-primary shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800 hover:text-primary'
+                }`}
+            >
+              {CALENDAR_LABELS[cal]}
+            </button>
+          ))}
         </div>
 
         {conflictMessages.length > 0 && (
@@ -525,6 +589,11 @@ const Cfo1Page: React.FC = () => {
                             <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">
                               {card.startTime} – {minutesToTime(cardEndMinutes(card))}
                             </span>
+                            {!isActivity && card.uniform && (
+                              <p className="text-[9px] font-black text-emerald-700 dark:text-emerald-300">
+                                Fardamento: {card.uniform}
+                              </p>
+                            )}
                             {card.description && (isActivity ? height > 44 : true) && (
                               <p className={`text-[9px] truncate ${isActivity ? 'text-slate-400 dark:text-slate-500' : 'text-emerald-600 dark:text-emerald-400 font-bold italic'}`}>
                                 {isActivity ? card.description : `→ ${card.description}`}
@@ -541,7 +610,7 @@ const Cfo1Page: React.FC = () => {
                                       type="button"
                                       draggable={false}
                                       onClick={(e) => { e.stopPropagation(); if (hasCfo1Access) openCardEditor(mc); }}
-                                      title={mcMil ? `${mcMil.rank} ${mcMil.name}${mc.description ? ' — ' + mc.description : ''}` : 'Militar'}
+                                      title={mcMil ? `${mcMil.rank} ${mcMil.name}${mc.uniform ? ' — ' + mc.uniform : ''}${mc.description ? ' — ' + mc.description : ''}` : 'Militar'}
                                       className={`flex items-center justify-center rounded-full border transition-all ${mcConflict
                                         ? 'bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-600 ring-1 ring-red-400'
                                         : 'bg-white/80 dark:bg-slate-900/50 border-emerald-300 dark:border-emerald-700 hover:border-emerald-500'
@@ -572,7 +641,7 @@ const Cfo1Page: React.FC = () => {
             </div>
             <div>
               <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">Horas Trabalhadas</h3>
-              <p className="text-[10px] text-slate-500 font-medium">Total encaixado por militar na Semana Zero</p>
+              <p className="text-[10px] text-slate-500 font-medium">Total encaixado por militar na Semana Zero (Principal + B4)</p>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -626,6 +695,10 @@ const Cfo1Page: React.FC = () => {
           <div className="p-4 space-y-3 max-h-[65vh] overflow-y-auto">
             {activeTab === 'activities' ? (
               <>
+                <p className="text-[9px] font-bold text-primary uppercase tracking-widest pl-1">
+                  {CALENDAR_LABELS[activeCalendar]}
+                </p>
+
                 {hasCfo1Access && (
                   <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
                     <input
@@ -667,11 +740,11 @@ const Cfo1Page: React.FC = () => {
                   Arraste um card para o calendário
                 </p>
 
-                {activityTemplates.length === 0 && (
+                {visibleTemplates.length === 0 && (
                   <p className="text-xs text-slate-400 italic text-center py-6">Nenhuma atividade cadastrada ainda.</p>
                 )}
 
-                {activityTemplates.map(template => (
+                {visibleTemplates.map(template => (
                   <div key={template.id}>
                     {editingTemplateId === template.id ? (
                       <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-primary/30">
@@ -731,7 +804,7 @@ const Cfo1Page: React.FC = () => {
             ) : (
               <>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-1">
-                  Arraste um militar para o calendário (pode repetir)
+                  Arraste um militar para o calendário ({CALENDAR_LABELS[activeCalendar]}, pode repetir)
                 </p>
                 {sortedMilitaries.map(mil => (
                   <div
@@ -767,7 +840,7 @@ const Cfo1Page: React.FC = () => {
             </div>
             <div className="p-6 space-y-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                {formatShortDate(editingCard.date)} · {editingCard.startTime}
+                {formatShortDate(editingCard.date)} · {editingCard.startTime} · {CALENDAR_LABELS[editingCard.calendar]}
               </p>
 
               {editingCard.cardType === 'activity' ? (
@@ -803,6 +876,22 @@ const Cfo1Page: React.FC = () => {
                   className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
                 />
               </div>
+
+              {editingCard.cardType === 'military' && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Fardamento</label>
+                  <select
+                    value={cardDraft.uniform}
+                    onChange={(e) => setCardDraft(prev => ({ ...prev, uniform: e.target.value as Cfo1Uniform | '' }))}
+                    className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
+                  >
+                    <option value="">— Não definido —</option>
+                    {CFO1_UNIFORMS.map(u => (
+                      <option key={u} value={u}>{u}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase">
