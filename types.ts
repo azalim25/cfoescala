@@ -123,8 +123,16 @@ export interface ScaleVisibilityConfig {
 
 // --- CFO I: planejador de Semana Zero / Quarentena ---
 
+// 'main' = Calendário Principal; 'b4' = B4 - Auxiliares (Logística).
+export type Cfo1Calendar = 'main' | 'b4';
+
+export type Cfo1Uniform = '4°A' | '4°A sem gandola' | '3°A' | '5°A';
+
+export const CFO1_UNIFORMS: Cfo1Uniform[] = ['4°A', '4°A sem gandola', '3°A', '5°A'];
+
 export interface Cfo1ActivityTemplate {
   id: string;
+  calendar: Cfo1Calendar;
   name: string;
   defaultDurationMinutes: number;
   defaultDescription?: string;
@@ -134,6 +142,7 @@ export type Cfo1CardType = 'activity' | 'military';
 
 export interface Cfo1ScheduleCard {
   id: string;
+  calendar: Cfo1Calendar;
   cardType: Cfo1CardType;
   activityTemplateId?: string | null;
   militaryId?: string | null;
@@ -142,5 +151,10 @@ export interface Cfo1ScheduleCard {
   description?: string;
   date: string;
   startTime: string;
+  // Só para cards de militar: encaixa esse card dentro de um card de
+  // atividade (mesmo dia/calendário), em vez de ocupar uma coluna própria.
+  linkedActivityCardId?: string | null;
+  // Só para cards de militar.
+  uniform?: Cfo1Uniform | null;
 }
 

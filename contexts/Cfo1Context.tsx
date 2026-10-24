@@ -33,6 +33,7 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (templatesRes.data) {
                 setActivityTemplates(templatesRes.data.map(t => ({
                     id: t.id,
+                    calendar: t.calendar,
                     name: t.name,
                     defaultDurationMinutes: t.default_duration_minutes,
                     defaultDescription: t.default_description || ''
@@ -42,6 +43,7 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (cardsRes.data) {
                 setScheduleCards(cardsRes.data.map(c => ({
                     id: c.id,
+                    calendar: c.calendar,
                     cardType: c.card_type,
                     activityTemplateId: c.activity_template_id,
                     militaryId: c.military_id,
@@ -49,7 +51,9 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     durationMinutes: c.duration_minutes,
                     description: c.description || '',
                     date: c.date,
-                    startTime: c.start_time?.slice(0, 5)
+                    startTime: c.start_time?.slice(0, 5),
+                    linkedActivityCardId: c.linked_activity_card_id,
+                    uniform: c.uniform
                 })));
             }
         } catch (error) {
@@ -65,6 +69,7 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const addActivityTemplate = async (template: Omit<Cfo1ActivityTemplate, 'id'>) => {
         const { error } = await supabase.from('cfo1_activity_templates').insert({
+            calendar: template.calendar,
             name: template.name,
             default_duration_minutes: template.defaultDurationMinutes,
             default_description: template.defaultDescription || null
@@ -107,6 +112,7 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const addScheduleCard = async (card: Omit<Cfo1ScheduleCard, 'id'>) => {
         const { error } = await supabase.from('cfo1_schedule_cards').insert({
+            calendar: card.calendar,
             card_type: card.cardType,
             activity_template_id: card.activityTemplateId || null,
             military_id: card.militaryId || null,
@@ -114,7 +120,9 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
             duration_minutes: card.durationMinutes,
             description: card.description || null,
             date: card.date,
-            start_time: card.startTime
+            start_time: card.startTime,
+            linked_activity_card_id: card.linkedActivityCardId || null,
+            uniform: card.uniform || null
         });
 
         if (error) {
@@ -132,6 +140,8 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (updates.description !== undefined) dbUpdates.description = updates.description;
         if (updates.date !== undefined) dbUpdates.date = updates.date;
         if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
+        if (updates.linkedActivityCardId !== undefined) dbUpdates.linked_activity_card_id = updates.linkedActivityCardId;
+        if (updates.uniform !== undefined) dbUpdates.uniform = updates.uniform;
 
         const { error } = await supabase.from('cfo1_schedule_cards').update(dbUpdates).eq('id', id);
 
