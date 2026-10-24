@@ -142,5 +142,8 @@ export interface Cfo1ScheduleCard {
   description?: string;
   date: string;
   startTime: string;
+  // Só para cards de militar: encaixa esse card dentro de um card de
+  // atividade (mesmo dia/calendário), em vez de ocupar uma coluna própria.
+  linkedActivityCardId?: string | null;
 }
 

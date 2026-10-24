@@ -59,7 +59,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const { data: { session } } = await supabase.auth.getSession();
                 setSession(session);
                 if (session?.user) {
-                    fetchUserRole(session.user.id); // Non-blocking
+                    // Esperado: ProtectedRoute decide requireModerator/requireCfo1Access
+                    // assim que loading vira false, então o papel/acesso do usuário
+                    // precisa estar resolvido antes disso — sem isso, a checagem roda
+                    // com os valores padrão (false) e redireciona quem tem acesso.
+                    await fetchUserRole(session.user.id);
                 }
             } catch (error) {
                 console.error('Erro ao inicializar autenticação:', error);
@@ -70,25 +74,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         initAuth();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            try {
-                setSession(session);
-                if (session?.user) {
-                    fetchUserRole(session.user.id); // Non-blocking
-                } else {
-                    setRole(null);
-                    setIsModerator(false);
-                    setHasCfo1Access(false);
-                }
-                // If we get a real session, we are definitely NOT a guest
-                if (session) {
-                    setIsGuest(false);
-                    localStorage.removeItem('isGuest');
-                }
-            } catch (error) {
-                console.error('Erro ao alterar estado de autenticação:', error);
-            } finally {
-                setLoading(false);
+        // IMPORTANTE: o callback do onAuthStateChange nunca pode dar await em
+        // chamadas do Supabase (from/rpc/etc.) diretamente — o cliente usa um
+        // lock interno para serializar o estado de auth, e aguardar aqui
+        // trava esse lock e trava getSession()/initAuth() num deadlock. O
+        // trabalho assíncrono é adiado com setTimeout para rodar só depois
+        // que o callback (síncrono) já devolveu o controle.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+            if (session?.user) {
+                setTimeout(() => { fetchUserRole(session.user.id); }, 0);
+            } else {
+                setRole(null);
+                setIsModerator(false);
+                setHasCfo1Access(false);
+            }
+            // If we get a real session, we are definitely NOT a guest
+            if (session) {
+                setIsGuest(false);
+                localStorage.removeItem('isGuest');
             }
         });
 

@@ -49,7 +49,8 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     durationMinutes: c.duration_minutes,
                     description: c.description || '',
                     date: c.date,
-                    startTime: c.start_time?.slice(0, 5)
+                    startTime: c.start_time?.slice(0, 5),
+                    linkedActivityCardId: c.linked_activity_card_id
                 })));
             }
         } catch (error) {
@@ -114,7 +115,8 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
             duration_minutes: card.durationMinutes,
             description: card.description || null,
             date: card.date,
-            start_time: card.startTime
+            start_time: card.startTime,
+            linked_activity_card_id: card.linkedActivityCardId || null
         });
 
         if (error) {
@@ -132,6 +134,7 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (updates.description !== undefined) dbUpdates.description = updates.description;
         if (updates.date !== undefined) dbUpdates.date = updates.date;
         if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
+        if (updates.linkedActivityCardId !== undefined) dbUpdates.linked_activity_card_id = updates.linkedActivityCardId;
 
         const { error } = await supabase.from('cfo1_schedule_cards').update(dbUpdates).eq('id', id);
 

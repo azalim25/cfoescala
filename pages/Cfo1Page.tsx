@@ -141,6 +141,36 @@ const Cfo1Page: React.FC = () => {
     return map;
   }, [scheduleCards]);
 
+  // Cards de militar encaixados dentro de uma atividade não ocupam coluna
+  // própria na grade — só os cards "de primeiro nível" (atividades e
+  // militares avulsos) entram no layout de colunas lado a lado.
+  const topLevelCardsByDate = useMemo(() => {
+    const map: Record<string, Cfo1ScheduleCard[]> = {};
+    SEMANA_ZERO_DATES.forEach(d => {
+      map[d] = (cardsByDate[d] || []).filter(c => !(c.cardType === 'military' && c.linkedActivityCardId));
+    });
+    return map;
+  }, [cardsByDate]);
+
+  const linkedCardsByActivityId = useMemo(() => {
+    const map: Record<string, Cfo1ScheduleCard[]> = {};
+    scheduleCards.forEach(c => {
+      if (c.cardType === 'military' && c.linkedActivityCardId) {
+        if (!map[c.linkedActivityCardId]) map[c.linkedActivityCardId] = [];
+        map[c.linkedActivityCardId].push(c);
+      }
+    });
+    return map;
+  }, [scheduleCards]);
+
+  const findActivityAt = (date: string, mins: number): Cfo1ScheduleCard | undefined => {
+    return (cardsByDate[date] || []).find(c =>
+      c.cardType === 'activity' &&
+      timeToMinutes(c.startTime) <= mins &&
+      mins < cardEndMinutes(c)
+    );
+  };
+
   const { conflictIds, conflictMessages } = useMemo(() => {
     const ids = new Set<string>();
     const messages: string[] = [];
@@ -184,10 +214,10 @@ const Cfo1Page: React.FC = () => {
   const cardLayoutsByDate = useMemo(() => {
     const map: Record<string, Map<string, CardLayout>> = {};
     SEMANA_ZERO_DATES.forEach(date => {
-      map[date] = layoutDayCards(cardsByDate[date] || []);
+      map[date] = layoutDayCards(topLevelCardsByDate[date] || []);
     });
     return map;
-  }, [cardsByDate]);
+  }, [topLevelCardsByDate]);
 
   const hoursWorkedByMilitary = useMemo(() => {
     const totals: Record<string, number> = {};
@@ -262,16 +292,54 @@ const Cfo1Page: React.FC = () => {
         startTime
       });
     } else if (payload.kind === 'new-military' && payload.militaryId) {
-      await addScheduleCard({
-        cardType: 'military',
-        militaryId: payload.militaryId,
-        durationMinutes: SLOT_MINUTES,
-        description: '',
-        date,
-        startTime
-      });
+      // Soltar um militar em cima de uma atividade já encaixa-o dentro dela
+      // (mesmo dia/horário), em vez de criar um card avulso na grade.
+      const hostActivity = findActivityAt(date, mins);
+      if (hostActivity) {
+        await addScheduleCard({
+          cardType: 'military',
+          militaryId: payload.militaryId,
+          durationMinutes: hostActivity.durationMinutes,
+          description: '',
+          date: hostActivity.date,
+          startTime: hostActivity.startTime,
+          linkedActivityCardId: hostActivity.id
+        });
+      } else {
+        await addScheduleCard({
+          cardType: 'military',
+          militaryId: payload.militaryId,
+          durationMinutes: SLOT_MINUTES,
+          description: '',
+          date,
+          startTime,
+          linkedActivityCardId: null
+        });
+      }
     } else if (payload.kind === 'move-card' && payload.cardId) {
-      await updateScheduleCard(payload.cardId, { date, startTime });
+      const movingCard = scheduleCards.find(c => c.id === payload.cardId);
+      if (!movingCard) return;
+
+      if (movingCard.cardType === 'activity') {
+        await updateScheduleCard(movingCard.id, { date, startTime });
+        // Os militares encaixados nessa atividade acompanham o novo horário.
+        const children = linkedCardsByActivityId[movingCard.id] || [];
+        for (const child of children) {
+          await updateScheduleCard(child.id, { date, startTime });
+        }
+      } else {
+        const hostActivity = findActivityAt(date, mins);
+        if (hostActivity) {
+          await updateScheduleCard(movingCard.id, {
+            date: hostActivity.date,
+            startTime: hostActivity.startTime,
+            durationMinutes: movingCard.linkedActivityCardId === hostActivity.id ? movingCard.durationMinutes : hostActivity.durationMinutes,
+            linkedActivityCardId: hostActivity.id
+          });
+        } else {
+          await updateScheduleCard(movingCard.id, { date, startTime, linkedActivityCardId: null });
+        }
+      }
     }
   };
 
@@ -386,7 +454,7 @@ const Cfo1Page: React.FC = () => {
 
               {/* Day columns */}
               {SEMANA_ZERO_DATES.map(date => {
-                const dayCards = cardsByDate[date] || [];
+                const dayCards = topLevelCardsByDate[date] || [];
                 return (
                   <div key={date} className="flex-1 min-w-[220px] border-r last:border-r-0 border-slate-100 dark:border-slate-800">
                     <div className="h-12 sticky top-0 bg-white dark:bg-slate-900 z-10 border-b border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center">
@@ -420,20 +488,25 @@ const Cfo1Page: React.FC = () => {
                       {dayCards.map(card => {
                         const isConflict = conflictIds.has(card.id);
                         const top = timeToMinutes(card.startTime) * PX_PER_MIN;
-                        const height = Math.max(24, card.durationMinutes * PX_PER_MIN);
                         const military = card.cardType === 'military' ? militaries.find(m => m.id === card.militaryId) : null;
                         const isActivity = card.cardType === 'activity';
                         const layout = cardLayoutsByDate[date]?.get(card.id) || { lane: 0, totalLanes: 1 };
                         const widthPct = 100 / layout.totalLanes;
                         const leftPct = layout.lane * widthPct;
+                        const linkedMilitaries = isActivity ? (linkedCardsByActivityId[card.id] || []) : [];
+                        const chipRows = linkedMilitaries.length > 0 ? Math.ceil(linkedMilitaries.length / 6) : 0;
+                        const contentHeight = 34 + chipRows * 18 + 6;
+                        const height = Math.max(24, card.durationMinutes * PX_PER_MIN, isActivity ? contentHeight : 0);
 
                         return (
-                          <button
+                          <div
                             key={card.id}
-                            type="button"
+                            role="button"
+                            tabIndex={hasCfo1Access ? 0 : -1}
                             draggable={hasCfo1Access}
                             onDragStart={(e) => handleCardDragStart(e, card)}
                             onClick={() => hasCfo1Access && openCardEditor(card)}
+                            onKeyDown={(e) => { if (hasCfo1Access && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openCardEditor(card); } }}
                             className={`absolute rounded-lg border px-2 py-1 text-left overflow-hidden shadow-sm transition-all ${hasCfo1Access ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : 'cursor-default'} ${isConflict
                               ? 'bg-red-50 dark:bg-red-900/30 border-red-400 dark:border-red-600 ring-2 ring-red-400/50'
                               : isActivity
@@ -457,7 +530,31 @@ const Cfo1Page: React.FC = () => {
                                 {isActivity ? card.description : `→ ${card.description}`}
                               </p>
                             )}
-                          </button>
+                            {isActivity && linkedMilitaries.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
+                                {linkedMilitaries.map(mc => {
+                                  const mcMil = militaries.find(m => m.id === mc.militaryId);
+                                  const mcConflict = conflictIds.has(mc.id);
+                                  return (
+                                    <button
+                                      key={mc.id}
+                                      type="button"
+                                      draggable={false}
+                                      onClick={(e) => { e.stopPropagation(); if (hasCfo1Access) openCardEditor(mc); }}
+                                      title={mcMil ? `${mcMil.rank} ${mcMil.name}${mc.description ? ' — ' + mc.description : ''}` : 'Militar'}
+                                      className={`flex items-center justify-center rounded-full border transition-all ${mcConflict
+                                        ? 'bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-600 ring-1 ring-red-400'
+                                        : 'bg-white/80 dark:bg-slate-900/50 border-emerald-300 dark:border-emerald-700 hover:border-emerald-500'
+                                        }`}
+                                      style={{ width: 18, height: 18 }}
+                                    >
+                                      <Avatar seed={mc.militaryId || ''} size={14} fallback="none" />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
