@@ -121,3 +121,26 @@ export interface ScaleVisibilityConfig {
   updatedAt?: string;
 }
 
+// --- CFO I: planejador de Semana Zero / Quarentena ---
+
+export interface Cfo1ActivityTemplate {
+  id: string;
+  name: string;
+  defaultDurationMinutes: number;
+  defaultDescription?: string;
+}
+
+export type Cfo1CardType = 'activity' | 'military';
+
+export interface Cfo1ScheduleCard {
+  id: string;
+  cardType: Cfo1CardType;
+  activityTemplateId?: string | null;
+  militaryId?: string | null;
+  title?: string | null;
+  durationMinutes: number;
+  description?: string;
+  date: string;
+  startTime: string;
+}
+

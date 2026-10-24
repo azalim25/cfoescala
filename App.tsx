@@ -23,6 +23,7 @@ const QtmPage = lazy(() => import('./pages/QtmPage'));
 const QdchPage = lazy(() => import('./pages/QdchPage'));
 const NotasPage = lazy(() => import('./pages/NotasPage'));
 const RelatorioPage = lazy(() => import('./pages/RelatorioPage'));
+const Cfo1Page = lazy(() => import('./pages/Cfo1Page'));
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -32,6 +33,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AcademicProvider } from './contexts/AcademicContext';
 import { GradesProvider } from './contexts/GradesContext';
 import { InterfaceThemeProvider } from './contexts/InterfaceThemeContext';
+import { Cfo1Provider } from './contexts/Cfo1Context';
 
 const LoadingFallback = () => (
   <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
@@ -50,6 +52,7 @@ const App: React.FC = () => {
         <GradesProvider>
         <MilitaryProvider>
           <ShiftProvider>
+          <Cfo1Provider>
             <HashRouter>
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
@@ -175,10 +178,17 @@ const App: React.FC = () => {
                     </ProtectedRoute>
                   } />
 
+                  <Route path="/cfo1" element={
+                    <ProtectedRoute>
+                      <Cfo1Page />
+                    </ProtectedRoute>
+                  } />
+
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>
             </HashRouter>
+          </Cfo1Provider>
           </ShiftProvider>
         </MilitaryProvider>
         </GradesProvider>
