@@ -121,12 +121,20 @@ const Cfo1Page: React.FC = () => {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [templateDraft, setTemplateDraft] = useState({ name: '', duration: 30, description: '' });
   const [editingCard, setEditingCard] = useState<Cfo1ScheduleCard | null>(null);
-  const [cardDraft, setCardDraft] = useState<{ title: string; duration: number; description: string; uniform: Cfo1Uniform | '' }>({ title: '', duration: 30, description: '', uniform: '' });
+  const [cardDraft, setCardDraft] = useState<{ title: string; duration: number; description: string; uniform: Cfo1Uniform | ''; delayed: boolean; delayNotes: string }>({ title: '', duration: 30, description: '', uniform: '', delayed: false, delayNotes: '' });
   const [dragHover, setDragHover] = useState<{ date: string; minutes: number } | null>(null);
+  const [now, setNow] = useState(() => new Date());
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 6 * 60 * PX_PER_MIN;
+  }, []);
+
+  // Mantém a Linha do Tempo em dia com a hora real, para destacar a
+  // atividade em andamento sem precisar recarregar a página.
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
   }, []);
 
   const sortedMilitaries = useMemo(() => {
@@ -266,6 +274,38 @@ const Cfo1Page: React.FC = () => {
     });
     return totals;
   }, [scheduleCards]);
+
+  // --- Linha do Tempo (só Calendário Principal, independente da aba ativa) ---
+
+  const mainActivitiesSorted = useMemo(() => {
+    return scheduleCards
+      .filter(c => c.calendar === 'main' && c.cardType === 'activity')
+      .sort((a, b) => a.date === b.date ? timeToMinutes(a.startTime) - timeToMinutes(b.startTime) : a.date.localeCompare(b.date));
+  }, [scheduleCards]);
+
+  const mainLinkedCardsByActivityId = useMemo(() => {
+    const map: Record<string, Cfo1ScheduleCard[]> = {};
+    scheduleCards.forEach(c => {
+      if (c.calendar === 'main' && c.cardType === 'military' && c.linkedActivityCardId) {
+        if (!map[c.linkedActivityCardId]) map[c.linkedActivityCardId] = [];
+        map[c.linkedActivityCardId].push(c);
+      }
+    });
+    return map;
+  }, [scheduleCards]);
+
+  const nowDateStr = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }, [now]);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const currentActivityId = useMemo(() => {
+    const current = mainActivitiesSorted.find(c =>
+      c.date === nowDateStr && timeToMinutes(c.startTime) <= nowMinutes && nowMinutes < cardEndMinutes(c)
+    );
+    return current?.id || null;
+  }, [mainActivitiesSorted, nowDateStr, nowMinutes]);
 
   // --- Drag & drop ---
 
@@ -426,7 +466,9 @@ const Cfo1Page: React.FC = () => {
       title: card.title || '',
       duration: card.durationMinutes,
       description: card.description || '',
-      uniform: card.uniform || ''
+      uniform: card.uniform || '',
+      delayed: !!card.delayed,
+      delayNotes: card.delayNotes || ''
     });
   };
 
@@ -438,6 +480,8 @@ const Cfo1Page: React.FC = () => {
     };
     if (editingCard.cardType === 'activity') {
       updates.title = cardDraft.title.trim() || 'Sem título';
+      updates.delayed = cardDraft.delayed;
+      updates.delayNotes = cardDraft.delayed ? cardDraft.delayNotes.trim() : '';
     } else {
       updates.uniform = cardDraft.uniform || null;
     }
@@ -585,6 +629,9 @@ const Cfo1Page: React.FC = () => {
                               <span className={`text-[10px] font-black truncate ${isConflict ? 'text-red-700 dark:text-red-300' : isActivity ? 'text-primary' : 'text-emerald-700 dark:text-emerald-300'}`}>
                                 {isActivity ? (card.title || 'Sem título') : (military ? `${military.rank} ${military.name}` : 'Militar')}
                               </span>
+                              {isActivity && card.delayed && (
+                                <span className="material-symbols-outlined text-amber-500 text-sm leading-none" title="Houve atraso">schedule</span>
+                              )}
                             </div>
                             <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">
                               {card.startTime} – {minutesToTime(cardEndMinutes(card))}
@@ -671,6 +718,99 @@ const Cfo1Page: React.FC = () => {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-4">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
+                <span className="material-symbols-outlined text-lg">timeline</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">Linha do Tempo</h3>
+                <p className="text-[10px] text-slate-500 font-medium">Calendário Principal · atividade em andamento, cadetes presentes e atrasos</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+              Agora: {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
+            </span>
+          </div>
+
+          <div className="p-4 space-y-5 max-h-[60vh] overflow-y-auto">
+            {mainActivitiesSorted.length === 0 ? (
+              <p className="text-xs text-slate-400 italic text-center py-6">Nenhuma atividade cadastrada no Calendário Principal ainda.</p>
+            ) : (
+              SEMANA_ZERO_DATES.map(date => {
+                const dayActivities = mainActivitiesSorted.filter(c => c.date === date);
+                if (dayActivities.length === 0) return null;
+                return (
+                  <div key={date}>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                      {getWeekday(date, 'short')} · {formatShortDate(date)}
+                    </p>
+                    <ul className="space-y-2 pl-3 border-l-2 border-slate-100 dark:border-slate-800">
+                      {dayActivities.map(activity => {
+                        const isCurrent = activity.id === currentActivityId;
+                        const linked = mainLinkedCardsByActivityId[activity.id] || [];
+                        return (
+                          <li
+                            key={activity.id}
+                            role="button"
+                            tabIndex={hasCfo1Access ? 0 : -1}
+                            onClick={() => hasCfo1Access && openCardEditor(activity)}
+                            onKeyDown={(e) => { if (hasCfo1Access && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openCardEditor(activity); } }}
+                            className={`rounded-lg border p-3 transition-all ${hasCfo1Access ? 'cursor-pointer hover:shadow-md' : ''} ${isCurrent
+                              ? 'bg-primary/10 border-primary ring-2 ring-primary/40'
+                              : activity.delayed
+                                ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800'
+                              }`}
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                {activity.startTime} – {minutesToTime(cardEndMinutes(activity))}
+                              </span>
+                              <span className="text-xs font-black text-slate-800 dark:text-slate-100">{activity.title || 'Sem título'}</span>
+                              {isCurrent && (
+                                <span className="text-[9px] font-black uppercase tracking-widest text-white bg-primary px-2 py-0.5 rounded-full">Agora</span>
+                              )}
+                              {activity.delayed && (
+                                <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
+                                  <span className="material-symbols-outlined text-xs leading-none">schedule</span>
+                                  Atraso
+                                </span>
+                              )}
+                            </div>
+                            {activity.delayed && activity.delayNotes && (
+                              <p className="text-[10px] text-amber-700 dark:text-amber-300 italic mt-1">{activity.delayNotes}</p>
+                            )}
+                            <div className="flex flex-wrap gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
+                              {linked.length === 0 ? (
+                                <span className="text-[10px] text-slate-300 dark:text-slate-600 italic">Nenhum cadete vinculado</span>
+                              ) : linked.map(mc => {
+                                const mcMil = militaries.find(m => m.id === mc.militaryId);
+                                return (
+                                  <button
+                                    key={mc.id}
+                                    type="button"
+                                    onClick={() => hasCfo1Access && openCardEditor(mc)}
+                                    className="flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 transition-all"
+                                  >
+                                    <Avatar seed={mc.militaryId || ''} size={16} fallback="none" />
+                                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">{mcMil ? mcMil.name : 'Militar'}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </MainLayout.Content>
@@ -876,6 +1016,29 @@ const Cfo1Page: React.FC = () => {
                   className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
                 />
               </div>
+
+              {editingCard.cardType === 'activity' && (
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={cardDraft.delayed}
+                      onChange={(e) => setCardDraft(prev => ({ ...prev, delayed: e.target.checked }))}
+                      className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+                    />
+                    Houve atraso nessa atividade
+                  </label>
+                  {cardDraft.delayed && (
+                    <textarea
+                      value={cardDraft.delayNotes}
+                      onChange={(e) => setCardDraft(prev => ({ ...prev, delayNotes: e.target.value }))}
+                      rows={2}
+                      placeholder="Ex: Atrasou 15 minutos por causa do transporte"
+                      className="w-full px-3 py-2 rounded-lg border bg-slate-50 dark:bg-slate-800 border-amber-300 dark:border-amber-700 outline-none focus:border-amber-500 text-sm resize-none"
+                    />
+                  )}
+                </div>
+              )}
 
               {editingCard.cardType === 'military' && (
                 <div className="space-y-1">

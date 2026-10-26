@@ -156,5 +156,8 @@ export interface Cfo1ScheduleCard {
   linkedActivityCardId?: string | null;
   // Só para cards de militar.
   uniform?: Cfo1Uniform | null;
+  // Só para cards de atividade: indica se a atividade começou atrasada.
+  delayed?: boolean;
+  delayNotes?: string | null;
 }
 
