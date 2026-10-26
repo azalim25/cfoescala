@@ -55,7 +55,10 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     linkedActivityCardId: c.linked_activity_card_id,
                     uniform: c.uniform,
                     delayed: c.delayed,
-                    delayNotes: c.delay_notes || ''
+                    delayNotes: c.delay_notes || '',
+                    vehicleName: c.vehicle_name || '',
+                    vehicleDriver: c.vehicle_driver || '',
+                    vehicleLocation: c.vehicle_location || ''
                 })));
             }
         } catch (error) {
@@ -126,7 +129,10 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
             linked_activity_card_id: card.linkedActivityCardId || null,
             uniform: card.uniform || null,
             delayed: card.delayed || false,
-            delay_notes: card.delayNotes || null
+            delay_notes: card.delayNotes || null,
+            vehicle_name: card.vehicleName || null,
+            vehicle_driver: card.vehicleDriver || null,
+            vehicle_location: card.vehicleLocation || null
         });
 
         if (error) {
@@ -148,6 +154,9 @@ export const Cfo1Provider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (updates.uniform !== undefined) dbUpdates.uniform = updates.uniform;
         if (updates.delayed !== undefined) dbUpdates.delayed = updates.delayed;
         if (updates.delayNotes !== undefined) dbUpdates.delay_notes = updates.delayNotes || null;
+        if (updates.vehicleName !== undefined) dbUpdates.vehicle_name = updates.vehicleName || null;
+        if (updates.vehicleDriver !== undefined) dbUpdates.vehicle_driver = updates.vehicleDriver || null;
+        if (updates.vehicleLocation !== undefined) dbUpdates.vehicle_location = updates.vehicleLocation || null;
 
         const { error } = await supabase.from('cfo1_schedule_cards').update(dbUpdates).eq('id', id);
 

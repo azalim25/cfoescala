@@ -16,7 +16,51 @@ const PX_PER_MIN = 1.2; // 72px por hora
 
 const CALENDAR_LABELS: Record<Cfo1Calendar, string> = {
   main: 'Calendário Principal',
-  b4: 'B4 - Auxiliares'
+  b4: 'B4 - Auxiliares',
+  pc: 'Posto de Comando',
+  viatura: 'Viatura'
+};
+
+const CFO1_CALENDARS: Cfo1Calendar[] = ['main', 'b4', 'pc', 'viatura'];
+
+type Interval = [number, number];
+
+// Soma intervalos que se tocam ou se sobrepõem num só, pra computar
+// "quanto tempo, no total, X estava coberto" sem contar sobreposição em
+// dobro.
+const mergeIntervals = (intervals: Interval[]): Interval[] => {
+  if (intervals.length === 0) return [];
+  const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+  const merged: Interval[] = [[sorted[0][0], sorted[0][1]]];
+  for (let i = 1; i < sorted.length; i++) {
+    const last = merged[merged.length - 1];
+    const [curStart, curEnd] = sorted[i];
+    if (curStart <= last[1]) {
+      last[1] = Math.max(last[1], curEnd);
+    } else {
+      merged.push([curStart, curEnd]);
+    }
+  }
+  return merged;
+};
+
+// Devolve os pedaços de `a` que não são cobertos por nenhum intervalo de
+// `b` — usado para achar os períodos em que há atividade rolando mas
+// ninguém do Posto de Comando está escalado.
+const subtractIntervals = (a: Interval[], b: Interval[]): Interval[] => {
+  const result: Interval[] = [];
+  a.forEach(([aStart, aEnd]) => {
+    let cursor = aStart;
+    for (const [bStart, bEnd] of b) {
+      if (bEnd <= cursor) continue;
+      if (bStart >= aEnd) break;
+      if (bStart > cursor) result.push([cursor, Math.min(bStart, aEnd)]);
+      cursor = Math.max(cursor, bEnd);
+      if (cursor >= aEnd) break;
+    }
+    if (cursor < aEnd) result.push([cursor, aEnd]);
+  });
+  return result;
 };
 
 const minutesToTime = (mins: number): string => {
@@ -121,7 +165,8 @@ const Cfo1Page: React.FC = () => {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [templateDraft, setTemplateDraft] = useState({ name: '', duration: 30, description: '' });
   const [editingCard, setEditingCard] = useState<Cfo1ScheduleCard | null>(null);
-  const [cardDraft, setCardDraft] = useState<{ title: string; duration: number; description: string; uniform: Cfo1Uniform | ''; delayed: boolean; delayNotes: string }>({ title: '', duration: 30, description: '', uniform: '', delayed: false, delayNotes: '' });
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [cardDraft, setCardDraft] = useState<{ title: string; duration: number; description: string; uniform: Cfo1Uniform | ''; delayed: boolean; delayNotes: string; vehicleName: string; vehicleDriver: string; vehicleLocation: string }>({ title: '', duration: 30, description: '', uniform: '', delayed: false, delayNotes: '', vehicleName: '', vehicleDriver: '', vehicleLocation: '' });
   const [dragHover, setDragHover] = useState<{ date: string; minutes: number } | null>(null);
   const [now, setNow] = useState(() => new Date());
 
@@ -206,7 +251,7 @@ const Cfo1Page: React.FC = () => {
   const { conflictIds, conflictMessages } = useMemo(() => {
     const ids = new Set<string>();
     const messages: string[] = [];
-    const calendars: Cfo1Calendar[] = ['main', 'b4'];
+    const calendars: Cfo1Calendar[] = CFO1_CALENDARS;
 
     SEMANA_ZERO_DATES.forEach(date => {
       const dayCards = cardsByDateAll[date] || [];
@@ -274,6 +319,31 @@ const Cfo1Page: React.FC = () => {
     });
     return totals;
   }, [scheduleCards]);
+
+  // --- Cobertura do Posto de Comando ---
+  // Sempre que há atividade rolando (Principal ou B4), precisa ter pelo
+  // menos um cadete escalado no Posto de Comando naquele intervalo.
+  const pcCoverageGaps = useMemo(() => {
+    const messages: string[] = [];
+    SEMANA_ZERO_DATES.forEach(date => {
+      const dayCards = cardsByDateAll[date] || [];
+      const busy = mergeIntervals(
+        dayCards
+          .filter(c => c.cardType === 'activity' && (c.calendar === 'main' || c.calendar === 'b4'))
+          .map(c => [timeToMinutes(c.startTime), cardEndMinutes(c)] as Interval)
+      );
+      if (busy.length === 0) return;
+      const pcCoverage = mergeIntervals(
+        dayCards
+          .filter(c => c.cardType === 'military' && c.calendar === 'pc')
+          .map(c => [timeToMinutes(c.startTime), cardEndMinutes(c)] as Interval)
+      );
+      subtractIntervals(busy, pcCoverage).forEach(([gapStart, gapEnd]) => {
+        messages.push(`${formatShortDate(date)}: Posto de Comando sem cadete das ${minutesToTime(gapStart)} às ${minutesToTime(gapEnd)}.`);
+      });
+    });
+    return messages;
+  }, [cardsByDateAll]);
 
   // --- Linha do Tempo (só Calendário Principal, independente da aba ativa) ---
 
@@ -468,7 +538,10 @@ const Cfo1Page: React.FC = () => {
       description: card.description || '',
       uniform: card.uniform || '',
       delayed: !!card.delayed,
-      delayNotes: card.delayNotes || ''
+      delayNotes: card.delayNotes || '',
+      vehicleName: card.vehicleName || '',
+      vehicleDriver: card.vehicleDriver || '',
+      vehicleLocation: card.vehicleLocation || ''
     });
   };
 
@@ -482,6 +555,11 @@ const Cfo1Page: React.FC = () => {
       updates.title = cardDraft.title.trim() || 'Sem título';
       updates.delayed = cardDraft.delayed;
       updates.delayNotes = cardDraft.delayed ? cardDraft.delayNotes.trim() : '';
+      if (editingCard.calendar === 'viatura') {
+        updates.vehicleName = cardDraft.vehicleName.trim();
+        updates.vehicleDriver = cardDraft.vehicleDriver.trim();
+        updates.vehicleLocation = cardDraft.vehicleLocation.trim();
+      }
     } else {
       updates.uniform = cardDraft.uniform || null;
     }
@@ -512,14 +590,23 @@ const Cfo1Page: React.FC = () => {
               </p>
             </div>
           </div>
-          <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
-            <span className="material-symbols-outlined text-sm">lock</span>
-            Acesso restrito
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowTimeline(true)}
+              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg border border-primary/30 transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">timeline</span>
+              Linha do Tempo
+            </button>
+            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
+              <span className="material-symbols-outlined text-sm">lock</span>
+              Acesso restrito
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-2">
-          {(['main', 'b4'] as Cfo1Calendar[]).map(cal => (
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {CFO1_CALENDARS.map(cal => (
             <button
               key={cal}
               onClick={() => setActiveCalendar(cal)}
@@ -542,6 +629,20 @@ const Cfo1Page: React.FC = () => {
             <ul className="space-y-1">
               {conflictMessages.map((msg, i) => (
                 <li key={i} className="text-xs text-red-600 dark:text-red-300 font-medium pl-1">• {msg}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {pcCoverageGaps.length > 0 && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4 space-y-2">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-black text-xs uppercase tracking-widest">
+              <span className="material-symbols-outlined text-lg">local_police</span>
+              Posto de Comando sem cobertura em {pcCoverageGaps.length} período(s)
+            </div>
+            <ul className="space-y-1">
+              {pcCoverageGaps.map((msg, i) => (
+                <li key={i} className="text-xs text-amber-700 dark:text-amber-300 font-medium pl-1">• {msg}</li>
               ))}
             </ul>
           </div>
@@ -641,6 +742,11 @@ const Cfo1Page: React.FC = () => {
                                 Fardamento: {card.uniform}
                               </p>
                             )}
+                            {isActivity && card.calendar === 'viatura' && (card.vehicleName || card.vehicleDriver || card.vehicleLocation) && (
+                              <p className="text-[9px] font-black text-sky-600 dark:text-sky-400 truncate">
+                                {[card.vehicleName, card.vehicleDriver, card.vehicleLocation].filter(Boolean).join(' · ')}
+                              </p>
+                            )}
                             {card.description && (isActivity ? height > 44 : true) && (
                               <p className={`text-[9px] truncate ${isActivity ? 'text-slate-400 dark:text-slate-500' : 'text-emerald-600 dark:text-emerald-400 font-bold italic'}`}>
                                 {isActivity ? card.description : `→ ${card.description}`}
@@ -721,98 +827,6 @@ const Cfo1Page: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-4">
-          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
-                <span className="material-symbols-outlined text-lg">timeline</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">Linha do Tempo</h3>
-                <p className="text-[10px] text-slate-500 font-medium">Calendário Principal · atividade em andamento, cadetes presentes e atrasos</p>
-              </div>
-            </div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">
-              Agora: {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
-            </span>
-          </div>
-
-          <div className="p-4 space-y-5 max-h-[60vh] overflow-y-auto">
-            {mainActivitiesSorted.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-6">Nenhuma atividade cadastrada no Calendário Principal ainda.</p>
-            ) : (
-              SEMANA_ZERO_DATES.map(date => {
-                const dayActivities = mainActivitiesSorted.filter(c => c.date === date);
-                if (dayActivities.length === 0) return null;
-                return (
-                  <div key={date}>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                      {getWeekday(date, 'short')} · {formatShortDate(date)}
-                    </p>
-                    <ul className="space-y-2 pl-3 border-l-2 border-slate-100 dark:border-slate-800">
-                      {dayActivities.map(activity => {
-                        const isCurrent = activity.id === currentActivityId;
-                        const linked = mainLinkedCardsByActivityId[activity.id] || [];
-                        return (
-                          <li
-                            key={activity.id}
-                            role="button"
-                            tabIndex={hasCfo1Access ? 0 : -1}
-                            onClick={() => hasCfo1Access && openCardEditor(activity)}
-                            onKeyDown={(e) => { if (hasCfo1Access && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openCardEditor(activity); } }}
-                            className={`rounded-lg border p-3 transition-all ${hasCfo1Access ? 'cursor-pointer hover:shadow-md' : ''} ${isCurrent
-                              ? 'bg-primary/10 border-primary ring-2 ring-primary/40'
-                              : activity.delayed
-                                ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
-                                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800'
-                              }`}
-                          >
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                {activity.startTime} – {minutesToTime(cardEndMinutes(activity))}
-                              </span>
-                              <span className="text-xs font-black text-slate-800 dark:text-slate-100">{activity.title || 'Sem título'}</span>
-                              {isCurrent && (
-                                <span className="text-[9px] font-black uppercase tracking-widest text-white bg-primary px-2 py-0.5 rounded-full">Agora</span>
-                              )}
-                              {activity.delayed && (
-                                <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
-                                  <span className="material-symbols-outlined text-xs leading-none">schedule</span>
-                                  Atraso
-                                </span>
-                              )}
-                            </div>
-                            {activity.delayed && activity.delayNotes && (
-                              <p className="text-[10px] text-amber-700 dark:text-amber-300 italic mt-1">{activity.delayNotes}</p>
-                            )}
-                            <div className="flex flex-wrap gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
-                              {linked.length === 0 ? (
-                                <span className="text-[10px] text-slate-300 dark:text-slate-600 italic">Nenhum cadete vinculado</span>
-                              ) : linked.map(mc => {
-                                const mcMil = militaries.find(m => m.id === mc.militaryId);
-                                return (
-                                  <button
-                                    key={mc.id}
-                                    type="button"
-                                    onClick={() => hasCfo1Access && openCardEditor(mc)}
-                                    className="flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 transition-all"
-                                  >
-                                    <Avatar seed={mc.militaryId || ''} size={16} fallback="none" />
-                                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">{mcMil ? mcMil.name : 'Militar'}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
       </MainLayout.Content>
 
       <MainLayout.Sidebar>
@@ -1017,6 +1031,41 @@ const Cfo1Page: React.FC = () => {
                 />
               </div>
 
+              {editingCard.cardType === 'activity' && editingCard.calendar === 'viatura' && (
+                <div className="space-y-2 p-3 bg-sky-50 dark:bg-sky-900/10 rounded-lg border border-sky-200 dark:border-sky-800">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Viatura</label>
+                    <input
+                      type="text"
+                      value={cardDraft.vehicleName}
+                      onChange={(e) => setCardDraft(prev => ({ ...prev, vehicleName: e.target.value }))}
+                      placeholder="Ex: Viatura 12"
+                      className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Motorista</label>
+                    <input
+                      type="text"
+                      value={cardDraft.vehicleDriver}
+                      onChange={(e) => setCardDraft(prev => ({ ...prev, vehicleDriver: e.target.value }))}
+                      placeholder="Ex: Cadete Azalim"
+                      className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Local</label>
+                    <input
+                      type="text"
+                      value={cardDraft.vehicleLocation}
+                      onChange={(e) => setCardDraft(prev => ({ ...prev, vehicleLocation: e.target.value }))}
+                      placeholder="Ex: Portaria principal"
+                      className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
+                    />
+                  </div>
+                </div>
+              )}
+
               {editingCard.cardType === 'activity' && (
                 <div className="space-y-1">
                   <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
@@ -1073,6 +1122,108 @@ const Cfo1Page: React.FC = () => {
                 <button onClick={saveCardEdit} className="flex-1 h-10 bg-primary text-white rounded-lg font-bold text-sm">Salvar</button>
                 <button onClick={handleDeleteCard} className="h-10 px-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg font-bold text-sm border border-red-200 dark:border-red-800">Remover</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTimeline && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowTimeline(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
+                  <span className="material-symbols-outlined text-lg">timeline</span>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">Linha do Tempo</h3>
+                  <p className="text-[10px] text-slate-500 font-medium truncate">Calendário Principal · atividade em andamento, cadetes presentes e atrasos</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:inline">
+                  Agora: {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
+                </span>
+                <button onClick={() => setShowTimeline(false)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-red-500">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 space-y-5 overflow-y-auto">
+              {mainActivitiesSorted.length === 0 ? (
+                <p className="text-xs text-slate-400 italic text-center py-6">Nenhuma atividade cadastrada no Calendário Principal ainda.</p>
+              ) : (
+                SEMANA_ZERO_DATES.map(date => {
+                  const dayActivities = mainActivitiesSorted.filter(c => c.date === date);
+                  if (dayActivities.length === 0) return null;
+                  return (
+                    <div key={date}>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                        {getWeekday(date, 'short')} · {formatShortDate(date)}
+                      </p>
+                      <ul className="space-y-2 pl-3 border-l-2 border-slate-100 dark:border-slate-800">
+                        {dayActivities.map(activity => {
+                          const isCurrent = activity.id === currentActivityId;
+                          const linked = mainLinkedCardsByActivityId[activity.id] || [];
+                          return (
+                            <li
+                              key={activity.id}
+                              role="button"
+                              tabIndex={hasCfo1Access ? 0 : -1}
+                              onClick={() => { if (hasCfo1Access) { setShowTimeline(false); openCardEditor(activity); } }}
+                              onKeyDown={(e) => { if (hasCfo1Access && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setShowTimeline(false); openCardEditor(activity); } }}
+                              className={`rounded-lg border p-3 transition-all ${hasCfo1Access ? 'cursor-pointer hover:shadow-md' : ''} ${isCurrent
+                                ? 'bg-primary/10 border-primary ring-2 ring-primary/40'
+                                : activity.delayed
+                                  ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800'
+                                }`}
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                  {activity.startTime} – {minutesToTime(cardEndMinutes(activity))}
+                                </span>
+                                <span className="text-xs font-black text-slate-800 dark:text-slate-100">{activity.title || 'Sem título'}</span>
+                                {isCurrent && (
+                                  <span className="text-[9px] font-black uppercase tracking-widest text-white bg-primary px-2 py-0.5 rounded-full">Agora</span>
+                                )}
+                                {activity.delayed && (
+                                  <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
+                                    <span className="material-symbols-outlined text-xs leading-none">schedule</span>
+                                    Atraso
+                                  </span>
+                                )}
+                              </div>
+                              {activity.delayed && activity.delayNotes && (
+                                <p className="text-[10px] text-amber-700 dark:text-amber-300 italic mt-1">{activity.delayNotes}</p>
+                              )}
+                              <div className="flex flex-wrap gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
+                                {linked.length === 0 ? (
+                                  <span className="text-[10px] text-slate-300 dark:text-slate-600 italic">Nenhum cadete vinculado</span>
+                                ) : linked.map(mc => {
+                                  const mcMil = militaries.find(m => m.id === mc.militaryId);
+                                  return (
+                                    <button
+                                      key={mc.id}
+                                      type="button"
+                                      onClick={() => { if (hasCfo1Access) { setShowTimeline(false); openCardEditor(mc); } }}
+                                      className="flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 transition-all"
+                                    >
+                                      <Avatar seed={mc.militaryId || ''} size={16} fallback="none" />
+                                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">{mcMil ? mcMil.name : 'Militar'}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

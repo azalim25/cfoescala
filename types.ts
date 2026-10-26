@@ -123,8 +123,9 @@ export interface ScaleVisibilityConfig {
 
 // --- CFO I: planejador de Semana Zero / Quarentena ---
 
-// 'main' = Calendário Principal; 'b4' = B4 - Auxiliares (Logística).
-export type Cfo1Calendar = 'main' | 'b4';
+// 'main' = Calendário Principal; 'b4' = B4 - Auxiliares (Logística);
+// 'pc' = Posto de Comando; 'viatura' = Viatura.
+export type Cfo1Calendar = 'main' | 'b4' | 'pc' | 'viatura';
 
 export type Cfo1Uniform = '4°A' | '4°A sem gandola' | '3°A' | '5°A';
 
@@ -159,5 +160,9 @@ export interface Cfo1ScheduleCard {
   // Só para cards de atividade: indica se a atividade começou atrasada.
   delayed?: boolean;
   delayNotes?: string | null;
+  // Só para cards de atividade no calendário "viatura".
+  vehicleName?: string | null;
+  vehicleDriver?: string | null;
+  vehicleLocation?: string | null;
 }
 
