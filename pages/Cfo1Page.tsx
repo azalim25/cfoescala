@@ -16,7 +16,51 @@ const PX_PER_MIN = 1.2; // 72px por hora
 
 const CALENDAR_LABELS: Record<Cfo1Calendar, string> = {
   main: 'Calendário Principal',
-  b4: 'B4 - Auxiliares'
+  b4: 'B4 - Auxiliares',
+  pc: 'Posto de Comando',
+  viatura: 'Viatura'
+};
+
+const CFO1_CALENDARS: Cfo1Calendar[] = ['main', 'b4', 'pc', 'viatura'];
+
+type Interval = [number, number];
+
+// Soma intervalos que se tocam ou se sobrepõem num só, pra computar
+// "quanto tempo, no total, X estava coberto" sem contar sobreposição em
+// dobro.
+const mergeIntervals = (intervals: Interval[]): Interval[] => {
+  if (intervals.length === 0) return [];
+  const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+  const merged: Interval[] = [[sorted[0][0], sorted[0][1]]];
+  for (let i = 1; i < sorted.length; i++) {
+    const last = merged[merged.length - 1];
+    const [curStart, curEnd] = sorted[i];
+    if (curStart <= last[1]) {
+      last[1] = Math.max(last[1], curEnd);
+    } else {
+      merged.push([curStart, curEnd]);
+    }
+  }
+  return merged;
+};
+
+// Devolve os pedaços de `a` que não são cobertos por nenhum intervalo de
+// `b` — usado para achar os períodos em que há atividade rolando mas
+// ninguém do Posto de Comando está escalado.
+const subtractIntervals = (a: Interval[], b: Interval[]): Interval[] => {
+  const result: Interval[] = [];
+  a.forEach(([aStart, aEnd]) => {
+    let cursor = aStart;
+    for (const [bStart, bEnd] of b) {
+      if (bEnd <= cursor) continue;
+      if (bStart >= aEnd) break;
+      if (bStart > cursor) result.push([cursor, Math.min(bStart, aEnd)]);
+      cursor = Math.max(cursor, bEnd);
+      if (cursor >= aEnd) break;
+    }
+    if (cursor < aEnd) result.push([cursor, aEnd]);
+  });
+  return result;
 };
 
 const minutesToTime = (mins: number): string => {
@@ -122,7 +166,7 @@ const Cfo1Page: React.FC = () => {
   const [templateDraft, setTemplateDraft] = useState({ name: '', duration: 30, description: '' });
   const [editingCard, setEditingCard] = useState<Cfo1ScheduleCard | null>(null);
   const [showTimeline, setShowTimeline] = useState(false);
-  const [cardDraft, setCardDraft] = useState<{ title: string; duration: number; description: string; uniform: Cfo1Uniform | ''; delayed: boolean; delayNotes: string }>({ title: '', duration: 30, description: '', uniform: '', delayed: false, delayNotes: '' });
+  const [cardDraft, setCardDraft] = useState<{ title: string; duration: number; description: string; uniform: Cfo1Uniform | ''; delayed: boolean; delayNotes: string; vehicleName: string; vehicleDriver: string; vehicleLocation: string }>({ title: '', duration: 30, description: '', uniform: '', delayed: false, delayNotes: '', vehicleName: '', vehicleDriver: '', vehicleLocation: '' });
   const [dragHover, setDragHover] = useState<{ date: string; minutes: number } | null>(null);
   const [now, setNow] = useState(() => new Date());
 
@@ -207,7 +251,7 @@ const Cfo1Page: React.FC = () => {
   const { conflictIds, conflictMessages } = useMemo(() => {
     const ids = new Set<string>();
     const messages: string[] = [];
-    const calendars: Cfo1Calendar[] = ['main', 'b4'];
+    const calendars: Cfo1Calendar[] = CFO1_CALENDARS;
 
     SEMANA_ZERO_DATES.forEach(date => {
       const dayCards = cardsByDateAll[date] || [];
@@ -275,6 +319,31 @@ const Cfo1Page: React.FC = () => {
     });
     return totals;
   }, [scheduleCards]);
+
+  // --- Cobertura do Posto de Comando ---
+  // Sempre que há atividade rolando (Principal ou B4), precisa ter pelo
+  // menos um cadete escalado no Posto de Comando naquele intervalo.
+  const pcCoverageGaps = useMemo(() => {
+    const messages: string[] = [];
+    SEMANA_ZERO_DATES.forEach(date => {
+      const dayCards = cardsByDateAll[date] || [];
+      const busy = mergeIntervals(
+        dayCards
+          .filter(c => c.cardType === 'activity' && (c.calendar === 'main' || c.calendar === 'b4'))
+          .map(c => [timeToMinutes(c.startTime), cardEndMinutes(c)] as Interval)
+      );
+      if (busy.length === 0) return;
+      const pcCoverage = mergeIntervals(
+        dayCards
+          .filter(c => c.cardType === 'military' && c.calendar === 'pc')
+          .map(c => [timeToMinutes(c.startTime), cardEndMinutes(c)] as Interval)
+      );
+      subtractIntervals(busy, pcCoverage).forEach(([gapStart, gapEnd]) => {
+        messages.push(`${formatShortDate(date)}: Posto de Comando sem cadete das ${minutesToTime(gapStart)} às ${minutesToTime(gapEnd)}.`);
+      });
+    });
+    return messages;
+  }, [cardsByDateAll]);
 
   // --- Linha do Tempo (só Calendário Principal, independente da aba ativa) ---
 
@@ -469,7 +538,10 @@ const Cfo1Page: React.FC = () => {
       description: card.description || '',
       uniform: card.uniform || '',
       delayed: !!card.delayed,
-      delayNotes: card.delayNotes || ''
+      delayNotes: card.delayNotes || '',
+      vehicleName: card.vehicleName || '',
+      vehicleDriver: card.vehicleDriver || '',
+      vehicleLocation: card.vehicleLocation || ''
     });
   };
 
@@ -483,6 +555,11 @@ const Cfo1Page: React.FC = () => {
       updates.title = cardDraft.title.trim() || 'Sem título';
       updates.delayed = cardDraft.delayed;
       updates.delayNotes = cardDraft.delayed ? cardDraft.delayNotes.trim() : '';
+      if (editingCard.calendar === 'viatura') {
+        updates.vehicleName = cardDraft.vehicleName.trim();
+        updates.vehicleDriver = cardDraft.vehicleDriver.trim();
+        updates.vehicleLocation = cardDraft.vehicleLocation.trim();
+      }
     } else {
       updates.uniform = cardDraft.uniform || null;
     }
@@ -528,8 +605,8 @@ const Cfo1Page: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-2">
-          {(['main', 'b4'] as Cfo1Calendar[]).map(cal => (
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {CFO1_CALENDARS.map(cal => (
             <button
               key={cal}
               onClick={() => setActiveCalendar(cal)}
@@ -552,6 +629,20 @@ const Cfo1Page: React.FC = () => {
             <ul className="space-y-1">
               {conflictMessages.map((msg, i) => (
                 <li key={i} className="text-xs text-red-600 dark:text-red-300 font-medium pl-1">• {msg}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {pcCoverageGaps.length > 0 && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4 space-y-2">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-black text-xs uppercase tracking-widest">
+              <span className="material-symbols-outlined text-lg">local_police</span>
+              Posto de Comando sem cobertura em {pcCoverageGaps.length} período(s)
+            </div>
+            <ul className="space-y-1">
+              {pcCoverageGaps.map((msg, i) => (
+                <li key={i} className="text-xs text-amber-700 dark:text-amber-300 font-medium pl-1">• {msg}</li>
               ))}
             </ul>
           </div>
@@ -649,6 +740,11 @@ const Cfo1Page: React.FC = () => {
                             {!isActivity && card.uniform && (
                               <p className="text-[9px] font-black text-emerald-700 dark:text-emerald-300">
                                 Fardamento: {card.uniform}
+                              </p>
+                            )}
+                            {isActivity && card.calendar === 'viatura' && (card.vehicleName || card.vehicleDriver || card.vehicleLocation) && (
+                              <p className="text-[9px] font-black text-sky-600 dark:text-sky-400 truncate">
+                                {[card.vehicleName, card.vehicleDriver, card.vehicleLocation].filter(Boolean).join(' · ')}
                               </p>
                             )}
                             {card.description && (isActivity ? height > 44 : true) && (
@@ -934,6 +1030,41 @@ const Cfo1Page: React.FC = () => {
                   className="w-full h-10 px-3 rounded-lg border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
                 />
               </div>
+
+              {editingCard.cardType === 'activity' && editingCard.calendar === 'viatura' && (
+                <div className="space-y-2 p-3 bg-sky-50 dark:bg-sky-900/10 rounded-lg border border-sky-200 dark:border-sky-800">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Viatura</label>
+                    <input
+                      type="text"
+                      value={cardDraft.vehicleName}
+                      onChange={(e) => setCardDraft(prev => ({ ...prev, vehicleName: e.target.value }))}
+                      placeholder="Ex: Viatura 12"
+                      className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Motorista</label>
+                    <input
+                      type="text"
+                      value={cardDraft.vehicleDriver}
+                      onChange={(e) => setCardDraft(prev => ({ ...prev, vehicleDriver: e.target.value }))}
+                      placeholder="Ex: Cadete Azalim"
+                      className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Local</label>
+                    <input
+                      type="text"
+                      value={cardDraft.vehicleLocation}
+                      onChange={(e) => setCardDraft(prev => ({ ...prev, vehicleLocation: e.target.value }))}
+                      placeholder="Ex: Portaria principal"
+                      className="w-full h-9 px-3 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 outline-none focus:border-primary text-sm font-bold"
+                    />
+                  </div>
+                </div>
+              )}
 
               {editingCard.cardType === 'activity' && (
                 <div className="space-y-1">
